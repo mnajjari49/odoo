@@ -8,7 +8,7 @@ from difflib import get_close_matches
 
 from odoo import api, fields, models, tools, SUPERUSER_ID, _
 from odoo.exceptions import AccessError, UserError, ValidationError
-from odoo.modules import get_module_path, get_module_resource
+from odoo.modules import get_module_path
 
 _logger = logging.getLogger(__name__)
 
@@ -788,39 +788,25 @@ class IrTranslation(models.Model):
             modpath = get_module_path(module_name)
             if not modpath:
                 continue
-            for lang in langs:
-                lang_code = tools.get_iso_codes(lang)
+            for lang_code in langs:
+                iso_code = tools.get_iso_codes(lang_code)
                 base_lang_code = None
-                if '_' in lang_code:
-                    base_lang_code = lang_code.split('_')[0]
+                if '_' in iso_code:
+                    base_lang_code = iso_code.split('_')[0]
 
                 # Step 1: for sub-languages, load base language first (e.g. es_CL.po is loaded over es.po)
                 if base_lang_code:
-                    base_trans_file = get_module_resource(module_name, 'i18n', base_lang_code + '.po')
-                    if base_trans_file:
-                        _logger.info('module %s: loading base translation file %s for language %s', module_name, base_lang_code, lang)
-                        tools.trans_load(self._cr, base_trans_file, lang, verbose=False, overwrite=overwrite)
-                        overwrite = True  # make sure the requested translation will override the base terms later
-
-                    # i18n_extra folder is for additional translations handle manually (eg: for l10n_be)
-                    base_trans_extra_file = get_module_resource(module_name, 'i18n_extra', base_lang_code + '.po')
-                    if base_trans_extra_file:
-                        _logger.info('module %s: loading extra base translation file %s for language %s', module_name, base_lang_code, lang)
-                        tools.trans_load(self._cr, base_trans_extra_file, lang, verbose=False, overwrite=overwrite)
+                    for po_file in self.env['res.lang']._read_po_from_attachment(module_name, base_lang_code):
+                        _logger.info('module %s: loading base translation file %s for language %s', module_name, base_lang_code, lang_code)
+                        tools.trans_load_data(self._cr, po_file, 'po', lang_code, verbose=False, module_name=module_name, overwrite=overwrite)
                         overwrite = True  # make sure the requested translation will override the base terms later
 
                 # Step 2: then load the main translation file, possibly overriding the terms coming from the base language
-                trans_file = get_module_resource(module_name, 'i18n', lang_code + '.po')
-                if trans_file:
-                    _logger.info('module %s: loading translation file (%s) for language %s', module_name, lang_code, lang)
-                    tools.trans_load(self._cr, trans_file, lang, verbose=False, overwrite=overwrite)
-                elif lang_code != 'en_US':
-                    _logger.info('module %s: no translation for language %s', module_name, lang_code)
+                for po_file in self.env['res.lang']._read_po_from_attachment(module_name, iso_code):
+                    _logger.info('module %s: loading base translation file %s for language %s', module_name, iso_code, lang_code)
+                    tools.trans_load_data(self._cr, po_file, 'po', lang_code, verbose=False, module_name=module_name, overwrite=overwrite)
+                    overwrite = True  # make sure the requested translation will override the base terms later
 
-                trans_extra_file = get_module_resource(module_name, 'i18n_extra', lang_code + '.po')
-                if trans_extra_file:
-                    _logger.info('module %s: loading extra translation file (%s) for language %s', module_name, lang_code, lang)
-                    tools.trans_load(self._cr, trans_extra_file, lang, verbose=False, overwrite=overwrite)
         return True
 
     @api.model

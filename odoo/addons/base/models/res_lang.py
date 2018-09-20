@@ -1,13 +1,25 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
+import base64
 import json
 import locale
 import logging
+import os
 import re
+import tarfile
+import tempfile
+from collections import defaultdict
+from datetime import timedelta
 from operator import itemgetter
+from io import BytesIO, StringIO
+from werkzeug.urls import url_join
 
-from odoo import api, fields, models, tools, _
+import requests
+
+from odoo import api, fields, models, http, tools, release, _
+from odoo.modules import get_module_path, get_resource_path
+from odoo.tools.misc import file_open
 from odoo.tools.safe_eval import safe_eval
 from odoo.exceptions import UserError, ValidationError
 
@@ -15,6 +27,7 @@ _logger = logging.getLogger(__name__)
 
 DEFAULT_DATE_FORMAT = '%m/%d/%Y'
 DEFAULT_TIME_FORMAT = '%H:%M:%S'
+MAX_FILE_SIZE = 15 * 1024 * 1024  # in megabytes
 
 
 class Lang(models.Model):
@@ -161,6 +174,153 @@ class Lang(models.Model):
             return self.create(lang_info)
         finally:
             tools.resetlocale()
+
+    @api.model
+    def _get_i18n_url(self, base, lang):
+        """ Generate the URL to fetch the translation resource
+            e.g. https://nightly.odoo.com/i18n/13.0/fr.tar.xz
+        """
+        version = release.version.split('+')[0]  # remove +e part if present
+        return url_join(base, "i18n/{}/{}.tar.xz".format(version, lang))
+
+    @api.model
+    def _read_po_from_attachment(self, addons, lang):
+        module = self.env['ir.module.module'].search([('name', '=', addons)])
+        if not module:
+            return None
+
+        attachment_name = "{}/i18n/{}.po".format(addons, lang)
+        for po_file in self.env['ir.attachment'].search([
+                ('res_model', '=', 'ir.module.module'),
+                ('res_id', '=', module.id),
+                ('name', '=', attachment_name)
+            ], order="id asc"):
+
+            with tempfile.NamedTemporaryFile('wb+', delete=False) as buf:
+                buf.write(base64.b64decode(po_file.datas))
+
+                # now we determine the file format
+                buf.seek(0)
+                yield buf
+
+    @api.model
+    def _extract_po_to_attachment(self, addons, tmp, extracted_file):
+        """ Extraction method if the po are stored in db, inside ir.attachments """
+        module = self.env['ir.module.module'].search([('name', '=', addons)], limit=1)
+        if not module:
+            _logger.info("Skip translations extraction for unexpected module %s", addons)
+            return
+
+        src_file = os.path.join(tmp, extracted_file)
+        with open(src_file, 'r') as po_file:
+            po_content = base64.b64encode(po_file.read().encode()).decode()
+
+        # sudo to be able to search and write, even if no rights on ir.module.module
+        Attachment = self.env['ir.attachment'].sudo()
+
+        attached_po = Attachment.search([
+            ('res_model', '=', 'ir.module.module'),
+            ('res_id', '=', module.id),
+            ('name', '=', extracted_file),
+        ], limit=1)
+        if attached_po:
+            attached_po.write({'datas': po_content})
+        else:
+            attached_po = Attachment.create({
+                'datas': po_content,
+                'res_model': 'ir.module.module',
+                'res_id': module.id,
+                'name': extracted_file,
+            })
+        return attached_po
+
+    @api.model
+    def _extract_i18n_file_content(self, fileobj, lang, module_list):
+        """ Extract the translations from the given archive
+
+        The expected archive is a .tar.xz file using the structure:
+            <module>/i18n/<lang>.po
+
+        Regional variants are accepted (e.g. fr.tar.xz can contain both fr and
+        fr_BE files)
+
+        :param fileobj: a file object containing the compressed translation files
+        :param lang: the simplified language code to load (e.g. 'fr')
+        :param module_list: the list of modules to update from this archive
+        """
+        with tarfile.open(mode='r:xz', fileobj=fileobj) as tar_content:
+            with tempfile.TemporaryDirectory() as tmp:
+                for filename in tar_content.getnames():
+                    if not filename.endswith('.po'):
+                        _logger.info("Skip unexpected file %s", filename)
+                        continue
+
+                    # TODO different separators for windows in tar?
+                    addons = filename.split('/')[0]
+                    if addons not in module_list:
+                        _logger.debug("Skip translations for unexpected module %s", addons)
+                        continue
+
+                    po_lang = filename.split('/')[-1][:-3]
+                    if po_lang.split('_')[0] != lang:
+                        _logger.debug("Skip translations for unexpected language %s", po_lang)
+                        continue
+
+                    _logger.debug("Extracting translation file %s to %s", filename, tmp)
+                    tar_content.extract(filename, path=tmp)
+                    self._extract_po_to_attachment(addons, tmp, filename)
+
+        return True
+
+    def _download_translation_files(self):
+        """ Download the translation files of all modules from the i18n servers """
+        mods = self.env['ir.module.module'].search_read([('state', '!=', 'uninstallable'),],
+                                                        fields=['name', 'i18n_location'])
+        urls = defaultdict(list)
+        # [{'id': 1, 'name': 'base', 'i18n_location': 'https://...'},...] -> {'https://...': ['base',...],...}
+        for module_info in mods:
+            urls[module_info['i18n_location']].append(module_info['name'])
+
+        # ['fr_BE', 'fr', 'nl_BE'] -> {'fr', 'nl'}
+        langs = {lang.split('_')[0] for lang in self.mapped('code')}
+
+        # TODO download once and process twice for self = [fr, fr_BE]
+        for lang in langs:
+            for url in urls:
+                full_url = self._get_i18n_url(url, lang)
+                try:
+                    stream = requests.get(full_url, timeout=5)
+                    if stream.status_code != 200:
+                        _logger.error("Could not fetch translations from %s, error code %s", full_url, stream.status_code)
+                        continue
+
+                    if int(stream.headers['content-length']) > MAX_FILE_SIZE:
+                        raise UserError(_("Content too long (got %.2fMB, max %.2fMB)") % (
+                            int(stream.headers['content-length']) / (1024*1024),
+                            MAX_FILE_SIZE / (1024*1024)
+                        ))
+                    bio = BytesIO()
+                    bio.write(stream.content)
+                    bio.seek(0)
+                    self._extract_i18n_file_content(bio, lang, urls[url])
+                except requests.exceptions.RequestException as err:
+                    _logger.error("Could not fetch translations from %s, error: %s", full_url, err)
+
+    def _install_language(self, overwrite=False, remote=True):
+        """
+        Install/update a lang
+        1. download language pack (if needed)
+        2. load translations
+        """
+        for lang in self:
+            self._activate_lang(lang.code)
+
+        if remote:
+            self._download_translation_files()
+
+        # appropriate module filtering is done in _update_translations
+        mods = self.env['ir.module.module'].search([])
+        return mods._update_translations(filter_lang=self.mapped('code'), overwrite=overwrite)
 
     @api.model
     def install_lang(self):

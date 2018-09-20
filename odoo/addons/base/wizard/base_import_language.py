@@ -29,14 +29,14 @@ class BaseLanguageImport(models.TransientModel):
                                     "will be overwritten and replaced by those in this file")
 
     def import_lang(self):
-        this = self[0]
+        self.ensure_one()
         with TemporaryFile('wb+') as buf:
             try:
-                buf.write(base64.decodebytes(this.data))
+                buf.write(base64.decodebytes(self.data))
 
                 # now we determine the file format
                 buf.seek(0)
-                fileformat = os.path.splitext(this.filename)[-1][1:].lower()
+                fileformat = os.path.splitext(self.filename)[-1][1:].lower()
 
                 Lang = self.env["res.lang"]
                 lang = Lang._activate_lang(self.code) or Lang._create_lang(
@@ -44,7 +44,7 @@ class BaseLanguageImport(models.TransientModel):
                 )
 
                 tools.trans_load_data(
-                    this._cr, buf, fileformat, this.code, overwrite=self.overwrite
+                    self._cr, buf, fileformat, self.code, overwrite=self.overwrite
                 )
             except ProgrammingError as e:
                 _logger.exception('File unsuccessfully imported, due to a malformed file.')
@@ -58,7 +58,7 @@ class BaseLanguageImport(models.TransientModel):
                 _logger.exception('File unsuccessfully imported, due to format mismatch.')
                 raise UserError(
                     _('File %r not imported due to format mismatch or a malformed file.'
-                      ' (Valid formats are .csv, .po, .pot)\n\nTechnical Details:\n%s') % \
-                    (this.filename, tools.ustr(e))
+                      ' (Valid formats are .csv, .po, .pot)\n\nTechnical Details:\n%s') %
+                      (self.filename, tools.ustr(e))
                 )
         return True

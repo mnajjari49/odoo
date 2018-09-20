@@ -244,6 +244,15 @@ class Module(models.Model):
                 with tools.file_open(path, 'rb') as image_file:
                     module.icon_image = base64.b64encode(image_file.read())
 
+    def _get_i18n_location(self):
+        default = (
+            self.env["ir.config_parameter"].sudo().get_param("i18n.default.server")
+            or "https://nightly.odoo.com"
+        )
+        for module in self:
+            manifest_info = modules.load_information_from_description_file(module.name, {})
+            module.i18n_location = manifest_info.get("i18n_location", default)
+
     name = fields.Char('Technical Name', readonly=True, required=True, index=True)
     category_id = fields.Many2one('ir.module.category', string='Category', readonly=True, index=True)
     shortdesc = fields.Char('Module Name', readonly=True, translate=True)
@@ -295,6 +304,12 @@ class Module(models.Model):
     icon_image = fields.Binary(string='Icon', compute='_get_icon_image')
     to_buy = fields.Boolean('Odoo Enterprise Module', default=False)
     has_iap = fields.Boolean(compute='_compute_has_iap')
+    i18n_location = fields.Char("URL of the server hosting the translations",
+        compute='_get_i18n_location',
+        help="If specified, the fetch of translations will be made on the given server.\n"
+             "Custom i18n_location can be set in the manifest or use i18n_locally to serve translations locally.\n"
+             "The translations are expected to be located at <i18n_location>/i18n/<version>/<lang>.tar.xz.\n"
+             "The i18n_server module is the reference for local translation server.")
 
     _sql_constraints = [
         ('name_uniq', 'UNIQUE (name)', 'The name of the module must be unique!'),
@@ -879,11 +894,15 @@ class Module(models.Model):
             self.write({'category_id': cat_id})
 
     def _update_translations(self, filter_lang=None, overwrite=False):
+        """
+        Load the translations files of the given installed modules
+        The translations files are expected to be already available
+
+        :param filter_lang: a list of res.lang to update (all active languages if not specified)
+        :param overwrite: overwrite the existing translations
+        """
         if not filter_lang:
-            langs = self.env['res.lang'].get_installed()
-            filter_lang = [code for code, _ in langs]
-        elif not isinstance(filter_lang, (list, tuple)):
-            filter_lang = [filter_lang]
+            filter_lang = [code for code, _ in self.env['res.lang'].get_installed()]
 
         update_mods = self.filtered(lambda r: r.state in ('installed', 'to install', 'to upgrade'))
         mod_dict = {
