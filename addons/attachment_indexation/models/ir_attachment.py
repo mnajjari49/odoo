@@ -5,11 +5,14 @@ import logging
 import PyPDF2
 import xml.dom.minidom
 import zipfile
+from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
+from pdfminer.converter import TextConverter
+from pdfminer.pdfpage import PDFPage
 
 from odoo import api, models
 
 _logger = logging.getLogger(__name__)
-FTYPES = ['docx', 'pptx', 'xlsx', 'opendoc']
+FTYPES = ['docx', 'pptx', 'xlsx', 'opendoc', 'pdf']
 
 def textToString(element):
     buff = u""
@@ -91,19 +94,29 @@ class IrAttachment(models.Model):
 
     def _index_pdf(self, bin_data):
         '''Index PDF documents'''
-
-        # extractText gives very bad results for indexing, hence we don't index PDF anymore. A
-        # better alternative is probably PDFMiner.six, but not for stable.
-        # See POC at https://github.com/odoo/odoo/pull/27568.
         buf = u""
         if bin_data.startswith(b'%PDF-'):
             f = io.BytesIO(bin_data)
             try:
-                pdf = PyPDF2.PdfFileReader(f, overwriteWarnings=False)
-                for page in pdf.pages:
-                    buf += page.extractText()
+                try:  # better extraction with pdfminer
+                    logging.getLogger("pdfminer").setLevel(logging.CRITICAL)
+                    content = io.StringIO()
+                    resource_manager = PDFResourceManager()
+                    device = TextConverter(resource_manager, content)
+                    interpreter = PDFPageInterpreter(resource_manager, device)
+
+                    for page in PDFPage.get_pages(f):
+                        interpreter.process_page(page)
+
+                    buf = content.getvalue()
+                    device.close()
+                    content.close()
+                except Exception:  # pdfminer failed, we backup to PyPDF
+                    pdf = PyPDF2.PdfFileReader(f, overwriteWarnings=False)
+                    for page in pdf.pages:
+                        buf += page.extractText()
             except Exception:
-                pass
+                pass  # neither library could extract text from the PDF, so we just skip it
         return buf
 
     @api.model
