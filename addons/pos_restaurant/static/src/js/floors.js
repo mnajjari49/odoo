@@ -889,6 +889,7 @@ models.PosModel = models.PosModel.extend({
             this.set_idle_timer(true);
             var order_ids = [];
             var table_orders = this.get_order_list();
+            var promise = Promise.resolve();
             table_orders.forEach(function(o){
                 order_ids.push(o.uid);
             });
@@ -903,7 +904,7 @@ models.PosModel = models.PosModel.extend({
             var orders_to_sync = this.db.get_unpaid_orders_to_sync(order_ids);
             if (orders_to_sync.length) {
                 this.set_synch('connecting', orders_to_sync.length);
-                this._save_to_server(orders_to_sync, {'draft': true})
+                promise = this._save_to_server(orders_to_sync, {'draft': true})
                     .then(function (server_ids) {
                         server_ids.forEach(function(server_id){
                             table_orders.some(function(o){
@@ -936,8 +937,6 @@ models.PosModel = models.PosModel.extend({
                 }
             }
             this.set_order(null); // unset curent selected order
-
-            return Promise.resolve();
         } else {
 
             clearInterval(this.table_longpolling);
@@ -945,7 +944,7 @@ models.PosModel = models.PosModel.extend({
             this.set_idle_timer();
 
             this.set_synch('connecting', 1);
-            return this._get_from_server(table.id)
+            promise = this._get_from_server(table.id)
                 .then(function (server_orders) {
                     var orders = self.get_order_list();
                     orders.forEach(function(order){
@@ -977,6 +976,7 @@ models.PosModel = models.PosModel.extend({
                     }
                 });
         }
+        return promise;
     },
 
     // if we have tables, we do not load a default order, as the default order will be
