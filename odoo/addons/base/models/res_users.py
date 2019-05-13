@@ -294,7 +294,7 @@ class Users(models.Model):
         )
         self.invalidate_cache(['password'], [uid])
 
-    def _check_credentials(self, password):
+    def _check_credentials(self, password, env):
         """ Validates the current user's password.
 
         Override this method to plug additional authentication methods.
@@ -567,7 +567,7 @@ class Users(models.Model):
         return [('login', '=', login)]
 
     @classmethod
-    def _login(cls, db, login, password):
+    def _login(cls, db, login, password, user_agent_env):
         if not password:
             raise AccessDenied()
         ip = request.httprequest.environ['REMOTE_ADDR'] if request else 'n/a'
@@ -579,7 +579,7 @@ class Users(models.Model):
                     if not user:
                         raise AccessDenied()
                     user = user.with_user(user)
-                    user._check_credentials(password)
+                    user._check_credentials(password, user_agent_env)
                     user._update_last_login()
         except AccessDenied:
             _logger.info("Login failed for db:%s login:%s from %s", db, login, ip)
@@ -600,7 +600,7 @@ class Users(models.Model):
            :param dict user_agent_env: environment dictionary describing any
                relevant environment attributes
         """
-        uid = cls._login(db, login, password)
+        uid = cls._login(db, login, password, user_agent_env=user_agent_env)
         if user_agent_env and user_agent_env.get('base_location'):
             with cls.pool.cursor() as cr:
                 env = api.Environment(cr, uid, {})
@@ -626,14 +626,13 @@ class Users(models.Model):
         db = cls.pool.db_name
         if cls.__uid_cache[db].get(uid) == passwd:
             return
-        cr = cls.pool.cursor()
-        try:
+        with contextlib.closing(cls.pool.cursor()) as cr:
             self = api.Environment(cr, uid, {})[cls._name]
             with self._assert_can_auth():
-                self._check_credentials(passwd)
+                if not self.env.user.active:
+                    raise AccessDenied()
+                self._check_credentials(passwd, {'interactive': False})
                 cls.__uid_cache[db][uid] = passwd
-        finally:
-            cr.close()
 
     def _get_session_token_fields(self):
         return {'id', 'login', 'password', 'active'}
