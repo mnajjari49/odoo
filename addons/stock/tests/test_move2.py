@@ -1975,12 +1975,6 @@ class TestSinglePicking(TestStockCommon):
         self.assertEqual(receipt.location_dest_id.id, stock_location.id)
         self.assertEqual(receipt.move_line_ids.location_dest_id.id, shelf_location.id)
 
-class TestStockUOM(TestStockCommon):
-    def setUp(self):
-        super(TestStockUOM, self).setUp()
-        dp = self.env.ref('product.decimal_product_uom')
-        dp.digits = 7
-
     def test_pickings_transfer_with_different_uom_and_back_orders(self):
         """ Picking transfer with diffrent unit of meassure. """
         # weight category
