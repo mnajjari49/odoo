@@ -1446,6 +1446,7 @@ class TestSaleMrpFlow(AccountTestCommon):
         # 2x Dozens kit_1 --|- component_unit   x6 Units
         #                   |- component_kg     x7 Kg
 
+        self.uom_kg.rounding = 0.001
         kit_1 = self._create_product('Kit1', self.uom_unit)
         component_unit = self._create_product('Comp Unit', self.uom_unit)
         component_kg = self._create_product('Comp Kg', self.uom_kg)
@@ -1491,9 +1492,10 @@ class TestSaleMrpFlow(AccountTestCommon):
 
         # Finally, we check the quantities for each component on the picking
         move_component_unit = order.picking_ids[0].move_lines.filtered(lambda m: m.product_id == component_unit)
+
         move_component_kg = order.picking_ids[0].move_lines - move_component_unit
         self.assertEqual(move_component_unit.product_uom_qty, 0.5)
-        self.assertEqual(move_component_kg.product_uom_qty, 0.583)
+        self.assertEqual(move_component_kg.product_uom_qty, 0.584)
 
     def test_product_type_service_1(self):
         route_manufacture = self.warehouse.manufacture_pull_id.route_id.id
