@@ -21,7 +21,7 @@
                     <field name="user_id" optional="hide"/>
                     <field name="routing_id" groups="mrp.group_mrp_routings" optional="show"/>
                     <field name="reservation_state" optional="show"/>
-                    <field name="product_qty" sum="Total Qty" string="Quantity" readonly="1" optional="show"/>
+                    <field name="product_qty" string="Quantity" readonly="1" optional="show"/>
                     <field name="state" optional="show"/>
                     <field name="company_id" readonly="1" groups="base.group_multi_company" optional="show"/>
                     <field name="activity_exception_decoration" widget="activity_exception"/>

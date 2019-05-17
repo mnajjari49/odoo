@@ -12,9 +12,10 @@ class ChangeProductionQty(models.TransientModel):
 
     mo_id = fields.Many2one('mrp.production', 'Manufacturing Order',
         required=True, ondelete='cascade')
-    product_qty = fields.Float(
+    uom_id = fields.Many2one('uom.uom', string='Unit of Measure', related='mo_id.product_uom_id', readonly=False)
+    product_qty = fields.Uom(
         'Quantity To Produce',
-        digits='Product Unit of Measure', required=True)
+        uom_field='uom_id', required=True)
 
     @api.model
     def default_get(self, fields):
@@ -40,8 +41,8 @@ class ChangeProductionQty(models.TransientModel):
         return modification
 
     def change_prod_qty(self):
-        precision = self.env['decimal.precision'].precision_get('Product Unit of Measure')
         for wizard in self:
+            precision = wizard.uom_id.decimal_places
             production = wizard.mo_id
             produced = sum(production.move_finished_ids.filtered(lambda m: m.product_id == production.product_id).mapped('quantity_done'))
             if wizard.product_qty < produced:

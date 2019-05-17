@@ -960,7 +960,7 @@
                             </div>
                         </t>
                         <div class="pos-receipt-left-padding">
-                            <t t-esc="Math.round(line.quantity * Math.pow(10, pos.dp['Product Unit of Measure'])) / Math.pow(10, pos.dp['Product Unit of Measure'])"/>
+                            <t t-esc='line.quantity' />
                             <t t-if='line.unit_name !== "Units"' t-esc='line.unit_name'/>
                             x
                             <t t-esc='widget.format_currency_no_symbol(line.price_display_one)' />

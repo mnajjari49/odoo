@@ -2427,8 +2427,8 @@ class AccountMoveLine(models.Model):
     account_root_id = fields.Many2one(related='account_id.root_id', string="Account Root", store=True, readonly=True)
     sequence = fields.Integer(default=10)
     name = fields.Char(string='Label', tracking=True)
-    quantity = fields.Float(string='Quantity',
-        default=1.0, digits='Product Unit of Measure',
+    quantity = fields.Uom(string='Quantity',
+        default=1.0, uom_field='product_uom_id',
         help="The optional quantity expressed by this line, eg: number of product sold. "
              "The quantity is not a legal requirement but is very useful for some reports.")
     price_unit = fields.Float(string='Unit Price', digits='Product Price')

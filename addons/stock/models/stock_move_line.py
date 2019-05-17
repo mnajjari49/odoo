@@ -29,8 +29,8 @@ class StockMoveLine(models.Model):
     product_qty = fields.Float(
         'Real Reserved Quantity', digits=0,
         compute='_compute_product_qty', inverse='_set_product_qty', store=True)
-    product_uom_qty = fields.Float('Reserved', default=0.0, digits='Product Unit of Measure', required=True)
-    qty_done = fields.Float('Done', default=0.0, digits='Product Unit of Measure', copy=False)
+    product_uom_qty = fields.Uom('Reserved', default=0.0, uom_field='product_uom_id', required=True)
+    qty_done = fields.Uom('Done', default=0.0, uom_field='product_uom_id', copy=False)
     package_id = fields.Many2one(
         'stock.quant.package', 'Source Package', ondelete='restrict',
         check_company=True,
@@ -97,7 +97,7 @@ class StockMoveLine(models.Model):
     @api.constrains('product_uom_qty')
     def _check_reserved_done_quantity(self):
         for move_line in self:
-            if move_line.state == 'done' and not float_is_zero(move_line.product_uom_qty, precision_digits=self.env['decimal.precision'].precision_get('Product Unit of Measure')):
+            if move_line.state == 'done' and not float_is_zero(move_line.product_uom_qty, precision_digits=move_line.product_uom_id.decimal_places):
                 raise ValidationError(_('A done move line should never have a reserved quantity.'))
 
     @api.constrains('qty_done')
@@ -228,7 +228,6 @@ class StockMoveLine(models.Model):
             raise UserError(_("Changing the product is only allowed in 'Draft' state."))
 
         Quant = self.env['stock.quant']
-        precision = self.env['decimal.precision'].precision_get('Product Unit of Measure')
         # We forbid to change the reserved quantity in the interace, but it is needed in the
         # case of stock.move's split.
         # TODO Move me in the update
@@ -313,7 +312,7 @@ class StockMoveLine(models.Model):
                 quantity = ml.move_id.product_uom._compute_quantity(qty_done, ml.move_id.product_id.uom_id, rounding_method='HALF-UP')
                 if not ml._should_bypass_reservation(location_id):
                     ml._free_reservation(product_id, location_id, quantity, lot_id=lot_id, package_id=package_id, owner_id=owner_id)
-                if not float_is_zero(quantity, precision_digits=precision):
+                if not float_is_zero(quantity, precision_digits=ml.move_id.product_id.uom_id.decimal_places):
                     available_qty, in_date = Quant._update_available_quantity(product_id, location_id, -quantity, lot_id=lot_id, package_id=package_id, owner_id=owner_id)
                     if available_qty < 0 and lot_id:
                         # see if we can compensate the negative quants with some untracked quants
@@ -353,12 +352,11 @@ class StockMoveLine(models.Model):
         return res
 
     def unlink(self):
-        precision = self.env['decimal.precision'].precision_get('Product Unit of Measure')
         for ml in self:
             if ml.state in ('done', 'cancel'):
                 raise UserError(_('You can not delete product moves if the picking is done. You can only correct the done quantities.'))
             # Unlinking a move line should unreserve.
-            if ml.product_id.type == 'product' and not ml._should_bypass_reservation(ml.location_id) and not float_is_zero(ml.product_qty, precision_digits=precision):
+            if ml.product_id.type == 'product' and not ml._should_bypass_reservation(ml.location_id) and not float_is_zero(ml.product_qty, precision_digits=ml.product_id.uom_id.decimal_places):
                 try:
                     self.env['stock.quant']._update_reserved_quantity(ml.product_id, ml.location_id, -ml.product_qty, lot_id=ml.lot_id, package_id=ml.package_id, owner_id=ml.owner_id, strict=True)
                 except UserError:
@@ -392,9 +390,8 @@ class StockMoveLine(models.Model):
         for ml in self:
             # Check here if `ml.qty_done` respects the rounding of `ml.product_uom_id`.
             uom_qty = float_round(ml.qty_done, precision_rounding=ml.product_uom_id.rounding, rounding_method='HALF-UP')
-            precision_digits = self.env['decimal.precision'].precision_get('Product Unit of Measure')
-            qty_done = float_round(ml.qty_done, precision_digits=precision_digits, rounding_method='HALF-UP')
-            if float_compare(uom_qty, qty_done, precision_digits=precision_digits) != 0:
+            qty_done = float_round(ml.qty_done, precision_digits=ml.product_uom_id.decimal_places, rounding_method='HALF-UP')
+            if float_compare(uom_qty, qty_done, precision_digits=ml.product_uom_id.decimal_places) != 0:
                 raise UserError(_('The quantity done for the product "%s" doesn\'t respect the rounding precision \
                                   defined on the unit of measure "%s". Please change the quantity done or the \
                                   rounding precision of your unit of measure.') % (ml.product_id.display_name, ml.product_uom_id.name))

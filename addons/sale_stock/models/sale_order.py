@@ -489,13 +489,12 @@ class SaleOrderLine(models.Model):
         sale order line. procurement group will launch '_run_pull', '_run_buy' or '_run_manufacture'
         depending on the sale order line product rule.
         """
-        precision = self.env['decimal.precision'].precision_get('Product Unit of Measure')
         procurements = []
         for line in self:
             if line.state != 'sale' or not line.product_id.type in ('consu','product'):
                 continue
             qty = line._get_qty_procurement(previous_product_uom_qty)
-            if float_compare(qty, line.product_uom_qty, precision_digits=precision) >= 0:
+            if float_compare(qty, line.product_uom_qty, precision_digits=line.product_uom.decimal_places) >= 0:
                 continue
 
             group_id = line._get_procurement_group()
@@ -543,9 +542,8 @@ class SaleOrderLine(models.Model):
         return {}
 
     def _update_line_quantity(self, values):
-        precision = self.env['decimal.precision'].precision_get('Product Unit of Measure')
         line_products = self.filtered(lambda l: l.product_id.type in ['product', 'consu'])
-        if line_products.mapped('qty_delivered') and float_compare(values['product_uom_qty'], max(line_products.mapped('qty_delivered')), precision_digits=precision) == -1:
+        if line_products.mapped('qty_delivered') and float_compare(values['product_uom_qty'], max(line_products.mapped('qty_delivered')), precision_digits=self.product_uom.decimal_places) == -1:
             raise UserError(_('You cannot decrease the ordered quantity below the delivered quantity.\n'
                               'Create a return first.'))
         super(SaleOrderLine, self)._update_line_quantity(values)

@@ -60,6 +60,7 @@
                                 <group col="4">
                                     <field name="product_id"/>
                                     <field name="qty"/>
+                                    <field name="product_uom_id" invisible="1"/>
                                     <field name="discount" widget="monetary"/>
                                     <field name="price_unit" widget="monetary"/>
                                     <field name="price_subtotal" invisible="1" widget="monetary" force_save="1"/>
@@ -275,6 +276,7 @@
                 <group col="4">
                     <field name="product_id" />
                     <field name="qty" />
+                    <field name="product_uom_id" invisible="1"/>
                     <field name="discount" widget="monetary"/>
                     <field name="price_unit" widget="monetary"/>
                     <field name="create_date" />
@@ -317,6 +319,7 @@
                 <field name="create_date" />
                 <field name="product_id" />
                 <field name="qty" />
+                <field name="product_uom_id" invisible="1"/>
                 <field name="price_unit" widget="monetary"/>
             </tree>
         </field>

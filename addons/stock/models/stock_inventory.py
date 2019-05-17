@@ -339,9 +339,9 @@ class InventoryLine(models.Model):
     product_uom_id = fields.Many2one(
         'uom.uom', 'Product Unit of Measure',
         required=True, readonly=True)
-    product_qty = fields.Float(
+    product_qty = fields.Uom(
         'Counted Quantity',
-        digits='Product Unit of Measure', default=0)
+        uom_field='product_uom_id', default=0)
     categ_id = fields.Many2one(related='product_id.categ_id', store=True)
     location_id = fields.Many2one(
         'stock.location', 'Location', check_company=True,
@@ -358,12 +358,12 @@ class InventoryLine(models.Model):
         'res.company', 'Company', related='inventory_id.company_id',
         index=True, readonly=True, store=True)
     state = fields.Selection('Status', related='inventory_id.state')
-    theoretical_qty = fields.Float(
+    theoretical_qty = fields.Uom(
         'Theoretical Quantity',
-        digits='Product Unit of Measure', readonly=True)
-    difference_qty = fields.Float('Difference', compute='_compute_difference',
+        uom_field='product_uom_id', readonly=True)
+    difference_qty = fields.Uom('Difference', compute='_compute_difference',
         help="Indicates the gap between the product's theoretical quantity and its newest quantity.",
-        readonly=True, digits='Product Unit of Measure', search="_search_difference_qty")
+        readonly=True, uom_field='product_uom_id', search="_search_difference_qty")
     inventory_date = fields.Datetime('Inventory Date', readonly=True,
         default=fields.Datetime.now,
         help="Last date at which the On Hand Quantity has been computed.")

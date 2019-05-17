@@ -579,8 +579,6 @@ class SaleOrder(models.Model):
         :param final: if True, refunds will be generated if necessary
         :returns: list of created invoices
         """
-        precision = self.env['decimal.precision'].precision_get('Product Unit of Measure')
-
         # 1) Create invoices.
         invoice_vals_list = []
         for order in self:
@@ -594,7 +592,7 @@ class SaleOrder(models.Model):
                 if line.display_type == 'line_section':
                     pending_section = line
                     continue
-                if float_is_zero(line.qty_to_invoice, precision_digits=precision):
+                if float_is_zero(line.qty_to_invoice, precision_digits=line.product_uom.decimal_places):
                     continue
                 if line.qty_to_invoice > 0 or (line.qty_to_invoice < 0 and final):
                     if pending_section:
@@ -991,8 +989,8 @@ class SaleOrderLine(models.Model):
           is removed from the list.
         - invoiced: the quantity invoiced is larger or equal to the quantity ordered.
         """
-        precision = self.env['decimal.precision'].precision_get('Product Unit of Measure')
         for line in self:
+            precision = line.product_uom.decimal_places
             if line.state not in ('sale', 'done'):
                 line.invoice_status = 'no'
             elif line.is_downpayment and line.untaxed_amount_to_invoice == 0:
@@ -1146,9 +1144,8 @@ class SaleOrderLine(models.Model):
             raise UserError(_("You cannot change the type of a sale order line. Instead you should delete the current line and create a new line of the proper type."))
 
         if 'product_uom_qty' in values:
-            precision = self.env['decimal.precision'].precision_get('Product Unit of Measure')
             self.filtered(
-                lambda r: r.state == 'sale' and float_compare(r.product_uom_qty, values['product_uom_qty'], precision_digits=precision) != 0)._update_line_quantity(values)
+                lambda r: r.state == 'sale' and float_compare(r.product_uom_qty, values['product_uom_qty'], precision_digits=r.product_uom.decimal_places) != 0)._update_line_quantity(values)
 
         # Prevent writing on a locked SO.
         protected_fields = self._get_protected_fields()
@@ -1196,7 +1193,7 @@ class SaleOrderLine(models.Model):
         'product.template', string='Product Template',
         related="product_id.product_tmpl_id", domain=[('sale_ok', '=', True)])
     product_updatable = fields.Boolean(compute='_compute_product_updatable', string='Can Edit Product', readonly=True, default=True)
-    product_uom_qty = fields.Float(string='Quantity', digits='Product Unit of Measure', required=True, default=1.0)
+    product_uom_qty = fields.Uom(string='Quantity', uom_field='product_uom', required=True, default=1.0)
     product_uom = fields.Many2one('uom.uom', string='Unit of Measure', domain="[('category_id', '=', product_uom_category_id)]")
     product_uom_category_id = fields.Many2one(related='product_id.uom_id.category_id', readonly=True)
     product_custom_attribute_value_ids = fields.One2many('product.attribute.custom.value', 'sale_order_line_id', string="Custom Values")
@@ -1214,14 +1211,14 @@ class SaleOrderLine(models.Model):
              "  - Analytic From expenses: the quantity is the quantity sum from posted expenses\n"
              "  - Timesheet: the quantity is the sum of hours recorded on tasks linked to this sale line\n"
              "  - Stock Moves: the quantity comes from confirmed pickings\n")
-    qty_delivered = fields.Float('Delivered Quantity', copy=False, compute='_compute_qty_delivered', inverse='_inverse_qty_delivered', compute_sudo=True, store=True, digits='Product Unit of Measure', default=0.0)
-    qty_delivered_manual = fields.Float('Delivered Manually', copy=False, digits='Product Unit of Measure', default=0.0)
-    qty_to_invoice = fields.Float(
+    qty_delivered = fields.Uom('Delivered Quantity', copy=False, compute='_compute_qty_delivered', inverse='_inverse_qty_delivered', compute_sudo=True, store=True, uom_field='product_uom', default=0.0)
+    qty_delivered_manual = fields.Uom('Delivered Manually', copy=False, uom_field='product_uom', default=0.0)
+    qty_to_invoice = fields.Uom(
         compute='_get_to_invoice_qty', string='To Invoice Quantity', store=True, readonly=True,
-        digits='Product Unit of Measure')
-    qty_invoiced = fields.Float(
+        uom_field='product_uom')
+    qty_invoiced = fields.Uom(
         compute='_get_invoice_qty', string='Invoiced Quantity', store=True, readonly=True,
-        digits='Product Unit of Measure')
+        uom_field='product_uom')
 
     untaxed_amount_invoiced = fields.Monetary("Untaxed Invoiced Amount", compute='_compute_untaxed_amount_invoiced', compute_sudo=True, store=True)
     untaxed_amount_to_invoice = fields.Monetary("Untaxed Amount To Invoice", compute='_compute_untaxed_amount_to_invoice', compute_sudo=True, store=True)

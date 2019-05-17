@@ -61,6 +61,7 @@ class SaleOrderLine(models.Model):
                 components[product] = {'qty': qty, 'uom': to_uom.id}
         return components
 
+
     def _get_qty_procurement(self, previous_product_uom_qty=False):
         self.ensure_one()
         # Specific case when we change the qty on a SO for a kit product.

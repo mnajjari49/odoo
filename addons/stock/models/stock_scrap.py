@@ -150,7 +150,6 @@ class StockScrap(models.Model):
         self.ensure_one()
         if self.product_id.type != 'product':
             return self.do_scrap()
-        precision = self.env['decimal.precision'].precision_get('Product Unit of Measure')
         location_id = self.location_id
         if self.picking_id and self.picking_id.picking_type_code == 'incoming':
             location_id = self.picking_id.location_dest_id
@@ -161,7 +160,7 @@ class StockScrap(models.Model):
                                                             self.owner_id,
                                                             strict=True).mapped('quantity'))
         scrap_qty = self.product_uom_id._compute_quantity(self.scrap_qty, self.product_id.uom_id)
-        if float_compare(available_qty, scrap_qty, precision_digits=precision) >= 0:
+        if float_compare(available_qty, scrap_qty, precision_digits=self.product_uom_id.decimal_places) >= 0:
             return self.do_scrap()
         else:
             ctx = dict(self.env.context)
