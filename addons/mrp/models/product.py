@@ -38,7 +38,7 @@ class ProductTemplate(models.Model):
 
     def _compute_mrp_product_qty(self):
         for template in self:
-            template.mrp_product_qty = float_round(sum(template.mapped('product_variant_ids').mapped('mrp_product_qty')), precision_rounding=template.uom_id.rounding)
+            template.mrp_product_qty = sum(template.mapped('product_variant_ids').mapped('mrp_product_qty'))
 
     def action_view_mos(self):
         action = self.env.ref('mrp.mrp_production_report').read()[0]
@@ -97,7 +97,7 @@ class ProductProduct(models.Model):
             if not product.id:
                 product.mrp_product_qty = 0.0
                 continue
-            product.mrp_product_qty = float_round(mapped_data.get(product.id, 0), precision_rounding=product.uom_id.rounding)
+            product.mrp_product_qty = mapped_data.get(product.id, 0)
 
     def _compute_quantities(self):
         """ When the product is a kit, this override computes the fields :
