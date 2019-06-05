@@ -15,7 +15,7 @@ class ProductTemplate(models.Model):
         'account.account', string="Price Difference Account", company_dependent=True,
         help="This account is used in automated inventory valuation to "\
              "record the price difference between a purchase order and its related vendor bill when validating this vendor bill.")
-    purchased_product_qty = fields.Float(compute='_compute_purchased_product_qty', string='Purchased')
+    purchased_product_qty = fields.Uom(compute='_compute_purchased_product_qty', string='Purchased', uom_field='uom_id')
     purchase_method = fields.Selection([
         ('purchase', 'On ordered quantities'),
         ('receive', 'On received quantities'),
@@ -26,7 +26,7 @@ class ProductTemplate(models.Model):
 
     def _compute_purchased_product_qty(self):
         for template in self:
-            template.purchased_product_qty = float_round(sum([p.purchased_product_qty for p in template.product_variant_ids]), precision_rounding=template.uom_id.rounding)
+            template.purchased_product_qty = sum([p.purchased_product_qty for p in template.product_variant_ids])
 
     @api.model
     def get_import_templates(self):
@@ -53,7 +53,7 @@ class ProductProduct(models.Model):
     _name = 'product.product'
     _inherit = 'product.product'
 
-    purchased_product_qty = fields.Float(compute='_compute_purchased_product_qty', string='Purchased')
+    purchased_product_qty = fields.Uom(compute='_compute_purchased_product_qty', string='Purchased', uom_field='uom_id')
 
     def _compute_purchased_product_qty(self):
         date_from = fields.Datetime.to_string(fields.datetime.now() - timedelta(days=365))
@@ -69,7 +69,7 @@ class ProductProduct(models.Model):
             if not product.id:
                 product.purchased_product_qty = 0.0
                 continue
-            product.purchased_product_qty = float_round(purchased_data.get(product.id, 0), precision_rounding=product.uom_id.rounding)
+            product.purchased_product_qty = purchased_data.get(product.id, 0)
 
     def action_view_po(self):
         action = self.env.ref('purchase.action_purchase_order_report_all').read()[0]
