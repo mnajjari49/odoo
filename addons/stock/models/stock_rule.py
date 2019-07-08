@@ -278,6 +278,9 @@ class StockRule(models.Model):
         date_expected = fields.Datetime.to_string(
             fields.Datetime.from_string(values['date_planned']) - relativedelta(days=self.delay or 0)
         )
+        picking_description = product_id._get_description(self.picking_type_id)
+        if values.get('product_description_variants'):
+            picking_description += values['product_description_variants']
         # it is possible that we've already got some move done, so check for the done qty and create
         # a new move with the correct qty
         qty_left = product_qty
@@ -287,6 +290,7 @@ class StockRule(models.Model):
             'product_id': product_id.id,
             'product_uom': product_uom.id,
             'product_uom_qty': qty_left,
+            'product_description_variants': values.get('product_description_variants'),
             'partner_id': self.partner_address_id.id or (values.get('group_id', False) and values['group_id'].partner_id.id) or False,
             'location_id': self.location_src_id.id,
             'location_dest_id': location_id.id,
@@ -303,7 +307,7 @@ class StockRule(models.Model):
             'propagate_cancel': self.propagate_cancel,
             'propagate_date': self.propagate_date,
             'propagate_date_minimum_delta': self.propagate_date_minimum_delta,
-            'description_picking': product_id._get_description(self.picking_type_id),
+            'description_picking': picking_description,
             'priority': values.get('priority', "1"),
             'delay_alert': self.delay_alert,
             'orderpoint_id': values.get('orderpoint_id') and values['orderpoint_id'].id,
