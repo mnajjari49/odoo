@@ -332,11 +332,8 @@ class AccountMove(models.Model):
 
     @api.onchange('date', 'currency_id')
     def _onchange_currency(self):
-        company_currency = self.company_id.currency_id
-        has_foreign_currency = self.currency_id and self.currency_id != company_currency
-
         for line in self.line_ids:
-            new_currency = has_foreign_currency and self.currency_id
+            new_currency = self.currency_id
             line.currency_id = new_currency
             line._onchange_currency()
         self._recompute_dynamic_lines()
@@ -475,7 +472,11 @@ class AccountMove(models.Model):
                 is_refund=self.type in ('out_refund', 'in_refund'),
             )
 
-            if base_line.currency_id:
+            if base_line.currency_id == move.company_currency_id:
+                # Single-currency mode.
+                for tax_res in balance_taxes_res['taxes']:
+                    tax_res['amount_currency'] = tax_res['amount']
+            else:
                 # Multi-currencies mode: Taxes are computed both in company's currency / foreign currency.
                 amount_currency_taxes_res = base_line.tax_ids._origin.compute_all(
                     price_unit_foreign_curr,
@@ -583,6 +584,7 @@ class AccountMove(models.Model):
                     'name': tax.name,
                     'move_id': self.id,
                     'partner_id': line.partner_id.id,
+                    'currency_id': self.currency_id.id,
                     'company_id': line.company_id.id,
                     'company_currency_id': line.company_currency_id.id,
                     'quantity': 1.0,
@@ -598,7 +600,6 @@ class AccountMove(models.Model):
 
             if in_draft_mode:
                 tax_line._onchange_amount_currency()
-                tax_line._onchange_balance()
 
     def _recompute_cash_rounding_lines(self):
         ''' Handle the cash rounding feature on invoices.
@@ -616,18 +617,17 @@ class AccountMove(models.Model):
         self.ensure_one()
         in_draft_mode = self != self._origin
 
-        def _compute_cash_rounding(self, total_balance, total_amount_currency):
+        def _compute_cash_rounding(self, total_amount_currency):
             ''' Compute the amount differences due to the cash rounding.
             :param self:                    The current account.move record.
-            :param total_balance:           The invoice's total in company's currency.
             :param total_amount_currency:   The invoice's total in invoice's currency.
             :return:                        The amount differences both in company's currency & invoice's currency.
             '''
+            difference = self.invoice_cash_rounding_id.compute_difference(self.currency_id, total_amount_currency)
             if self.currency_id == self.company_id.currency_id:
-                diff_balance = self.invoice_cash_rounding_id.compute_difference(self.currency_id, total_balance)
-                diff_amount_currency = 0.0
+                diff_amount_currency = diff_balance = difference
             else:
-                diff_amount_currency = self.invoice_cash_rounding_id.compute_difference(self.currency_id, total_amount_currency)
+                diff_amount_currency = difference
                 diff_balance = self.currency_id._convert(diff_amount_currency, self.company_id.currency_id, self.company_id, self.date)
             return diff_balance, diff_amount_currency
 
@@ -695,7 +695,6 @@ class AccountMove(models.Model):
 
             if in_draft_mode:
                 cash_rounding_line._onchange_amount_currency()
-                cash_rounding_line._onchange_balance()
 
         existing_cash_rounding_line = self.line_ids.filtered(lambda line: line.is_rounding_line)
 
@@ -714,10 +713,9 @@ class AccountMove(models.Model):
 
         others_lines = self.line_ids.filtered(lambda line: line.account_id.user_type_id.type not in ('receivable', 'payable'))
         others_lines -= existing_cash_rounding_line
-        total_balance = sum(others_lines.mapped('balance'))
         total_amount_currency = sum(others_lines.mapped('amount_currency'))
 
-        diff_balance, diff_amount_currency = _compute_cash_rounding(self, total_balance, total_amount_currency)
+        diff_balance, diff_amount_currency = _compute_cash_rounding(self, total_amount_currency)
 
         # The invoice is already rounded.
         if self.currency_id.is_zero(diff_balance) and self.currency_id.is_zero(diff_amount_currency):
@@ -775,13 +773,13 @@ class AccountMove(models.Model):
             '''
             if self.invoice_payment_term_id:
                 to_compute = self.invoice_payment_term_id.compute(total_balance, date_ref=date, currency=self.currency_id)
-                if self.currency_id != self.company_id.currency_id:
+                if self.currency_id == self.company_id.currency_id:
+                    # Single-currency.
+                    return [(b[0], b[1], b[1]) for b in to_compute]
+                else:
                     # Multi-currencies.
                     to_compute_currency = self.invoice_payment_term_id.compute(total_amount_currency, date_ref=date, currency=self.currency_id)
                     return [(b[0], b[1], ac[1]) for b, ac in zip(to_compute, to_compute_currency)]
-                else:
-                    # Single-currency.
-                    return [(b[0], b[1], 0.0) for b in to_compute]
             else:
                 return [(fields.Date.to_string(date), total_balance, total_amount_currency)]
 
@@ -823,7 +821,7 @@ class AccountMove(models.Model):
                         'amount_currency': -amount_currency,
                         'date_maturity': date_maturity,
                         'move_id': self.id,
-                        'currency_id': self.currency_id.id if self.currency_id != self.company_id.currency_id else False,
+                        'currency_id': self.currency_id.id,
                         'account_id': account.id,
                         'partner_id': self.commercial_partner_id.id,
                         'exclude_from_invoice_tab': True,
@@ -831,7 +829,6 @@ class AccountMove(models.Model):
                 new_terms_lines += candidate
                 if in_draft_mode:
                     candidate._onchange_amount_currency()
-                    candidate._onchange_balance()
             return new_terms_lines
 
         existing_terms_lines = self.line_ids.filtered(lambda line: line.account_id.user_type_id.type in ('receivable', 'payable'))
@@ -1406,6 +1403,7 @@ class AccountMove(models.Model):
         if query_res:
             ids = [res[0] for res in query_res]
             sums = [res[1] for res in query_res]
+            import pudb; pudb.set_trace()
             raise UserError(_("Cannot create unbalanced journal entry. Ids: %s\nDifferences debit - credit: %s") % (ids, sums))
 
     def _check_fiscalyear_lock_date(self):
@@ -1495,6 +1493,8 @@ class AccountMove(models.Model):
                 vals['date'] = vals['invoice_date']
 
             ctx_vals = {'default_type': vals.get('type') or self._context.get('default_type')}
+            if vals.get('currency_id'):
+                ctx_vals['default_currency_id'] = vals['currency_id']
             if vals.get('journal_id'):
                 ctx_vals['default_journal_id'] = vals['journal_id']
             self_ctx = self.with_context(**ctx_vals)
@@ -2425,7 +2425,7 @@ class AccountMoveLine(models.Model):
         help="You can check this box to mark this journal item as a litigation with the associated partner")
     date_maturity = fields.Date(string='Due Date', index=True, tracking=True,
         help="This field is used for payable and receivable journal entries. You can put the limit date for the payment of this line.")
-    currency_id = fields.Many2one('res.currency', string='Currency')
+    currency_id = fields.Many2one('res.currency', string='Currency', required=True)
     partner_id = fields.Many2one('res.partner', string='Partner', ondelete='restrict')
     product_uom_id = fields.Many2one('uom.uom', string='Unit of Measure')
     product_id = fields.Many2one('product.product', string='Product')
@@ -2512,21 +2512,24 @@ class AccountMoveLine(models.Model):
         (
             'check_amount_currency_balance_sign',
             '''CHECK(
-                currency_id IS NULL
-                OR
-                company_currency_id IS NULL
-                OR
                 (
                     (currency_id != company_currency_id)
                     AND
                     (
-                        (balance > 0 AND amount_currency > 0)
-                        OR (balance <= 0 AND amount_currency <= 0)
-                        OR (balance >= 0 AND amount_currency >= 0)
+                        (debit - credit > 0 AND amount_currency > 0)
+                        OR (debit - credit <= 0 AND amount_currency <= 0)
+                        OR (debit - credit >= 0 AND amount_currency >= 0)
                     )
                 )
+                OR
+                (
+                    currency_id = company_currency_id
+                    AND
+                    debit - credit = amount_currency
+                )                
             )''',
             "The amount expressed in the secondary currency must be positive when account is debited and negative when account is credited."
+            "If the currency is the same as the company one, this amount must strictly be equal to the balance."
         ),
     ]
 
@@ -2712,50 +2715,42 @@ class AccountMoveLine(models.Model):
             sign = -1
         else:
             sign = 1
-        price_subtotal *= sign
 
-        if currency and currency != company.currency_id:
-            # Multi-currencies.
-            balance = currency._convert(price_subtotal, company.currency_id, company, date)
-            return {
-                'amount_currency': price_subtotal,
-                'debit': balance > 0.0 and balance or 0.0,
-                'credit': balance < 0.0 and -balance or 0.0,
-            }
-        else:
-            # Single-currency.
-            return {
-                'amount_currency': 0.0,
-                'debit': price_subtotal > 0.0 and price_subtotal or 0.0,
-                'credit': price_subtotal < 0.0 and -price_subtotal or 0.0,
-            }
+        amount_currency = price_subtotal * sign
+        balance = currency._convert(amount_currency, company.currency_id, company, date)
+        return {
+            'amount_currency': amount_currency,
+            'currency_id': currency.id,
+            'debit': balance > 0.0 and balance or 0.0,
+            'credit': balance < 0.0 and -balance or 0.0,
+        }
 
-    def _get_fields_onchange_balance(self, quantity=None, discount=None, balance=None, move_type=None, currency=None, taxes=None):
+    def _get_fields_onchange_balance(self, quantity=None, discount=None, amount_currency=None, move_type=None, currency=None, taxes=None):
         self.ensure_one()
         return self._get_fields_onchange_balance_model(
             quantity=quantity or self.quantity,
             discount=discount or self.discount,
-            balance=balance or self.balance,
+            amount_currency=amount_currency or self.amount_currency,
             move_type=move_type or self.move_id.type,
             currency=currency or self.currency_id,
             taxes=taxes or self.tax_ids,
         )
 
     @api.model
-    def _get_fields_onchange_balance_model(self, quantity, discount, balance, move_type, currency, taxes):
+    def _get_fields_onchange_balance_model(self, quantity, discount, amount_currency, move_type, currency, taxes):
         ''' This method is used to recompute the values of 'quantity', 'discount', 'price_unit' due to a change made
         in some accounting fields such as 'balance'.
 
         This method is a bit complex as we need to handle some special cases.
         For example, setting a positive balance with a 100% discount.
 
-        :param quantity:    The current quantity.
-        :param discount:    The current discount.
-        :param balance:     The new balance.
-        :param move_type:   The type of the move.
-        :param currency:    The currency.
-        :param taxes:       The applied taxes.
-        :return:            A dictionary containing 'quantity', 'discount', 'price_unit'.
+        :param quantity:        The current quantity.
+        :param discount:        The current discount.
+        :param amount_currency: The new balance in line's currency.
+        :param move_type:       The type of the move.
+        :param currency:        The currency.
+        :param taxes:           The applied taxes.
+        :return:                A dictionary containing 'quantity', 'discount', 'price_unit'.
         '''
         if move_type in self.move_id.get_outbound_types():
             sign = 1
@@ -2763,7 +2758,7 @@ class AccountMoveLine(models.Model):
             sign = -1
         else:
             sign = 1
-        balance *= sign
+        amount_currency *= sign
 
         taxes = taxes.flatten_taxes_hierarchy()
         if taxes and any(tax.price_include for tax in taxes):
@@ -2782,25 +2777,25 @@ class AccountMoveLine(models.Model):
             # 220           | 10% incl, 5%  |                   | 200               | 230
             # 20            |               | 10% incl          | 20                | 20
             # 10            |               | 5%                | 10                | 10
-            taxes_res = taxes._origin.compute_all(balance, currency=currency, handle_price_include=False)
+            taxes_res = taxes._origin.compute_all(amount_currency, currency=currency, handle_price_include=False)
             for tax_res in taxes_res['taxes']:
                 tax = self.env['account.tax'].browse(tax_res['id'])
                 if tax.price_include:
-                    balance += tax_res['amount']
+                    amount_currency += tax_res['amount']
 
         discount_factor = 1 - (discount / 100.0)
-        if balance and discount_factor:
+        if amount_currency and discount_factor:
             # discount != 100%
             vals = {
                 'quantity': quantity or 1.0,
-                'price_unit': balance / discount_factor / (quantity or 1.0),
+                'price_unit': amount_currency / discount_factor / (quantity or 1.0),
             }
-        elif balance and not discount_factor:
+        elif amount_currency and not discount_factor:
             # discount == 100%
             vals = {
                 'quantity': quantity or 1.0,
                 'discount': 0.0,
-                'price_unit': balance / (quantity or 1.0),
+                'price_unit': amount_currency / (quantity or 1.0),
             }
         else:
             vals = {}
@@ -2850,8 +2845,9 @@ class AccountMoveLine(models.Model):
 
     def _onchange_balance(self):
         for line in self:
-            if line.currency_id:
+            if line.currency_id != line.move_id.company_id.currency_id:
                 continue
+            line.amount_currency = line.debit - line.credit
             if not line.move_id.is_invoice(include_receipts=True):
                 continue
             line.update(line._get_fields_onchange_balance())
@@ -2872,13 +2868,18 @@ class AccountMoveLine(models.Model):
     @api.onchange('amount_currency')
     def _onchange_amount_currency(self):
         for line in self:
-            if not line.currency_id:
-                continue
+            company = line.move_id.company_id
+            if line.currency_id == company.currency_id:
+                balance = line.amount_currency
+            else:
+                balance = line.currency_id._convert(line.amount_currency, company.currency_id, company, line.move_id.date)
+            line.debit = balance if balance > 0.0 else 0.0
+            line.credit = -balance if balance < 0.0 else 0.0
+
             if not line.move_id.is_invoice(include_receipts=True):
                 continue
-            line.update(line._get_fields_onchange_balance(
-                balance=line.amount_currency,
-            ))
+
+            line.update(line._get_fields_onchange_balance())
             line.update(line._get_price_total_and_subtotal())
 
     @api.onchange('quantity', 'discount', 'price_unit', 'tax_ids')
@@ -3076,6 +3077,13 @@ class AccountMoveLine(models.Model):
             move = self.env['account.move'].browse(vals['move_id'])
             vals.setdefault('company_currency_id', move.company_id.currency_id.id) # important to bypass the ORM limitation where monetary fields are not rounded; more info in the commit message
 
+            # Auto-fill missing currency_id.
+            if not vals.get('currency_id'):
+                vals.update({
+                    'currency_id': move.currency_id.id,
+                    'amount_currency': vals.get('debit', 0.0) - vals.get('credit', 0.0),
+                })
+
             if move.is_invoice(include_receipts=True):
                 currency = self.env['res.currency'].browse(vals.get('currency_id'))
                 partner = self.env['res.partner'].browse(vals.get('partner_id'))
@@ -3088,14 +3096,14 @@ class AccountMoveLine(models.Model):
                 # in onchange and in create/write. So, if something changed in accounting [resp. business] fields,
                 # business [resp. accounting] fields are recomputed.
                 if any(vals.get(field) for field in ACCOUNTING_FIELDS):
-                    if vals.get('currency_id'):
-                        balance = vals.get('amount_currency', 0.0)
-                    else:
-                        balance = vals.get('debit', 0.0) - vals.get('credit', 0.0)
+                    vals['amount_currency'] = vals.get('amount_currency', 0.0)
+                    if move.currency_id == move.company_currency_id:
+                        vals['debit'] = vals['amount_currency'] if vals['amount_currency'] > 0.0 else 0.0
+                        vals['credit'] = -vals['amount_currency'] if vals['amount_currency'] < 0.0 else 0.0
                     vals.update(self._get_fields_onchange_balance_model(
                         vals.get('quantity', 0.0),
                         vals.get('discount', 0.0),
-                        balance,
+                        vals['amount_currency'],
                         move.type,
                         currency,
                         taxes
@@ -3277,10 +3285,7 @@ class AccountMoveLine(models.Model):
             # in onchange and in create/write. So, if something changed in accounting [resp. business] fields,
             # business [resp. accounting] fields are recomputed.
             if any(field in vals for field in ACCOUNTING_FIELDS):
-                price_subtotal = line.currency_id and line.amount_currency or line.debit - line.credit
-                to_write = line._get_fields_onchange_balance(
-                    balance=price_subtotal,
-                )
+                to_write = line._get_fields_onchange_balance()
                 to_write.update(line._get_price_total_and_subtotal(
                     price_unit=to_write.get('price_unit', line.price_unit),
                     quantity=to_write.get('quantity', line.quantity),
