@@ -2167,7 +2167,12 @@ class MailThread(models.AbstractModel):
                 for partner_id in inbox_pids:
                     bus_notifications.append([(self._cr.dbname, 'ir.needaction', partner_id), dict(message_format_values)])
             if channel_ids:
-                bus_notifications += self.env['mail.channel'].sudo().browse(channel_ids)._channel_message_notifications(message, message_format_values)
+                channels = self.env['mail.channel'].sudo().browse(channel_ids)
+                bus_notifications += channels._channel_message_notifications(message, message_format_values)
+                for channel in channels.filtered(lambda x: x.email_send):
+                    for partner in channel.channel_partner_ids.filtered(lambda x: x.user_ids.notification_type == 'email'):
+                        channel.channel_seen(partner.id)
+
         if bus_notifications:
             self.env['bus.bus'].sudo().sendmany(bus_notifications)
 
@@ -2425,15 +2430,19 @@ class MailThread(models.AbstractModel):
             exept_partner = [r['id'] for r in recipient_data['partners']]
             if author_id:
                 exept_partner.append(author_id)
-            new_pids = self.env['res.partner'].sudo().search([
-                ('id', 'not in', exept_partner),
-                ('channel_ids', 'in', email_cids),
-                ('email', 'not in', [email_from]),
-            ])
-            for partner in new_pids:
-                # caution: side effect, if user has notif type inbox, will receive en email anyway?
+            sql_query = """ select p.id from res_partner p
+                            left join mail_channel_partner mcp on p.id = mcp.partner_id
+                            left join mail_channel c on c.id = mcp.channel_id
+                            left join res_users u on p.id = u.partner_id
+                                where (u.notification_type != 'inbox' or u.id is null)
+                                and (p.email != ANY(%s) or p.email is null)
+                                and c.id = ANY(%s)
+                                and p.id != ANY(%s)"""
+
+            self.env.cr.execute(sql_query, (([email_from], ), (email_cids, ), (exept_partner, )))
+            for partner_id in self._cr.fetchall():
                 # ocn_client: will add partners to recipient recipient_data. more ocn notifications. We neeed to filter them maybe
-                recipient_data['partners'].append({'id': partner.id, 'share': True, 'active': True, 'notif': 'email', 'type': 'channel_email', 'groups': []})
+                recipient_data['partners'].append({'id': partner_id[0], 'share': True, 'active': True, 'notif': 'email', 'type': 'channel_email', 'groups': []})
 
         return recipient_data
 

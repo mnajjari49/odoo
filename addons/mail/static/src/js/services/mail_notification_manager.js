@@ -97,9 +97,10 @@ MailManager.include({
     _handleChannelMessageNotification: function (messageData) {
         var self = this;
         var def;
-        var channelAlreadyInCache = true;
+        var notify = true;
         if (messageData.channel_ids.length === 1) {
-            channelAlreadyInCache = !!this.getChannel(messageData.channel_ids[0]);
+            var channel = this.getChannel(messageData.channel_ids[0]);
+            notify = channel && !(channel.isMassMailing() && session.notification_type == 'email');
             def = this.joinChannel(messageData.channel_ids[0], { autoswitch: false });
         } else {
             def = Promise.resolve();
@@ -109,7 +110,7 @@ MailManager.include({
             // its unread counter has just been fetched
             return self.addMessage(messageData, {
                 showNotification: true,
-                incrementUnread: channelAlreadyInCache
+                incrementUnread: notify,
             });
         });
     },
