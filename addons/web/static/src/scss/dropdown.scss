@@ -11,19 +11,6 @@
     box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.176);
 
     .ui-menu-item {
-        padding: 0;
-        > a {
-            display: block;
-            color: $dropdown-link-color;
-
-            @extend %dropdown-li-a-padding;
-
-            &.ui-state-active {
-                border: none;
-                font-weight: normal;
-                margin: 0;
-            }
-        }
         &.o_m2o_dropdown_option {
             text-indent: 20px
         }

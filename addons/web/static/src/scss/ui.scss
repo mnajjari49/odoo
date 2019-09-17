@@ -1,3 +1,7 @@
+%dropdown-li-a-padding {
+    padding: 3px $o-dropdown-hpadding;
+}
+
 .o_hidden {
     display: none!important;
 }
@@ -8,6 +12,22 @@
 
 .ui-autocomplete {
     z-index: $zindex-modal + 1;
+
+    .ui-menu-item {
+        padding: 0;
+        > a {
+            display: block;
+            color: $dropdown-link-color;
+
+            @extend %dropdown-li-a-padding;
+
+            &.ui-state-active {
+                border: none;
+                font-weight: normal;
+                margin: 0;
+            }
+        }
+    }
 }
 
 [aria-hidden="true"], [aria-hidden="1"] {

@@ -19,6 +19,7 @@
 }
 
 .ui-autocomplete.o_partner_autocomplete_dropdown {
+    max-width: 400px;
     > .ui-menu-item:nth-of-type(1n+16) {
         display: none;
     }
@@ -30,7 +31,6 @@
             position: relative;
             padding-right: 50px;
             padding-left: 40px;
-            max-width: 400px;
             > img {
                 position: absolute;
                 width: 20px;
