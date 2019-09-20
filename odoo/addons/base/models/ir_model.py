@@ -1110,7 +1110,7 @@ class IrModelSelection(models.Model):
                     continue
                 if selection.field_id.store:
                     # replace the value by the new one in the field's corresponding column
-                    query = "UPDATE {table} SET {field}=%s WHERE {field}=%s".format(
+                    query = """UPDATE {table} SET "{field}"=NULL WHERE "{field}"=%s""".format(
                         table=self.env[selection.field_id.model]._table,
                         field=selection.field_id.name,
                     )
