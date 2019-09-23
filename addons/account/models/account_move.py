@@ -2881,8 +2881,8 @@ class AccountMoveLine(models.Model):
             if move.is_invoice(include_receipts=True):
                 currency = self.env['res.currency'].browse(vals.get('currency_id'))
                 partner = self.env['res.partner'].browse(vals.get('partner_id'))
-                taxes = self.resolve_2many_commands('tax_ids', vals.get('tax_ids', []), fields=['id'])
-                tax_ids = set(tax['id'] for tax in taxes)
+                taxes = self.new({'tax_ids': vals.get('tax_ids', [])}).tax_ids
+                tax_ids = set(taxes.ids)
                 taxes = self.env['account.tax'].browse(tax_ids)
 
                 # Ensure consistency between accounting & business fields.
@@ -2939,8 +2939,8 @@ class AccountMoveLine(models.Model):
                 tax = repartition_line.invoice_tax_id or repartition_line.refund_tax_id
                 vals['tax_exigible'] = tax.tax_exigibility == 'on_invoice'
             elif vals.get('tax_ids'):
-                taxes = self.resolve_2many_commands('tax_ids', vals['tax_ids'])
-                vals['tax_exigible'] = not any([tax['tax_exigibility'] == 'on_payment' for tax in taxes])
+                taxes = self.new({'tax_ids': vals['tax_ids']}).tax_ids
+                vals['tax_exigible'] = len(taxes.filtered(lambda t: t.tax_exigibility == 'on_payment')) < 1
 
         lines = super(AccountMoveLine, self).create(vals_list)
 

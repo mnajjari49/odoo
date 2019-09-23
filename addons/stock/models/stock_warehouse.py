@@ -151,8 +151,8 @@ class Warehouse(models.Model):
             warehouses._update_reception_delivery_resupply(vals.get('reception_steps'), vals.get('delivery_steps'))
 
         if vals.get('resupply_wh_ids') and not vals.get('resupply_route_ids'):
-            resupply_whs = self.resolve_2many_commands('resupply_wh_ids', vals['resupply_wh_ids'])
-            new_resupply_whs = self.browse([wh['id'] for wh in resupply_whs])
+            resupply_whs = self.new({'resupply_wh_ids': vals['resupply_wh_ids']})
+            new_resupply_whs = self.browse(resupply_whs.resupply_wh_ids.ids)
             old_resupply_whs = {warehouse.id: warehouse.resupply_wh_ids for warehouse in warehouses}
 
         # If another partner assigned
