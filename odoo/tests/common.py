@@ -749,6 +749,9 @@ class ChromeBrowser():
         self._logger.info('Asked for screenshot (id: %s)', ss_id)
         res = self._websocket_wait_id(ss_id)
         base_png = res.get('result', {}).get('data')
+        if not base_png:
+            self._logger.info('Res: %s', res)
+            return
         decoded = base64.decodebytes(bytes(base_png.encode('utf-8')))
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
         fname = '%s%s%s.png' % (prefix, timestamp,suffix)
@@ -904,12 +907,14 @@ class ChromeBrowser():
         self.screencast_frames = []
         sl_id = self._websocket_send('Page.stopLoading')
         self._websocket_wait_id(sl_id)
-        self._logger.info('Deleting cookies and clearing local storage')
         dc_id = self._websocket_send('Network.clearBrowserCache')
+        self._logger.info('Clear browser cache (id: %s)', dc_id)
         self._websocket_wait_id(dc_id)
         dc_id = self._websocket_send('Network.clearBrowserCookies')
+        self._logger.info('Deleting cookies (id: %s)', dc_id)
         self._websocket_wait_id(dc_id)
         cl_id = self._websocket_send('Runtime.evaluate', params={'expression': 'localStorage.clear()'})
+        self._logger.info('Clear local storage (id: %s)', cl_id)
         self._websocket_wait_id(cl_id)
         self.navigate_to('about:blank', wait_stop=True)
 
