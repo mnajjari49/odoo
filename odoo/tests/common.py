@@ -627,8 +627,9 @@ class ChromeBrowser():
         url = 'about:blank'
         cmd.append(url)
         self._logger.info('chrome_run executing %s', ' '.join(cmd))
+        chrome_logs_fd = open('logs/chromelogs.txt', 'w')
         try:
-            self.chrome_process = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            self.chrome_process = subprocess.Popen(cmd, stdout=chrome_logs_fd, stderr=subprocess.STDOUT)
         except OSError:
             raise unittest.SkipTest("%s not found" % cmd[0])
         self._logger.info('Chrome pid: %s', self.chrome_process.pid)
