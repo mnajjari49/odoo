@@ -52,7 +52,8 @@ var ForumShare = publicWidget.registry.socialShare.extend({
         } else if (this.targetType === 'social-alert') {
             $('.row .question').before(qweb.render('website.social_alert', {medias: this.socialList}));
         } else {
-            $('body').append(qweb.render('website.social_modal', {medias: this.socialList, target_type: this.targetType}));
+            var state = $('.row .question').data('state');
+            $('body').append(qweb.render('website.social_modal', {medias: this.socialList, target_type: this.targetType, state: state}));
             $('#oe_social_share_modal').modal('show');
         }
     },
