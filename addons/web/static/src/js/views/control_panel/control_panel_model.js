@@ -237,7 +237,7 @@ var ControlPanelModel = mvc.Model.extend({
             if (filter.type === 'filter') {
                 filters.push(filter);
             }
-            if (filter.type === 'groupBy') {
+            if (filter.type === 'groupBy' && !filter.invisible) {
                 groupBys.push(filter);
             }
             if (filter.type === 'favorite') {

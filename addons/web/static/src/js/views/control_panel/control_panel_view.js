@@ -201,6 +201,9 @@ var ControlPanelView = Factory.extend({
                                             DEFAULT_INTERVAL;
                 filter.currentOptionIds = new Set();
             }
+            if (attrs.invisible) {
+                filter.invisible = true;
+            }
         } else if (filter.type === 'field') {
             if (filter.isDefault) {
                 filter.defaultRank = -10;
@@ -296,6 +299,9 @@ var ControlPanelView = Factory.extend({
         var groupNumber = 1;
 
         _.each(preFilters, function (preFilter) {
+            if (preFilter.tag === 'field' && preFilter.attrs.invisible) {
+                return;
+            }
             if (preFilter.tag !== currentTag || _.contains(['separator', 'field'], preFilter.tag)) {
                 if (currentGroup.length) {
                     if (currentTag === 'groupBy') {
@@ -317,8 +323,9 @@ var ControlPanelView = Factory.extend({
                     // and others are passive (require input(s) to become determined)
                     // What is the right place to process the attrs?
                 };
-                if (filter.type === 'filter' || filter.type === 'groupBy') {
-                    filter.groupNumber = groupNumber;
+                if (filter.type === 'field' && preFilter.attrs.invisible) {
+                    debugger
+                    return;
                 }
                 self._extractAttributes(filter, preFilter.attrs);
                 currentGroup.push(filter);
