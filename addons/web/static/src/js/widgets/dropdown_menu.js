@@ -15,6 +15,7 @@ var DropdownMenu = Widget.extend({
         'click span.o_trash_button': '_onTrashButtonClick',
         'hidden.bs.dropdown': '_onBootstrapClose',
         'click .dropdown-item-text': '_onDropDownItemTextClick',
+        'keydown': '_onKeydown',
     },
 
     init: function (parent, items) {
@@ -104,6 +105,49 @@ var DropdownMenu = Widget.extend({
             this._renderMenuItems();
         } else {
             this.trigger_up('menu_item_clicked', {id: id});
+        }
+    },
+    /**
+     * @private
+     * @param {KeyEvent} e
+     */
+    _onKeydown: function (e) {
+        const activeElement = document.activeElement;
+        const parentElement = activeElement.parentElement
+        let id;
+        let selector;
+        if (parentElement.tagName === "DIV" && parentElement.dataset.id) {
+            id = parentElement.dataset.id
+            const item = this.items.find(i => i.id === id);
+            if (!item.hasOptions) {
+                return;
+            }
+            selector = `.o_menu_item[data-id=${id}] a:first`;
+        } else {
+            return;
+        }
+
+        switch(e.which) {
+            case $.ui.keyCode.LEFT:
+                if (this.openItems[id]) {
+                    this.openItems[id] = false;
+                    this._renderMenuItems();
+                    this.$(selector).focus();
+                }
+                break;
+            case $.ui.keyCode.RIGHT:
+                if (!this.openItems[id]) {
+                    this.openItems[id] = true
+                    this._renderMenuItems();
+                    this.$(selector).focus();
+                }
+                break;
+            case $.ui.keyCode.ENTER:
+                e.preventDefault();
+                this.openItems[id] = !this.openItems[id];
+                this._renderMenuItems();
+                this.$(selector).focus();
+                break;
         }
     },
     /**
