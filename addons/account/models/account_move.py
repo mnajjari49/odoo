@@ -2416,6 +2416,10 @@ class AccountMoveLine(models.Model):
         currency_field='company_currency_id',
         compute='_compute_balance',
         help="Technical field holding the debit - credit in order to open meaningful graph views from reports")
+    cumulated_balance = fields.Monetary(string='Cumulated Balance', store=False,
+        currency_field='company_currency_id',
+        compute='_compute_cumulated_balance',
+        help="Technical field holding the debit - credit in order to open meaningful graph views from reports")
     amount_currency = fields.Monetary(string='Amount in Currency', store=True, copy=True,
         help="The amount expressed in an optional other currency if it is a multi-currency entry.")
     price_subtotal = fields.Monetary(string='Subtotal', store=True, readonly=True,
@@ -2953,6 +2957,40 @@ class AccountMoveLine(models.Model):
     def _compute_balance(self):
         for line in self:
             line.balance = line.debit - line.credit
+
+    @api.model
+    def search_read(self, domain=None, fields=None, offset=0, limit=None, order=None):
+        # Add the domain and order by in order to compute the cumulated balance in _compute_cumulated_balance
+        return super(AccountMoveLine, self.with_context(domain=domain or [], order_by=order)).search_read(domain, fields, offset, limit, order)
+
+    def _compute_cumulated_balance(self):
+        # invert the order by
+        order_by = [x.strip().split(' ') for x in (self.env.context['order_by'] or self._order).split(',')]
+        for o in order_by:
+            o[0] = 'account_move_line.' + o[0]
+            if len(o) == 1:
+                o += ['DESC']
+            elif o[1].upper() == 'ASC':
+                o[1] = 'DESC'
+            else:
+                o[1] = "ASC"
+            assert len(o) < 3  # This should prevent sql injections for untrusted context
+        order_by = ', '.join([' '.join(o) for o in order_by])
+
+        # get the where clause
+        from_clause, where_clause, where_clause_params = self._where_calc(self.env.context['domain']).get_sql()
+        sql = """
+            SELECT account_move_line.id, SUM(account_move_line.debit-account_move_line.credit) OVER (
+                ORDER BY %(order_by)s
+                ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+            )
+            FROM %(from)s
+            WHERE %(where)s
+        """ % {'from': from_clause, 'where': where_clause, 'order_by': order_by}
+        self.env.cr.execute(sql, where_clause_params)
+        result = {r[0]: r[1] for r in self.env.cr.fetchall()}
+        for record in self:
+            record.cumulated_balance = result[record.id]
 
     @api.depends('debit', 'credit', 'account_id', 'amount_currency', 'currency_id', 'matched_debit_ids', 'matched_credit_ids', 'matched_debit_ids.amount', 'matched_credit_ids.amount', 'move_id.state', 'company_id')
     def _amount_residual(self):
