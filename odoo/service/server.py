@@ -1,6 +1,7 @@
 #-----------------------------------------------------------
 # Threaded, Gevent and Prefork Servers
 #-----------------------------------------------------------
+import collections
 import datetime
 import errno
 import logging
@@ -629,7 +630,7 @@ class PreforkServer(CommonServer):
         self.workers_cron = {}
         self.workers = {}
         self.generation = 0
-        self.queue = []
+        self.queue = collections.deque()
         self.long_polling_pid = None
 
     def pipe_new(self):
@@ -697,8 +698,8 @@ class PreforkServer(CommonServer):
                 self.worker_pop(pid)
 
     def process_signals(self):
-        while len(self.queue):
-            sig = self.queue.pop(0)
+        while self.queue:
+            sig = self.queue.popleft()
             if sig in [signal.SIGINT, signal.SIGTERM]:
                 raise KeyboardInterrupt
             elif sig == signal.SIGHUP:
