@@ -2926,21 +2926,25 @@ Fields:
                 res = 'pg_size_pretty(length(%s)::bigint)' % res
             return '%s as "%s"' % (res, col)
 
-        # selected fields are: 'id' followed by fields_pre
-        qual_names = [qualify(name) for name in [self._fields['id']] + fields_pre]
+        if fields_pre:
+            # selected fields are: 'id' followed by fields_pre
+            qual_names = [qualify(name) for name in [self._fields['id']] + fields_pre]
 
-        # determine the actual query to execute
-        from_clause, where_clause, params = query.get_sql()
-        query_str = "SELECT %s FROM %s WHERE %s" % (",".join(qual_names), from_clause, where_clause)
+            # determine the actual query to execute
+            from_clause, where_clause, params = query.get_sql()
+            query_str = "SELECT %s FROM %s WHERE %s" % (",".join(qual_names), from_clause, where_clause)
 
-        # fetch one list of record values per field
-        param_pos = params.index(param_ids)
+            # fetch one list of record values per field
+            param_pos = params.index(param_ids)
 
-        result = []
-        for sub_ids in cr.split_for_in_conditions(self.ids):
-            params[param_pos] = tuple(sub_ids)
-            cr.execute(query_str, params)
-            result += cr.fetchall()
+            result = []
+            for sub_ids in cr.split_for_in_conditions(self.ids):
+                params[param_pos] = tuple(sub_ids)
+                cr.execute(query_str, params)
+                result += cr.fetchall()
+        else:
+            self.check_access_rule('read')
+            result = [(id_,) for id_ in self.ids]
 
         fetched = self.browse()
         if result:
@@ -3204,7 +3208,9 @@ Record ids: %(records)s
 
     def _filter_access_rules_python(self, operation):
         dom = self.env['ir.rule']._compute_domain(self._name, operation)
-        return self.filtered_domain(dom or [])
+        # Use `sudo` to avoid infinite recursion because this can be called from
+        # `_read` and `filtered_domain` will call `_read` itself.
+        return self.browse(self.sudo().filtered_domain(dom or []).ids)
 
     def unlink(self):
         """ unlink()

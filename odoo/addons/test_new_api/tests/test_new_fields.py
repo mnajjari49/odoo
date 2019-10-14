@@ -1497,6 +1497,52 @@ class TestFields(common.TransactionCase):
         self.assertEqual(Image.open(io.BytesIO(base64.b64decode(record.image))).size, (2000, 4000))
         self.assertEqual(Image.open(io.BytesIO(base64.b64decode(record.image_256))).size, (128, 256))
 
+    def test_95_ir_rule_m2m_field(self):
+        """Ensures m2m fields can't be read if the left records can't be read.
+        Also makes sure reading m2m doesn't take more queries than necessary."""
+        tag = self.env['test_new_api.multi.tag'].create({})
+        record = self.env['test_new_api.multi.line'].create({
+            'name': 'image',
+            'tags': [(4, tag.id)],
+        })
+
+        # only one query as admin: reading pivot table
+        with self.assertQueryCount(1):
+            record.read(['tags'])
+
+        record_user = record.with_user(self.env.ref('base.user_demo'))
+
+        # prep the following query count by caching access check related data
+        record_user.read(['tags'])
+
+        # only one query as user: reading pivot table
+        with self.assertQueryCount(1):
+            record_user.read(['tags'])
+
+        # create a passing ir.rule
+        self.env['ir.rule'].create({
+            'model_id': self.env['ir.model'].search([('model', '=', record._name)]).id,
+            'domain_force': "[('id', '=', %d)]" % record.id,
+        })
+
+        # prep the following query count by caching access check related data
+        record_user.read(['tags'])
+
+        # still only 1 query: reading pivot table
+        # access rules are checked in python in this case
+        with self.assertQueryCount(1):
+            record_user.read(['tags'])
+
+        # create a blocking ir.rule
+        self.env['ir.rule'].create({
+            'model_id': self.env['ir.model'].search([('model', '=', record._name)]).id,
+            'domain_force': "[('id', '!=', %d)]" % record.id,
+        })
+
+        # ensure ir.rule is applied even when reading m2m
+        with self.assertRaises(AccessError):
+            record.with_user(self.env.ref('base.user_demo')).read(['tags'])
+
 
 class TestX2many(common.TransactionCase):
     def test_definition_many2many(self):
