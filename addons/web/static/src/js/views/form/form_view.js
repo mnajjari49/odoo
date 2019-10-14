@@ -157,7 +157,7 @@ var FormView = BasicView.extend({
     _setSubViewLimit: function (attrs) {
         var view = attrs.views && attrs.views[attrs.mode];
         var limit = view && view.arch.attrs.limit && parseInt(view.arch.attrs.limit);
-        if (!limit && attrs.widget === 'many2many_tags') {
+        if (!limit && (attrs.widget === 'many2many_tags' || attrs.widget === 'many2many_tags_email')) {
             limit = 1000;
         }
         attrs.limit = limit || 40;
