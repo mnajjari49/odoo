@@ -63,6 +63,8 @@ var KioskConfirm = AbstractAction.extend({
         this.employee_name = action.employee_name;
         this.employee_state = action.employee_state;
         this.employee_hours_today = field_utils.format.float_time(action.employee_hours_today);
+        this.extra_hours_float = action.extra_hours; // Used for comparison in template
+        this.extra_hours = field_utils.format.float_time(this.extra_hours_float);
     },
 
     start: function () {

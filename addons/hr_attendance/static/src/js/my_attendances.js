@@ -20,12 +20,13 @@ var MyAttendances = AbstractAction.extend({
         var def = this._rpc({
                 model: 'hr.employee',
                 method: 'search_read',
-                args: [[['user_id', '=', this.getSession().uid]], ['attendance_state', 'name', 'hours_today']],
+                args: [[['user_id', '=', this.getSession().uid]], ['attendance_state', 'name', 'hours_today', 'extra_hours']],
             })
             .then(function (res) {
                 self.employee = res.length && res[0];
                 if (res.length) {
                     self.hours_today = field_utils.format.float_time(self.employee.hours_today);
+                    self.extra_hours = field_utils.format.float_time(self.employee.extra_hours);
                 }
             });
 
