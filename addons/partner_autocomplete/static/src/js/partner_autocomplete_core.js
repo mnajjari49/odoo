@@ -96,11 +96,15 @@ var PartnerAutocompleteMixin = {
      * @returns {Promise}
      * @private
      */
-    _getCompanyLogo: function (url) {
-        return this._getBase64Image(url).then(function (base64Image) {
-            // base64Image equals "data:" if image not available on given url
-            return base64Image ? base64Image.replace(/^data:image[^;]*;base64,?/, '') : false;
-        });
+    async _getCompanyLogo(url) {
+        let image;
+        try {
+            const base64Image = await this._getBase64Image(url);
+            image = base64Image ? base64Image.replace(/^data:image[^;]*;base64,?/, '') : false;
+        } catch (error) {
+            image = false;
+        }
+        return image;
     },
 
     /**
