@@ -252,7 +252,23 @@ class TestServerActions(TestServerActionsBase):
         self.action.with_context(self.context).run()
         self.assertEqual(self.test_country.vat_label, 'VatFromTest', 'vat label should be changed to VatFromTest')
 
+    def test_60_sort(self):
+        """ check the actions sorted by sequence """
+        Actions = self.env['ir.actions.actions']
 
+        # Do: update model
+        self.action.write({
+            'model_id': self.res_country_model.id,
+            'binding_model_id': self.res_country_model.id,
+        })
+        self.action2 = self.action.copy()
+        self.action2.write({'name': 'TestAction2', 'sequence': 1})
+
+        # Test: action returned by sequence
+        bindings = Actions.get_bindings('res.country')
+        self.assertEqual(bindings.get('action')[0].get('name'), 'TestAction2', 'TestAction2 should come at first')
+        self.assertEqual(bindings.get('action')[0].get('sequence'), 1, 'action2 should come at first (sequence 1)')
+        self.assertEqual(bindings.get('action')[1].get('sequence'), 5, 'action should come at last (sequence 5)')
 
 
 class TestCustomFields(common.TransactionCase):

@@ -124,6 +124,9 @@ class IrActions(models.Model):
             except (AccessError, MissingError):
                 continue
 
+        # sort actions by their sequence if sequence available
+        if result.get('action'):
+            result['action'] = sorted(result['action'], key=lambda action: (action.get('sequence', 0)))
         return result
 
 
