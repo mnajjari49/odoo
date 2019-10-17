@@ -1,8 +1,17 @@
 # -*- coding: utf-8 -*-
 
+import io
+import threading
+import time
+import werkzeug
+
 from odoo import exceptions, _
-from odoo.http import Controller, request, route
+from odoo.http import Controller, request, Response, route
 from odoo.addons.bus.models.bus import dispatch
+
+
+class StreamResponse(Response, werkzeug.wrappers.ResponseStreamMixin):
+    pass
 
 
 class BusController(Controller):
@@ -42,3 +51,56 @@ class BusController(Controller):
     @route('/longpolling/im_status', type="json", auth="user")
     def im_status(self, partner_ids):
         return request.env['res.partner'].search_read([['id', 'in', partner_ids]], ['id', 'im_status'])
+
+    @route('/sse/stream', type="http", auth="public")
+    def sse_stream(self):
+
+        # stream = io.StringIO()
+
+        # def run():
+        #     i = 0
+        #     while i < 10:
+        #         message = "%d" % i
+        #         print(message)
+        #         stream.write("data: {}\n\n".format(message))
+        #         i += 1
+        #         time.sleep(1000)
+        #     stream.close()
+
+        # t = threading.Thread(name="sse.thread", target=run)
+        # t.daemon = True
+        # t.start()
+
+        # def run(self):
+        #     while True:
+        #         try:
+        #             self.loop()
+        #         except Exception as e:
+        #             _logger.exception("Bus.loop error, sleep and retry")
+        #             time.sleep(TIMEOUT)
+
+        # def start(self):
+        #     if odoo.evented:
+        #         # gevent mode
+        #         import gevent
+        #         self.Event = gevent.event.Event
+        #         gevent.spawn(self.run)
+        #     else:
+        #         # threaded mode
+        #         self.Event = threading.Event
+        #         t = threading.Thread(name="%s.Bus" % __name__, target=self.run)
+        #         t.daemon = True
+        #         t.start()
+        #     self.started = True
+        #     return self(request.db, channels, last, options)
+
+        def event_stream():
+            i = 0
+            while True:
+                message = "%d" % i
+                print(message)
+                yield "data: {}\n\n".format(message)
+                i+=1
+                time.sleep(1)
+
+        return Response(event_stream(), mimetype="text/event-stream")
