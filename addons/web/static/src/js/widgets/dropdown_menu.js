@@ -1,10 +1,11 @@
 odoo.define('web.DropdownMenu', function (require) {
 "use strict";
 
-var core = require('web.core');
-var Widget = require('web.Widget');
+const config = require('web.config');
+const Domain = require('web.Domain');
+const Widget = require('web.Widget');
 
-var QWeb = core.qweb;
+const { qweb: QWeb } = require('web.core');
 
 var DropdownMenu = Widget.extend({
     template: 'web.DropdownMenu',
@@ -38,6 +39,13 @@ var DropdownMenu = Widget.extend({
         this.openItems = {};
     },
 
+    /**
+     * @override
+     */
+    start: async function () {
+        await this._super.apply(this, arguments);
+        this._addTooltips();
+    },
 
     //--------------------------------------------------------------------------
     // Public
@@ -58,10 +66,34 @@ var DropdownMenu = Widget.extend({
     /**
      * @private
      */
+    _addTooltips: function () {
+        this.items.forEach(async item => {
+            const $el = this.$(`.o_menu_item[data-id="${item.id}"]`);
+            const filter = Object.assign({ model: 'ir.filters' }, item);
+            let filterDomain = item.domain;
+            try {
+                const jsDom = new Domain(filterDomain).toArray();
+                filterDomain = Domain.prototype.domainToCondition(jsDom);
+            } catch (err) {
+            } finally {
+                filter.domain = filterDomain;
+            }
+            $el.tooltip({
+                delay: 0,
+                placement: 'left',
+                title: QWeb.render('Filter.tooltip', { debug: config.isDebug(), filter }),
+            });
+        });
+    },
+
+    /**
+     * @private
+     */
     _renderMenuItems: function () {
-        var newMenuItems = QWeb.render('DropdownMenu.MenuItems', {widget: this});
+        const newMenuItems = QWeb.render('DropdownMenu.MenuItems', { widget: this });
         this.$el.find('.o_menu_item, .dropdown-divider[data-removable="1"]').remove();
         this.$('.o_dropdown_menu').prepend(newMenuItems);
+        this._addTooltips();
     },
 
     //--------------------------------------------------------------------------

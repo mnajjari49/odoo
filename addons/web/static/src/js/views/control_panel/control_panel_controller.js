@@ -1,21 +1,24 @@
 odoo.define('web.ControlPanelController', function (require) {
 "use strict";
 
-var mvc = require('web.mvc');
+const { Controller } = require('web.mvc');
+const { FormViewDialog } = require('web.view_dialogs');
 
-var ControlPanelController = mvc.Controller.extend({
+const ControlPanelController = Controller.extend({
     className: 'o_cp_controller',
     custom_events: {
+        activate_time_range: '_onActivateTimeRange',
+        autocompletion_filter: '_onAutoCompletionFilter',
         facet_removed: '_onFacetRemoved',
         get_search_query: '_onGetSearchQuery',
         item_option_clicked: '_onItemOptionClicked',
         item_trashed: '_onItemTrashed',
         menu_item_clicked: '_onMenuItemClicked',
+        move_filter: '_onMoveFilter',
         new_favorite: '_onNewFavorite',
         new_filters: '_onNewFilters',
         new_groupBy: '_onNewGroupBy',
-        activate_time_range: '_onActivateTimeRange',
-        autocompletion_filter: '_onAutoCompletionFilter',
+        open_filter: '_onOpenFilter',
         reload: '_onReload',
         reset: '_onReset',
     },
@@ -222,6 +225,14 @@ var ControlPanelController = mvc.Controller.extend({
      * @private
      * @param {OdooEvent} ev
      */
+    _onMoveFilter: function (ev) {
+        const filter = this.model.get(ev.data.filterId);
+        console.log({ filter });
+    },
+    /**
+     * @private
+     * @param {OdooEvent} ev
+     */
     _onNewFavorite: function (ev) {
         ev.stopPropagation();
         var def = this.model.createNewFavorite(ev.data);
@@ -244,6 +255,23 @@ var ControlPanelController = mvc.Controller.extend({
         ev.stopPropagation();
         this.model.createNewGroupBy(ev.data);
         this._reportNewQueryAndRender();
+    },
+    /**
+     * @private
+     * @param {OdooEvent} ev
+     */
+    _onOpenFilter: function (ev) {
+        const filter = this.model.get(ev.data.filterId);
+        const dialogOptions = {
+            on_saved: async () => {
+                await this.model.reloadFavorites();
+                await this._reportNewQueryAndRender();
+            },
+            res_model: 'ir.filters',
+            res_id: filter.serverSideId,
+            title: filter.description,
+        };
+        new FormViewDialog(this, dialogOptions).open();
     },
     /**
      * @private

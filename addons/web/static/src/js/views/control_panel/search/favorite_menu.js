@@ -7,9 +7,13 @@ var Dialog = require('web.Dialog');
 var DropdownMenu = require('web.DropdownMenu');
 var favorites_submenus_registry = require('web.favorites_submenus_registry');
 
-var _t = core._t;
+const { qweb: QWeb, _t } = core;
 
 var FavoriteMenu = DropdownMenu.extend({
+    template: 'FavoriteMenu',
+    events: _.extend({}, DropdownMenu.prototype.events, {
+        'click .o_favorite_edit': '_onEditFavorite',
+    }),
     /**
      * @override
      * @param {Object} action
@@ -32,19 +36,28 @@ var FavoriteMenu = DropdownMenu.extend({
      *
      * @override
      */
-    start: function () {
-        var self = this;
+    start: async function () {
+        await this._super.apply(this, arguments);
         var params = {
             favorites: this.items,
             action: this.action,
         };
         this.$menu = this.$('.o_dropdown_menu');
         this.$menu.addClass('o_favorites_menu');
+        this.$menu.sortable({
+            axis: 'y',
+            items: '.o_menu_item',
+            helper: 'clone',
+            stop: (event, ui) => this.trigger_up('move_filter', {
+                filterId: ui.item.data('id'),
+                to: ui.item.index(),
+            }),
+        });
         this.subMenus = [];
-        favorites_submenus_registry.values().forEach(function (SubMenu) {
-            var subMenu = new SubMenu(self, params);
-            subMenu.appendTo(self.$menu);
-            self.subMenus.push(subMenu);
+        favorites_submenus_registry.values().forEach(SubMenu => {
+            var subMenu = new SubMenu(this, params);
+            subMenu.appendTo(this.$menu);
+            this.subMenus.push(subMenu);
         });
     },
 
@@ -70,6 +83,16 @@ var FavoriteMenu = DropdownMenu.extend({
      _closeSubMenus: function () {
         _.invoke(this.subMenus, 'closeMenu');
      },
+    /**
+     * @override
+     * @private
+     */
+    _renderMenuItems: function () {
+        const newMenuItems = QWeb.render('FavoriteMenu.MenuItems', { widget: this });
+        this.$el.find('.o_menu_item, .dropdown-divider[data-removable="1"]').remove();
+        this.$('.o_dropdown_menu').prepend(newMenuItems);
+        this._addTooltips();
+    },
 
     //--------------------------------------------------------------------------
     // Handlers
@@ -82,6 +105,23 @@ var FavoriteMenu = DropdownMenu.extend({
     _onBootstrapClose: function () {
         this._super.apply(this, arguments);
         this._closeSubMenus();
+    },
+    /**
+     * @private
+     * @param {MouseEvent} ev
+     */
+    _onEditFavorite: function (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+
+        this.trigger_up('open_filter', { filterId: ev.currentTarget.dataset.id });
+        // const favorite = this.items.find(item => item.id === ev.currentTarget.dataset.id);
+        // this.trigger_up('update_filter', {
+        //     filterId: favorite.id,
+        //     changes: {
+        //         isDefault: !favorite.isDefault,
+        //     },
+        // });
     },
     /**
      * @override

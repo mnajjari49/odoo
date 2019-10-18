@@ -47,6 +47,10 @@ var SearchBar = Widget.extend({
             defs.push(self._renderFacet(facet));
         });
         defs.push(this._setupAutoCompletion());
+        this.$el.sortable({
+            items: '.o_searchview_facet',
+            helper: 'clone',
+        });
         return Promise.all(defs);
     },
 

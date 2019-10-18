@@ -1,10 +1,11 @@
 odoo.define('web.SearchFacet', function (require) {
 "use strict";
 
-var core = require('web.core');
-var Widget = require('web.Widget');
+const config = require('web.config');
+const Domain = require('web.Domain');
+const Widget = require('web.Widget');
 
-var _t = core._t;
+const { qweb: QWeb, _t } = require('web.core');
 
 var SearchFacet = Widget.extend({
     template: 'SearchView.SearchFacet',
@@ -31,10 +32,51 @@ var SearchFacet = Widget.extend({
         this._isComposing = false;
     },
 
+    /**
+     * @override
+     */
+    start: async function () {
+        await this._super.apply(this, arguments);
+        this._addTooltip();
+    },
+
     //--------------------------------------------------------------------------
     // Private
     //--------------------------------------------------------------------------
 
+    /**
+     * @private
+     */
+    _addTooltip: function () {
+        const domains = [];
+        const fieldNames = [];
+        this.facet.filters.forEach(filter => {
+            if (filter.domain) {
+                domains.push(filter.domain);
+            } else if (filter.fieldName) {
+                fieldNames.push(filter.fieldName);
+            }
+        });
+        const filter = { description: this.facetValues.join(", ") };
+        if (domains.length) {
+            let filterDomain = domains.join();
+            try {
+                const jsDom = new Domain(filterDomain).toArray();
+                filterDomain = Domain.prototype.domainToCondition(jsDom);
+            } catch (err) {
+            } finally {
+                filter.domain = filterDomain;
+            }
+        }
+        if (fieldNames.length) {
+            filter.fieldName = fieldNames.join(", ");
+        }
+        this.$el.tooltip({
+            delay: 0,
+            placement: 'bottom',
+            title: QWeb.render('Filter.tooltip', { debug: config.isDebug(), filter }),
+        });
+    },
     /**
      * Get the correct description according to filter.
      *

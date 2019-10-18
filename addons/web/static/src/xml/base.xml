@@ -120,6 +120,32 @@
     </ul>
 </t>
 
+<t t-name="Filter.tooltip">
+    <div class="oe_tooltip_string" role="tooltip" t-esc="filter.description"/>
+    <ul t-if="debug" class="oe_tooltip_technical" role="tooltip">
+        <li t-if="filter.model" data-item="object">
+            <span class="oe_tooltip_technical_title">Object:</span>
+            <t t-esc="filter.model"/>
+        </li>
+        <li t-if="filter.type" data-item="type">
+            <span class="oe_tooltip_technical_title">Type:</span>
+            <t t-esc="filter.type"/>
+        </li>
+        <li t-if="filter.domain" data-item="domain">
+            <span class="oe_tooltip_technical_title">Domain:</span>
+            <t t-esc="filter.domain"/>
+        </li>
+        <li t-if="filter.fieldName" data-item="groupBy">
+            <span class="oe_tooltip_technical_title">GroupBy:</span>
+            <t t-esc="filter.fieldName"/>
+        </li>
+        <li t-if="filter.isDefault" data-item="isDefault">
+            <span class="oe_tooltip_technical_title">Default:</span>
+            <t t-esc="filter.isDefault"/>
+        </li>
+    </ul>
+</t>
+
 <form t-name="ChangePassword" name="change_password_form" method="POST" aria-atomic="true">
     <div class="o_form_view">
         <table class="o_group o_inner_group o_label_nowrap">
@@ -1061,10 +1087,10 @@
         <t t-set="group" t-value="0"/>
         <t t-foreach="widget.items" t-as="item">
             <div t-if="group !== item.groupNumber" role="separator" class="dropdown-divider" data-removable="1"/>
-            <div t-attf-class="o_menu_item"
+            <div t-attf-class="o_menu_item #{item.isDefault ? 'o_filter_default' : ''}"
                 t-att-data-id="item.id">
                 <a role="menuitem" href="#" t-attf-class="dropdown-item#{item.isActive ? ' selected ' : ''}">
-                    <t t-esc="item.description"/>
+                    <span class="o_item_name" t-esc="item.description"/>
                     <span t-if="item.isRemovable" t-att-data-id="item.id" class="o_trash_button" > <span class="fa fa-trash-o"></span> </span>
                     <span t-if="item.hasOptions" t-att-data-id="item.id" class="o_submenu_switcher">
                         <span t-att-class="widget.openItems[item.id] ? 'fa fa-caret-down' : 'fa fa-caret-right'"></span>
@@ -1094,6 +1120,18 @@
     <div class="dropdown-menu o_dropdown_menu" role="menu">
         <t t-call="DropdownMenu.MenuItems"/>
     </div>
+</div>
+
+<t t-name="FavoriteMenu.MenuItems" t-inherit="web.DropdownMenu.MenuItems" t-inherit-mode="primary">
+    <xpath expr="//span[@class='o_item_name']" position="after">
+        <span t-att-data-id="item.id" class="o_favorite_edit"><span class="fa fa-pencil"></span></span>
+    </xpath>
+</t>
+
+<div t-name="FavoriteMenu" t-inherit="web.web.DropdownMenu" t-inherit-mode="primary">
+    <xpath expr="//t[@t-call='DropdownMenu.MenuItems']" position="replace">
+        <t t-call="FavoriteMenu.MenuItems"/>
+    </xpath>
 </div>
 
 <t t-name="GroupByMenuGenerator">

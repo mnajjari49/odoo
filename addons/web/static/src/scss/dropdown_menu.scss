@@ -5,10 +5,17 @@
 
     min-width: 150px;
     max-height: calc(100vh - 125px); // FIXME
-    overflow: auto;
+    overflow: visible;
 
     .o_menu_item {
         position: relative;
+
+        &.o_filter_default {
+            border-left: 2px solid $o-brand-primary;
+        }
+        &:not(.o_filter_default) {
+            border-left: 2px solid transparent;
+        }
 
         > .dropdown-item {
             color: $o-main-text-color;
@@ -42,8 +49,35 @@
             content: "\f00c";
         }
     }
+    .o_favorite_edit {
+        padding-left: 8px;
+        @include o-position-absolute($right: $dropdown-item-padding-x * 1.5);
+    }
     .o_trash_button {
         padding-left: 8px;
         @include o-position-absolute($right: $dropdown-item-padding-x * 0.5);
+    }
+}
+
+.o_filter_info {
+    .o_condition_variable {
+        color: $o-brand-primary;
+        font-weight: bold;
+    }
+
+    .o_condition_value {
+        font-weight: bold;
+        &.o_number {
+            color: $purple;
+        }
+        &.o_boolean {
+            color: $teal;
+        }
+        &.o_string {
+            color: $red;
+        }
+        &.o_object {
+            color: $orange;
+        }
     }
 }

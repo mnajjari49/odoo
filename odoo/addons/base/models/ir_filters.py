@@ -75,37 +75,6 @@ class IrFilters(models.Model):
         return filters.with_context(user_context).read(['name', 'is_default', 'domain', 'context', 'user_id', 'sort'])
 
     @api.model
-    def _check_global_default(self, vals, matching_filters):
-        """ _check_global_default(dict, list(dict), dict) -> None
-
-        Checks if there is a global default for the model_id requested.
-
-        If there is, and the default is different than the record being written
-        (-> we're not updating the current global default), raise an error
-        to avoid users unknowingly overwriting existing global defaults (they
-        have to explicitly remove the current default before setting a new one)
-
-        This method should only be called if ``vals`` is trying to set
-        ``is_default``
-
-        :raises odoo.exceptions.UserError: if there is an existing default and
-                                            we're not updating it
-        """
-        domain = self._get_action_domain(vals.get('action_id'))
-        defaults = self.search(domain + [
-            ('model_id', '=', vals['model_id']),
-            ('user_id', '=', False),
-            ('is_default', '=', True),
-        ])
-
-        if not defaults:
-            return
-        if matching_filters and (matching_filters[0]['id'] == defaults.id):
-            return
-
-        raise UserError(_("There is already a shared filter set as default for %(model)s, delete or change it before setting a new default") % {'model': vals.get('model_id')})
-
-    @api.model
     @api.returns('self', lambda value: value.id)
     def create_or_replace(self, vals):
         action_id = vals.get('action_id')
@@ -116,21 +85,6 @@ class IrFilters(models.Model):
                             # f.user_id is False and vals.user_id is False or missing,
                             # or f.user_id.id == vals.user_id
                             if (f['user_id'] and f['user_id'][0]) == vals.get('user_id')]
-
-        if vals.get('is_default'):
-            if vals.get('user_id'):
-                # Setting new default: any other default that belongs to the user
-                # should be turned off
-                domain = self._get_action_domain(action_id)
-                defaults = self.search(domain + [
-                    ('model_id', '=', vals['model_id']),
-                    ('user_id', '=', vals['user_id']),
-                    ('is_default', '=', True),
-                ])
-                if defaults:
-                    defaults.write({'is_default': False})
-            else:
-                self._check_global_default(vals, matching_filters)
 
         # When a filter exists for the same (name, model, user) triple, we simply
         # replace its definition (considering action_id irrelevant here)
