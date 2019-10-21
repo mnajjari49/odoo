@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
-from odoo import fields, models
+from odoo import api, fields, models
 
 
 class StockPicking(models.Model):
@@ -12,6 +12,23 @@ class StockPicking(models.Model):
         check_company=True,
         states={'done': [('readonly', True)], 'cancel': [('readonly', True)]},
         help='Batch associated to this transfer', copy=False)
+
+    @api.model
+    def create(self, vals):
+        res = super().create(vals)
+        if vals.get('batch_id'):
+            batch = self.batch_id
+            batch._sanity_check()
+        return res
+
+    def write(self, vals):
+        res = super().write(vals)
+        if vals.get('batch_id'):
+            batch = self.batch_id
+            if not batch.picking_type_id:
+                batch.picking_type_id = self[0].picking_type_id
+            batch._sanity_check()
+        return res
 
     def _should_show_transfers(self):
         if len(self.batch_id) == 1 and self == self.batch_id.picking_ids:
