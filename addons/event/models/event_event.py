@@ -53,10 +53,12 @@ class EventType(models.Model):
         'Limited Seats', default=False)
     default_registration_min = fields.Integer(
         'Minimum Registrations', default=0,
-        help="It will select this default minimum value when you choose this event")
+        help="It will select this default minimum value when you choose this event",
+        compute='_compute_default_registration', store=True, readonly=False)
     default_registration_max = fields.Integer(
         'Maximum Registrations', default=0,
-        help="It will select this default maximum value when you choose this event")
+        help="It will select this default maximum value when you choose this event",
+        compute='_compute_default_registration', store=True, readonly=False)
     auto_confirm = fields.Boolean(
         'Automatically Confirm Registrations', default=True,
         help="Events and registrations will automatically be confirmed "
@@ -77,11 +79,12 @@ class EventType(models.Model):
         copy=False,
         default=lambda self: self._get_default_event_type_mail_ids())
 
-    @api.onchange('has_seats_limitation')
-    def _onchange_has_seats_limitation(self):
-        if not self.has_seats_limitation:
-            self.default_registration_min = 0
-            self.default_registration_max = 0
+    @api.depends('has_seats_limitation')
+    def _compute_default_registration(self):
+        for record in self:
+            if not record.has_seats_limitation:
+                record.default_registration_min = 0
+                record.default_registration_max = 0
 
 
 class EventEvent(models.Model):
@@ -118,7 +121,9 @@ class EventEvent(models.Model):
         'event.type', string='Category',
         readonly=False)
     color = fields.Integer('Kanban Color Index')
-    event_mail_ids = fields.One2many('event.mail', 'event_id', string='Mail Schedule', copy=True)
+    event_mail_ids = fields.One2many(
+        'event.mail', 'event_id', string='Mail Schedule', copy=True,
+        compute='_compute_from_event_type', store=True, readonly=False)
     # Kanban fields
     kanban_state = fields.Selection([('normal', 'In Progress'), ('done', 'Done'), ('blocked', 'Blocked')])
     kanban_state_label = fields.Char(compute='_compute_kanban_state_label', string='Kanban State Label', tracking=True, store=True)
@@ -133,13 +138,16 @@ class EventEvent(models.Model):
     seats_max = fields.Integer(
         string='Maximum Attendees Number',
         readonly=True,
+        compute='_compute_from_event_type', store=True,
         help="For each event you can define a maximum registration of seats(number of attendees), above this numbers the registrations are not accepted.")
     seats_availability = fields.Selection(
         [('limited', 'Limited'), ('unlimited', 'Unlimited')],
-        'Maximum Attendees', required=True, default='unlimited')
+        'Maximum Attendees', required=True, default='unlimited',
+        compute='_compute_from_event_type', store=True, readonly=False)
     seats_min = fields.Integer(
         string='Minimum Attendees',
-        help="For each event you can define a minimum reserved seats (number of attendees), if it does not reach the mentioned registrations the event can not be confirmed (keep 0 to ignore this rule)")
+        help="For each event you can define a minimum reserved seats (number of attendees), if it does not reach the mentioned registrations the event can not be confirmed (keep 0 to ignore this rule)",
+        compute='_compute_from_event_type', store=True, readonly=False)
     seats_reserved = fields.Integer(
         string='Reserved Seats',
         store=True, readonly=True, compute='_compute_seats')
@@ -163,6 +171,7 @@ class EventEvent(models.Model):
     # Date fields
     date_tz = fields.Selection(
         _tz_get, string='Timezone', required=True,
+        compute='_compute_from_event_type', readonly=False, store=True,
         default=lambda self: self.env.user.tz or 'UTC')
     date_begin = fields.Datetime(
         string='Start Date', required=True,
@@ -173,8 +182,10 @@ class EventEvent(models.Model):
     date_begin_located = fields.Char(string='Start Date Located', compute='_compute_date_begin_tz')
     date_end_located = fields.Char(string='End Date Located', compute='_compute_date_end_tz')
     is_one_day = fields.Boolean(compute='_compute_field_is_one_day')
-    auto_confirm = fields.Boolean(string='Autoconfirm Registrations')
-    is_online = fields.Boolean('Online Event')
+    auto_confirm = fields.Boolean(
+        string='Autoconfirm Registrations',
+        compute='_compute_from_event_type', store=True, readonly=False)
+    is_online = fields.Boolean('Online Event', compute='_compute_from_event_type', store=True, readonly=False)
     address_id = fields.Many2one(
         'res.partner', string='Location',
         default=lambda self: self.env.company.partner_id,
@@ -182,7 +193,7 @@ class EventEvent(models.Model):
         domain="['|', ('company_id', '=', False), ('company_id', '=', company_id)]",
         tracking=True)
     country_id = fields.Many2one('res.country', 'Country',  related='address_id.country_id', store=True, readonly=False)
-    twitter_hashtag = fields.Char('Twitter Hashtag')
+    twitter_hashtag = fields.Char('Twitter Hashtag', compute='_compute_from_event_type', store=True, readonly=False)
     description = fields.Html(
         string='Description', translate=html_translate, sanitize_attributes=False,
         readonly=False)
@@ -270,37 +281,44 @@ class EventEvent(models.Model):
         for event in self:
             event.duration_str = _format_time_ago(self.env, event.date_end - event.date_begin, add_direction=False)
 
-    @api.onchange('is_online')
-    def _onchange_is_online(self):
-        if self.is_online:
-            self.address_id = False
+    @api.depends('event_type_id')
+    def _compute_from_event_type(self):
+        for record in self:
+            if record.event_type_id:
+                record.seats_min = record.event_type_id.default_registration_min
+                record.seats_max = record.event_type_id.default_registration_max
+                if record.event_type_id.default_registration_max:
+                    record.seats_availability = 'limited'
 
-    @api.onchange('event_type_id')
-    def _onchange_type(self):
-        if self.event_type_id:
-            self.seats_min = self.event_type_id.default_registration_min
-            self.seats_max = self.event_type_id.default_registration_max
-            if self.event_type_id.default_registration_max:
-                self.seats_availability = 'limited'
+                if record.event_type_id.auto_confirm:
+                    record.auto_confirm = record.event_type_id.auto_confirm
 
-            if self.event_type_id.auto_confirm:
-                self.auto_confirm = self.event_type_id.auto_confirm
+                if record.event_type_id.use_hashtag:
+                    record.twitter_hashtag = record.event_type_id.default_hashtag
 
-            if self.event_type_id.use_hashtag:
-                self.twitter_hashtag = self.event_type_id.default_hashtag
+                if record.event_type_id.use_timezone:
+                    record.date_tz = record.event_type_id.default_timezone
 
-            if self.event_type_id.use_timezone:
-                self.date_tz = self.event_type_id.default_timezone
+                record.is_online = record.event_type_id.is_online
+                if record.is_online:
+                    record.address_id = False
 
-            self.is_online = self.event_type_id.is_online
+            # self.is_online = self.event_type_id.is_online
 
-            if self.event_type_id.event_type_mail_ids:
-                self.event_mail_ids = [(5, 0, 0)] + [
-                    (0, 0, {
-                        attribute_name: line[attribute_name] if not isinstance(line[attribute_name], models.BaseModel) else line[attribute_name].id
-                        for attribute_name in self.env['event.type.mail']._get_event_mail_fields_whitelist()
-                        })
-                    for line in self.event_type_id.event_type_mail_ids]
+            # if self.event_type_id.event_type_mail_ids:
+            #     self.event_mail_ids = [(5, 0, 0)] + [
+            #         (0, 0, {
+            #             attribute_name: line[attribute_name]
+            #             for attribute_name in self.env['event.type.mail']._get_event_mail_fields_whitelist()
+            #             })
+            #         for line in self.event_type_id.event_type_mail_ids]
+
+                if record.event_type_id.event_type_mail_ids:
+                    record.event_mail_ids = [(5, 0, 0)] + [(0, 0, {
+                        'template_id': line.template_id.id,
+                        'interval_nbr': line.interval_nbr,
+                        'interval_unit': line.interval_unit,
+                        'interval_type': line.interval_type}) for line in record.event_type_id.event_type_mail_ids]
 
     @api.constrains('seats_min', 'seats_max', 'seats_availability')
     def _check_seats_min_max(self):

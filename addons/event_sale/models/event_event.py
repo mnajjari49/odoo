@@ -36,7 +36,7 @@ class Event(models.Model):
 
     event_ticket_ids = fields.One2many(
         'event.event.ticket', 'event_id', string='Event Ticket',
-        copy=True)
+        copy=True, compute='_compute_from_event_type', store=True, readonly=False)
 
     sale_order_lines_ids = fields.One2many(
         'sale.order.line', 'event_id',
@@ -49,17 +49,30 @@ class Event(models.Model):
 
     start_sale_date = fields.Date('Start sale date', compute='_compute_start_sale_date')
 
-    @api.onchange('event_type_id')
-    def _onchange_type(self):
-        super(Event, self)._onchange_type()
-        if self.event_type_id.use_ticketing:
-            self.event_ticket_ids = [(5, 0, 0)] + [
-                (0, 0, {
-                    'name': self.name and _('Registration for %s') % self.name or ticket.name,
-                    'product_id': ticket.product_id.id,
-                    'price': ticket.price,
-                })
-                for ticket in self.event_type_id.event_ticket_ids]
+    # @api.onchange('event_type_id')
+    # def _onchange_type(self):
+    #     super(Event, self)._onchange_type()
+    #     if self.event_type_id.use_ticketing:
+    #         self.event_ticket_ids = [(5, 0, 0)] + [
+    #             (0, 0, {
+    #                 'name': self.name and _('Registration for %s') % self.name or ticket.name,
+    #                 'product_id': ticket.product_id.id,
+    #                 'price': ticket.price,
+    #             })
+    #             for ticket in self.event_type_id.event_ticket_ids]
+
+    @api.depends('event_type_id')
+    def _compute_from_event_type(self):
+        super(Event, self)._compute_from_event_type()
+        for record in self:
+            if record.event_type_id.use_ticketing:
+                record.event_ticket_ids = [(5, 0, 0)] + [
+                    (0, 0, {
+                        'name': record.name and _('Registration for %s') % record.name or ticket.name,
+                        'product_id': ticket.product_id.id,
+                        'price': ticket.price,
+                    })
+                    for ticket in record.event_type_id.event_ticket_ids]
 
     @api.depends('event_ticket_ids.start_sale_date')
     def _compute_start_sale_date(self):

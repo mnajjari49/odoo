@@ -26,10 +26,10 @@ class EventRegistration(models.Model):
     partner_id = fields.Many2one(
         'res.partner', string='Contact',
         states={'done': [('readonly', True)]})
-    name = fields.Char(string='Attendee Name', index=True)
-    email = fields.Char(string='Email')
-    phone = fields.Char(string='Phone')
-    mobile = fields.Char(string='Mobile')
+    name = fields.Char(string='Attendee Name', index=True, compute='_compute_contact_info', store=True, readonly=False)
+    email = fields.Char(string='Email', compute='_compute_contact_info', store=True, readonly=False)
+    phone = fields.Char(string='Phone', compute='_compute_contact_info', store=True, readonly=False)
+    mobile = fields.Char(string='Mobile', compute='_compute_contact_info', store=True, readonly=False)
     # organization
     date_open = fields.Datetime(string='Registration Date', readonly=True, default=lambda self: fields.Datetime.now())  # weird crash is directly now
     date_closed = fields.Datetime(string='Attended Date', readonly=True)
@@ -102,16 +102,17 @@ class EventRegistration(models.Model):
     def button_reg_cancel(self):
         self.write({'state': 'cancel'})
 
-    @api.onchange('partner_id')
-    def _onchange_partner(self):
-        if self.partner_id:
-            contact_id = self.partner_id.address_get().get('contact', False)
-            if contact_id:
-                contact = self.env['res.partner'].browse(contact_id)
-                self.name = contact.name or self.name
-                self.email = contact.email or self.email
-                self.phone = contact.phone or self.phone
-                self.mobile = contact.mobile or self.mobile
+    @api.depends('partner_id')
+    def _compute_contact_info(self):
+        for record in self:
+            if record.partner_id:
+                contact_id = record.partner_id.address_get().get('contact', False)
+                if contact_id:
+                    contact = record.env['res.partner'].browse(contact_id)
+                    record.name = contact.name or record.name
+                    record.email = contact.email or record.email
+                    record.phone = contact.phone or record.phone
+                    record.mobile = contact.mobile or record.mobile
 
     def _message_get_suggested_recipients(self):
         recipients = super(EventRegistration, self)._message_get_suggested_recipients()
