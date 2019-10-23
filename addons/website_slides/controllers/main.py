@@ -862,17 +862,32 @@ class WebsiteSlides(WebsiteProfile):
             'can_create': can_create,
         }
 
-    @http.route('/slides/category/add', type="http", website=True, auth="user")
+    @http.route('/slides/category/add', type="json", website=True, auth="user")
     def slide_category_add(self, channel_id, name):
         """ Adds a category to the specified channel. Slide is added at the end
         of slide list based on sequence. """
         channel = request.env['slide.channel'].browse(int(channel_id))
         if not channel.can_upload or not channel.can_publish:
-            raise werkzeug.exceptions.NotFound()
+            return {
+                'error': 'access_right'
+            }
 
-        request.env['slide.slide'].create(self._get_new_slide_category_values(channel, name))
+        category = request.env['slide.slide'].create(self._get_new_slide_category_values(channel, name))
 
-        return werkzeug.utils.redirect("/slides/%s" % (slug(channel)))
+        return {
+            'channel': {
+                'id': channel.id,
+                'channel_type': channel.channel_type,
+                'can_publish': channel.can_publish,
+                'can_upload': channel.can_upload
+            },
+            'category': {
+                'id': category.id,
+                'name': category.name,
+                'empty': True
+            },
+            'category_created': True
+        }
 
     # --------------------------------------------------
     # SLIDE.UPLOAD
@@ -924,18 +939,14 @@ class WebsiteSlides(WebsiteProfile):
             values['completion_time'] = int(post['duration']) / 60
 
         # handle creation of new categories on the fly
-        if post.get('category_id'):
-            if post['category_id'][0] == 0:
-                category = request.env['slide.slide'].create(self._get_new_slide_category_values(channel, post['category_id'][1]['name']))
-                values['category_id'] = category.id
-                values['sequence'] = category.sequence + 1
-            else:
-                values.update({
-                    'category_id': post['category_id'][0],
-                    'sequence': request.env['slide.slide'].browse(post['category_id'][0]).sequence + 1
-                })
-        else:
-            values['sequence'] = -1
+        category = request.env['slide.slide']
+        category_created = False
+        if post.get('category_id') and not post['category_id'][0] == 0:
+            category = request.env['slide.slide'].browse(post['category_id'][0])
+        elif post.get('category_id') and post['category_id'][0] == 0:
+            category = request.env['slide.slide'].create(self._get_new_slide_category_values(channel, post['category_id'][1]['name']))
+            category_created = True
+
 
         # create slide itself
         try:
@@ -949,19 +960,42 @@ class WebsiteSlides(WebsiteProfile):
             _logger.error(e)
             return {'error': _('Internal server error, please try again later or contact administrator.\nHere is the error message: %s') % e}
 
-        # ensure correct ordering by re sequencing slides in front-end (backend should be ok thanks to list view)
-        channel._resequence_slides(slide)
+        if channel.channel_type == 'documentation':
+            channel._resequence_slides(slide, category.id)
 
         redirect_url = "/slides/slide/%s" % (slide.id)
+        action_id = request.env.ref('website_slides.slide_slide_action').id
         if channel.channel_type == "training" and not slide.slide_type == "webpage":
             redirect_url = "/slides/%s" % (slug(channel))
         if slide.slide_type == 'webpage':
             redirect_url += "?enable_editor=1"
+        if slide.slide_type == "quiz":
+            redirect_url = '/web#id=%s&action=%s&model=slide.slide&view_type=form' %( slide.id, action_id)
         return {
             'url': redirect_url,
-            'channel_type': channel.channel_type,
-            'slide_id': slide.id,
-            'category_id': slide.category_id
+            'channel': {
+                'id': channel.id,
+                'channel_type': channel.channel_type,
+                'can_publish': channel.can_publish,
+                'can_upload': channel.can_upload
+            },
+            'slide': {
+                'id': slide.id,
+                'category_id': category.id,
+                'name': slide.name,
+                'slide_type': slide.slide_type,
+                'slug': slug(slide),
+                'is_preview': slide.is_preview,
+                'website_published': slide.website_published,
+                'action': action_id,
+                'edit_link': '/web#id=%s&action=%s&model=slide.slide&view_type=form' % (slide.id, action_id)
+            },
+            'category_created': category_created,
+            'category': {
+                'name': category.name,
+                'id': category.id,
+                'empty': False,
+            }
         }
 
     def _get_valid_slide_post_values(self):
