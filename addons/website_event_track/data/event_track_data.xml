@@ -22,9 +22,13 @@
     <br/><br/>
     Thank you,
 </div>
+<div>
+    % if user.signature
+        ${user.signature | safe}
+    % endif
+</div>
             </field>
             <field name="lang">${object.partner_id.lang}</field>
-            <field name="user_signature" eval="True"/>
             <field name="auto_delete" eval="True"/>
         </record>
 

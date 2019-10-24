@@ -96,7 +96,6 @@
             </field>
             <field name="lang">${object.lang}</field>
             <field name="auto_delete" eval="True"/>
-            <field name="user_signature" eval="False"/>
         </record>
 
         <!-- Email template for new users -->
@@ -194,7 +193,6 @@
 </table></field>
             <field name="lang">${object.lang}</field>
             <field name="auto_delete" eval="True"/>
-            <field name="user_signature" eval="False"/>
         </record>
 
         <!-- Email template for reminder of unregistered users -->
@@ -246,7 +244,6 @@
             </field>
             <field name="lang">${object.partner_id.lang}</field>
             <field name="auto_delete" eval="True"/>
-            <field name="user_signature" eval="False"/>
         </record>
 
         <!-- Email template for new users that used a signup token -->
@@ -339,7 +336,6 @@
 </table></field>
             <field name="lang">${object.lang}</field>
             <field name="auto_delete" eval="True"/>
-            <field name="user_signature" eval="False"/>
         </record>
 
     </data>

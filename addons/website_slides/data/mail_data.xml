@@ -25,9 +25,13 @@
                         Enjoy this exclusive content!
                     </p>
                 </div>
+                <div>
+                    % if user.signature
+                        ${user.signature | safe}
+                    % endif
+                </div>
             </field>
             <field name="auto_delete" eval="True"/>
-            <field name="user_signature" eval="True"/>
         </record>
 
         <record id="slide_template_shared" model="mail.template">
@@ -52,9 +56,13 @@
                         </div>
                     </p>
                 </div>
+                <div>
+                    % if user.signature
+                        ${user.signature | safe}
+                    % endif
+                </div>
             </field>
             <field name="auto_delete" eval="True"/>
-            <field name="user_signature" eval="True"/>
         </record>
 
         <!-- Channel subtypes -->
@@ -88,7 +96,6 @@
             </field>
             <field name="lang">${object.partner_id.lang}</field>
             <field name="auto_delete" eval="True"/>
-            <field name="user_signature" eval="False"/>
         </record>
     </data>
 </odoo>
