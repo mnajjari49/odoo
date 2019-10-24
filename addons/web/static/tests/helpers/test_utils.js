@@ -231,7 +231,7 @@ QUnit.testDone(function (details) {
         // also ignore ramstorage as mail.testUtils ensures we've got a ton
         // of uncleanable ramstorages lying around
         var zombies = _(ws).filter(function (w) {
-            return !(w instanceof RamStorage) && !w.isDestroyed();
+            return !(w instanceof RamStorage || w.isDestroyed());
         });
         if (zombies.length) {
             console.log('--------------------------------------------------');
