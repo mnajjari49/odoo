@@ -690,9 +690,13 @@ class WebsiteSlides(WebsiteProfile):
         slide = request.env['slide.slide'].browse(int(slide_id))
         if slide.channel_id.can_publish:
             slide.sudo().active = False
-            return True
+            return {
+                'category_id': slide.category_id.id
+            }
 
-        return False
+        return {
+            'error': 'access_right'
+        }
 
     @http.route('/slides/slide/toggle_is_preview', type='json', auth='user', website=True)
     def slide_preview(self, slide_id):

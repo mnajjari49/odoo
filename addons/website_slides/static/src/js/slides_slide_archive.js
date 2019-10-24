@@ -30,7 +30,12 @@ var SlideArchiveDialog = Dialog.extend({
         this.slideId = this.$slideTarget.data('slideId');
         this._super(parent, options);
     },
-
+    _displayCategoryEmptyFlag: function (categoryID){
+        var categorySlides = $('.o_wslides_slides_list_slide[data-category-id=' + categoryID + ']');
+        if (categorySlides.length === 0){
+            $('.category-empty[data-category-id='+ categoryID +']').removeClass('d-none');
+        }
+    },
     //--------------------------------------------------------------------------
     // Handlers
     //--------------------------------------------------------------------------

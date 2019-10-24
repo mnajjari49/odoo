@@ -43,25 +43,6 @@ publicWidget.registry.websiteSlidesCourseSlidesList = publicWidget.Widget.extend
             placeholder: 'o_wslides_slides_list_slide_hilight position-relative mb-1'
         });
     },
-
-    /**
-     * This method will check that a section is empty/not empty
-     * when the slides are reordered and show/hide the
-     * "Empty category" placeholder.
-     *
-     * @private
-     */
-    _checkForEmptySections: function (){
-        this.$('.o_wslides_js_slides_list_container ul').each(function (){
-            var $emptyCategory = $(this).find('.o_wslides_js_slides_list_empty');
-            if ($(this).find('li.o_wslides_slides_list_slide[data-slide-id]').length === 0) {
-                $emptyCategory.removeClass('d-none').addClass('d-flex');
-            } else {
-                $emptyCategory.addClass('d-none').removeClass('d-flex');
-            }
-        });
-    },
-
     _getSlides: function (){
         var categories = [];
         this.$('.o_wslides_js_list_item').each(function (){
@@ -77,7 +58,21 @@ publicWidget.registry.websiteSlidesCourseSlidesList = publicWidget.Widget.extend
                 model: "slide.slide",
                 ids: self._getSlides()
             }
+        }).then(function (res) {
+            self._toggleCategoryEmptyFlag();
         });
+    },
+    _toggleCategoryEmptyFlag: function (){
+        var categories = $('.o_wslides_slide_list');
+        for (var i = 0; i < categories.length; i++){
+            var categoryID = $(categories[i]).data('categoryId');
+            var categorySlideCount = $(categories[i]).find('.o_wslides_slides_list_slide:not(.o_not_editable)').length;
+            if (categorySlideCount === 0){
+                $('.category-empty[data-category-id='+ categoryID +']').removeClass('d-none');
+            } else {
+                $('.category-empty[data-category-id='+ categoryID +']').addClass('d-none');
+            }
+        }
     },
 
     /**
