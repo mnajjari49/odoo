@@ -1000,6 +1000,7 @@ class HttpCase(TransactionCase):
     def authenticate(self, user, password):
         # stay non-authenticated
         if user is None:
+            self.browser.delete_cookie('session_id', domain=HOST)
             return
 
         db = get_db_name()
@@ -1023,6 +1024,12 @@ class HttpCase(TransactionCase):
         if self.browser:
             self._logger.info('Setting session cookie in browser')
             self.browser.set_cookie('session_id', self.session_id, '/', HOST)
+
+    def deauthenticate(self):
+        """Ensure that the user is logged out and session cookie delete"""
+        if self.session:
+            odoo.http.root.session_store.delete(self.session)
+        self.browser.delete_cookie('session_id', domain=HOST)
 
     def browser_js(self, url_path, code, ready='', login=None, timeout=60, **kw):
         """ Test js code running in the browser
@@ -1081,8 +1088,8 @@ class HttpCase(TransactionCase):
         finally:
             # clear browser to make it stop sending requests, in case we call
             # the method several times in a test method
-            self.browser.delete_cookie('session_id', domain=HOST)
             self.browser.clear()
+            self.deauthenticate()
             self._wait_remaining_requests()
 
     def start_tour(self, url_path, tour_name, step_delay=None, **kwargs):

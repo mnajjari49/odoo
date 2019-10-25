@@ -19,7 +19,7 @@ class TestUi(odoo.tests.HttpCase):
     def test_03_demo_checkout(self):
         self.start_tour("/", 'shop_buy_product', login="demo")
 
-    def test_04_admin_website_sale_tour(self):
+    def test_04_public_website_sale_tour(self):
         tax_group = self.env['account.tax.group'].create({'name': 'Tax 15%'})
         tax = self.env['account.tax'].create({
             'name': 'Tax 15%',
