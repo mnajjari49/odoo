@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <record id="product_pricing_form_view" model="ir.ui.view">
+            <field name="name">product.pricing.form</field>
+            <field name="model">product.pricing</field>
+            <field name="arch" type="xml">
+                <form string="Pricing">
+                    <sheet>
+                        <group>
+                            <field name="product_template_id"/>
+                            <field name="list_price"/>
+                            <field name="currency_id"/>
+                            <field name="company_id"/>
+                            <field name="sequence"/>
+                        </group>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <record id="product_pricing_tree_view" model="ir.ui.view">
+            <field name="name">product.pricing.tree</field>
+            <field name="model">product.pricing</field>
+            <field name="priority">10</field>
+            <field name="arch" type="xml">
+                <tree string="Pricing Rules">
+                    <field name="sequence" widget="handle"/>
+<!--                    <field name="pricing_code"/>-->
+<!--                    Invisibility depends on context, do not display in product form view but use it in pricing list view from the menu-->
+                    <field name="product_template_id"/>
+                    <field name="list_price"/>
+                    <field name="currency_id"/>
+                    <field name="company_id" groups="base.group_multi_company"/>
+                </tree>
+            </field>
+        </record>
+
+        <record id="product_pricing_tree_view_from_product" model="ir.ui.view">
+            <!-- Access and edit price rules from a given product/product variant -->
+            <field name="name">product.pricing.tree</field>
+            <field name="model">product.pricing</field>
+            <field name="priority">100</field>
+            <field name="arch" type="xml">
+                <tree string="Pricing Items" editable="bottom">
+                    <field name="sequence" widget="handle"/>
+<!--                    <field name="pricing_code"/>-->
+                    <!-- Scope = coming from a product/product template -->
+                    <field name="product_template_id"
+                      options="{'no_create_edit':1, 'no_open': 1}"
+                      />
+                    <field name="list_price"/>
+                    <field name="currency_id"/>
+                    <field name="company_id" groups="base.group_multi_company" optional="show" options="{'no_create_edit':1, 'no_open': 1}"/>
+                </tree>
+            </field>
+        </record>
+
+        <record id="product_pricing_action" model="ir.actions.act_window">
+            <field name="name">Product Pricing</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">product.pricing</field>
+            <field name="view_mode">tree,form,kanban</field>
+        </record>
+
+    </data>
+</odoo>

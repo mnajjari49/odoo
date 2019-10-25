@@ -151,6 +151,72 @@ class ProductTemplate(models.Model):
     can_image_1024_be_zoomed = fields.Boolean("Can Image 1024 be zoomed", compute='_compute_can_image_1024_be_zoomed', store=True)
     has_configurable_attributes = fields.Boolean("Is a configurable product", compute='_compute_has_configurable_attributes', store=True)
 
+    # PRICINGS
+    pricing_ids = fields.One2many('product.pricing', 'product_template_id', 'Product Pricing')
+    pricing_item_count = fields.Integer("Number of pricing values", compute="_compute_pricing_count")
+    current_pricing = fields.Monetary('Current Pricing', digits='Product Price',
+                                      help="Price at which the product is sold to customers [Company dependant and currency dependent].",
+                                      compute='_compute_current_pricing')
+
+    # POC POC POC
+    # use this one to create the pricing with the good product
+    def add_product_pricing(self):
+        self.ensure_one()
+        domain = [
+                  ('product_template_id', '=', self.id)
+                  ]
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('Pricing'),
+            'res_model': 'product.pricing',
+            'view_mode': 'tree',
+            'views': [(self.env.ref('product.product_pricing_tree_view_from_product').id, 'tree'),
+                      ],
+            'target': 'current',
+            'domain': domain,
+            'context': {'default_product_template_id': self.id},
+        }
+
+    def _compute_current_pricing(self, currency_id=None, company_id=None):
+        if not currency_id:
+            currency_id= self.env.company.currency_id.id
+        if not company_id:
+            company_id = self.env.company.id
+        results = {}
+        for product in self:
+            pricing = self.env['product.pricing'].search([('product_template_id', '=', product._origin.id),
+                                                          ('currency_id', '=', currency_id),
+                                                          ('company_id', '=', company_id)
+                                                          ])
+            if pricing:
+                product.current_pricing = pricing.list_price
+            else:
+                product.current_pricing = product.lst_price
+            results[product.id] = product.current_pricing
+        return results
+
+
+
+    def _compute_pricing_count(self):
+        for template in self:
+            # Pricing item count counts the rules applicable on current template or on its variants.
+            template.pricing_item_count = template.env['product.pricing'].search_count([('product_template_id', '=', template._origin.id)])
+
+
+    @api.model
+    def _compute_lst_price(self):
+        # bad context, not useful
+        for product in self:
+            pricings = self.env['product.pricing'].search([('product_template_id', '=', product.id),
+                                                           ('currency_id', '=', self.env.company.currency_id.id),
+                                                           ('company_id', 'in', [self.env.company.id, False])])
+            if pricings:
+                return pricings[0].list_price
+            else:
+                return product.lst_price
+
+    # ----- POC POC POC
+
     def _compute_item_count(self):
         for template in self:
             # Pricelist item count counts the rules applicable on current template or on its variants.

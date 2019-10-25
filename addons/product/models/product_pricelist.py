@@ -256,7 +256,16 @@ class Pricelist(models.Model):
                 price = cur._convert(price, self.currency_id, self.env.company, date, round=False)
 
             if not suitable_rule:
-                cur = product.currency_id
+                # ARJ problem here: conversion even if the pricing currency is good.
+                pricing = self.env['product.pricing'].search(
+                    [('product_template_id', '=', product.product_tmpl_id.id),
+                     ('currency_id', '=', self.currency_id.id),
+                     ('company_id', '=', self.env.company.id),
+                     ])
+                if pricing:
+                    cur = pricing.currency_id
+                else:
+                    cur = product.currency_id
                 price = cur._convert(price, self.currency_id, self.env.company, date, round=False)
 
             results[product.id] = (price, suitable_rule and suitable_rule.id or False)

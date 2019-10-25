@@ -94,6 +94,9 @@ class ProductProduct(models.Model):
     product_tmpl_id = fields.Many2one(
         'product.template', 'Product Template',
         auto_join=True, index=True, ondelete="cascade", required=True)
+
+    pricing_ids = fields.One2many('Product Pricing', related='product_tmpl_id.pricing_ids')
+
     barcode = fields.Char(
         'Barcode', copy=False,
         help="International Article Number used for product identification.")
@@ -601,6 +604,31 @@ class ProductProduct(models.Model):
                 res |= seller
         return res.sorted('price')[:1]
 
+    # POC POC POC
+    def _compute_current_pricing(self, currency_id=None, company_id=None):
+
+        if not currency_id:
+            if not self._context.get('pricelist'):
+                currency_id= self.env.company.currency_id.id
+            else:
+                pricelist_id = self.env['product.pricelist'].browse(self._context['pricelist'])
+                currency_id = pricelist_id.currency_id.id
+        if not company_id:
+            company_id = self.env.company.id
+        results = {}
+        for product in self:
+            pricing = self.env['product.pricing'].search([('product_template_id', '=', product.product_tmpl_id._origin.id),
+                                                          ('currency_id', '=', currency_id),
+                                                          ('company_id', '=', company_id)
+                                                          ])
+            if pricing:
+                product.current_pricing = pricing.list_price
+            else:
+                product.current_pricing = product.lst_price
+            results[product.id] = product.current_pricing
+        return results
+
+    # POC POC POC ---
     def price_compute(self, price_type, uom=False, currency=False, company=False):
         # TDE FIXME: delegate to template or not ? fields are reencoded here ...
         # compatibility about context keys used a bit everywhere in the code
@@ -608,6 +636,9 @@ class ProductProduct(models.Model):
             uom = self.env['uom.uom'].browse(self._context['uom'])
         if not currency and self._context.get('currency'):
             currency = self.env['res.currency'].browse(self._context['currency'])
+
+        if not company and self._context.get('company'):
+            company = self.env['res.currency'].browse(self._context['currency'])
 
         products = self
         if price_type == 'standard_price':
@@ -618,7 +649,9 @@ class ProductProduct(models.Model):
 
         prices = dict.fromkeys(self.ids, 0.0)
         for product in products:
-            prices[product.id] = product[price_type] or 0.0
+            # ARJ before
+            # prices[product.id] = product[price_type] or 0.0
+            prices[product.id] = product._compute_current_pricing(currency_id=currency, company_id=company)[product.id] or product.list_price
             if price_type == 'list_price':
                 prices[product.id] += product.price_extra
                 # we need to add the price from the attributes that do not generate variants

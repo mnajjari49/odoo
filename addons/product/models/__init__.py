@@ -10,6 +10,7 @@ from . import decimal_precision
 # `product.template` should be initialised before `product.product`
 from . import product_template
 from . import product
+from . import product_pricing
 
 from . import product_attribute
 from . import product_pricelist

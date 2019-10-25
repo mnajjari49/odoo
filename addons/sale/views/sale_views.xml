@@ -92,6 +92,8 @@
         <menuitem action="uom.product_uom_form_action" id="menu_product_uom_form_action" parent="sale.prod_config_main" sequence="7" groups="uom.group_uom" active="False"/>
         <menuitem action="uom.product_uom_categ_form_action" id="menu_product_uom_categ_form_action" parent="sale.prod_config_main" sequence="8" groups="uom.group_uom" active="False"/>
         <menuitem id="menu_product_pricelist_main" name="Pricelists" parent="product_menu_catalog" action="product.product_pricelist_action2" groups="product.group_product_pricelist" sequence="3" active="False"/>
+        <menuitem id="product_pricing" name="Pricing" parent="product_menu_catalog" sequence="6" action="product.product_pricing_action" groups="sales_team.group_sale_salesman"/>
+<!--        <menuitem id="product_pricing_item" name="Pricing Rules" parent="product_menu_catalog" sequence="7"  action="product.product_pricing_item_action" groups="sales_team.group_sale_salesman"/>-->
 
         <record id="sale_order_view_activity" model="ir.ui.view">
             <field name="name">sale.order.activity</field>
@@ -1291,4 +1293,5 @@
             <field name="context">{'search_default_month':1, 'search_default_team_id': [active_id]}</field>
             <field name="help">From this report, you can have an overview of the amount invoiced to your customer. The search tool can also be used to personalise your Invoices reports and so, match this analysis to your needs.</field>
         </record>
+
 </odoo>
