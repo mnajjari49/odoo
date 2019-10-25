@@ -123,6 +123,8 @@ var PagePropertiesDialog = weWidgets.Dialog.extend({
             self.$('#dependencies_redirect').html(qweb.render('website.show_page_dependencies', { dependencies: dependencies, dep_text: dep_text }));
             self.$('#dependencies_redirect [data-toggle="popover"]').popover({
                 container: 'body',
+                trigger: 'focus',
+                template: '<div class="popover o_redirect_old_url" role="tooltip"><div class="arrow"></div><h3 class="popover-header"></h3><div class="popover-body"></div></div>'
             });
         }));
 

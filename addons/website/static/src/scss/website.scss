@@ -160,6 +160,17 @@ h6 {
     }
 }
 
+.o_redirect_old_url {
+    @include media-breakpoint-down(sm) {
+        // due to o_technical_modal class z-index 2001
+        z-index: $zindex-modal * 2;
+    }
+    .popover-body {
+        overflow-y: auto;
+        max-height: 250px;
+    }
+}
+
 // Texts
 font[style*='background'],
 font[class*='bg-'] {
