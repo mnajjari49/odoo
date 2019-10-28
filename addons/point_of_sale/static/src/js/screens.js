@@ -919,7 +919,7 @@ var ProductListWidget = PosBaseWidget.extend({
         target.parentNode.replaceChild(this.el,target);
     },
     calculate_cache_key: function(product, pricelist){
-        return product.id + ',' + pricelist.id;
+        return product.id + ',' + (pricelist ? pricelist.id: '');
     },
     _get_active_pricelist: function(){
         var current_order = this.pos.get_order();
@@ -2589,7 +2589,7 @@ var set_pricelist_button = ActionButtonWidget.extend({
                 order.set_pricelist(pricelist);
             },
             is_selected: function (pricelist) {
-                return pricelist.id === self.pos.get_order().pricelist.id;
+                return pricelist && pricelist.id === self.pos.get_order().pricelist.id;
             }
         });
     },
@@ -2604,7 +2604,7 @@ var set_pricelist_button = ActionButtonWidget.extend({
                 name = pricelist.display_name;
             }
         }
-         return name;
+        return name;
     },
 });
 

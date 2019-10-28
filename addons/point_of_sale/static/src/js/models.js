@@ -329,6 +329,8 @@ exports.PosModel = Backbone.Model.extend({
             if (self.config.use_pricelist) {
                 return [['id', 'in', self.config.available_pricelist_ids]];
             } else {
+                // VFE TODO if not use_pricelist do not load any pricelist ?
+                // because in this case, the config shouldn't have a pricelist.
                 return [['id', '=', self.config.pricelist_id[0]]];
             }
         },
@@ -391,7 +393,7 @@ exports.PosModel = Backbone.Model.extend({
         },
     },{
         model:  'product.product',
-        fields: ['display_name', 'lst_price', 'standard_price', 'categ_id', 'pos_categ_id', 'taxes_id',
+        fields: ['display_name', 'price', 'standard_price', 'categ_id', 'pos_categ_id', 'taxes_id',
                  'barcode', 'default_code', 'to_weight', 'uom_id', 'description_sale', 'description',
                  'product_tmpl_id','tracking'],
         order:  _.map(['sequence','default_code','name'], function (name) { return {name: name}; }),
@@ -407,14 +409,24 @@ exports.PosModel = Backbone.Model.extend({
             }
             return domain;
         },
-        context: function(self){ return { display_default_code: false }; },
-        loaded: function(self, products){
+        context: function (self) {
+            return {
+                display_default_code: false,
+                currency_id: self.currency.id,
+            };
+        },
+        loaded: function (self, products) {
             var using_company_currency = self.config.currency_id[0] === self.company.currency_id[0];
             var conversion_rate = self.currency.rate / self.company_currency.rate;
             self.db.add_products(_.map(products, function (product) {
                 if (!using_company_currency) {
-                    product.lst_price = round_pr(product.lst_price * conversion_rate, self.currency.rounding);
+                    // The Sales price is already converted by the currency_id in the context.
+                    // But the cost (standard price) is expressed in the company currency.
+                    // which may have to be converted because the currency of the pos config
+                    // comes from its journal and not its company.
+                    product.standard_price = round_pr(product.standard_price * conversion_rate, self.currency.rounding);
                 }
+                product.lst_price = product.price;
                 product.categ = _.findWhere(self.product_categories, {'id': product.categ_id[0]});
                 return new exports.Product({}, product);
             }));
@@ -1347,17 +1359,15 @@ exports.Product = Backbone.Model.extend({
     // product.pricelist.item records are loaded with a search_read
     // and were automatically sorted based on their _order by the
     // ORM. After that they are added in this order to the pricelists.
+    //
+    // No currency conversion is necessary because PoS is restricted to pricelists
+    // of same currency, and prices are loaded in this currency.
     get_price: function(pricelist, quantity){
         var self = this;
         var date = moment().startOf('day');
 
-        // In case of nested pricelists, it is necessary that all pricelists are made available in
-        // the POS. Display a basic alert to the user in this case.
         if (pricelist === undefined) {
-            alert(_t(
-                'An error occurred when loading product prices. ' +
-                'Make sure all pricelists are available in the POS.'
-            ));
+            return self.lst_price;
         }
 
         var category_ids = [];
@@ -1382,6 +1392,12 @@ exports.Product = Backbone.Model.extend({
             }
 
             if (rule.base === 'pricelist') {
+                if (!rule.base_pricelist) {
+                    alert(_t(
+                        'An error occurred when loading product prices. ' +
+                        'Make sure all pricelists are available in the POS.'
+                    ));
+                }
                 price = self.get_price(rule.base_pricelist, quantity);
             } else if (rule.base === 'standard_price') {
                 price = self.standard_price;
@@ -2038,7 +2054,7 @@ exports.Orderline = Backbone.Model.extend({
         };
     },
     display_discount_policy: function(){
-        return this.order.pricelist.discount_policy;
+        return this.order.pricelist ? this.order.pricelist.discount_policy: 'with_discount';
     },
     compute_fixed_price: function (price) {
         var order = this.order;
@@ -2841,7 +2857,11 @@ exports.Order = Backbone.Model.extend({
         return round_pr(this.orderlines.reduce((function(sum, orderLine) {
             sum += (orderLine.get_unit_price() * (orderLine.get_discount()/100) * orderLine.get_quantity());
             if (orderLine.display_discount_policy() === 'without_discount'){
+                // VFE TODO ref discount for point_of_sale also ?
+                // or do we consider that in this case, the pricelist is never based
+                // on cost or fixed prices on which the reduction should be based?
                 sum += ((orderLine.get_lst_price() - orderLine.get_unit_price()) * orderLine.get_quantity());
+                // VFE FIXME this function isn't really clear...
             }
             return sum;
         }), 0), this.pos.currency.rounding);
