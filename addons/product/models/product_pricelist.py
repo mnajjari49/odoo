@@ -308,6 +308,50 @@ class Pricelist(models.Model):
             )[product.id], self.env['product.pricelist.item']]
         )
 
+    def _get_detailed_prices(self, **pricelist_kwargs):
+        """Return the price with and without discounts.
+
+        Depends on the discount_policy of the current pricelist and on
+        the chain of pricelist dependencies.
+
+        The price without discount may be the sales_price, the cost price,
+        a fixed price, or even the price given by another pricelist
+        (formula or not).
+
+        :returns: price, price_without_discount
+        :rtype: tuple(float, float)
+        """
+        price = price_without_discount = 0.0
+        if not self or self.discount_policy == 'with_discount':
+            # if not pricelist: use product lst_price instead...
+            price = self.get_product_price(**pricelist_kwargs)
+            price_without_discount = price
+        else:
+            # Price in pricelist currency (== order.currency_id)
+            price, rule_ids = self.get_product_price_rules(**pricelist_kwargs)
+            price_without_discount = price
+
+            if rule_ids:
+                last_rule = self.env['product.pricelist.item']
+                price_without_discount = 0
+                for rule_id in rule_ids:
+                    rule = self.env['product.pricelist.item'].browse(rule_id)
+                    if rule.pricelist_id.discount_policy == 'without_discount':
+                        last_rule = rule
+                    else:
+                        # The price given by rule is the price before discount
+                        # because its pricelist has with_discount as discount_policy.
+                        break
+
+                if last_rule:
+                    price_without_discount = last_rule.get_base_price(
+                        **pricelist_kwargs)[0]
+                    # 0 = price, 1 = sub_rules
+                else:
+                    price_without_discount = price
+
+        return price, price_without_discount
+
     def _get_partner_pricelist_multi_search_domain_hook(self):
         return [('active', '=', True)]
 

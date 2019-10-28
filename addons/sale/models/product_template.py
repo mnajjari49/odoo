@@ -139,7 +139,7 @@ class ProductTemplate(models.Model):
                 }]
         return res
 
-    def _get_combination_info(self, combination=False, product_id=False, add_qty=1, pricelist=None, parent_combination=False, only_template=False):
+    def _get_combination_info(self, combination=False, product_id=False, add_qty=1, pricelist=None, parent_combination=False, only_template=False, currency=None):
         """ Return info about a given combination.
 
         Note: this method does not take into account whether the combination is
@@ -190,23 +190,17 @@ class ProductTemplate(models.Model):
         self.ensure_one()
         # get the name before the change of context to benefit from prefetch
         display_name = self.display_name
-        display_image = True
         combination = combination or self.env['product.template.attribute.value']
         pricelist = pricelist or self.env['product.pricelist']
-        company = self.company_id or pricelist.company_id or self.env.company
+        currency = currency or pricelist.currency_id or self.currency_id
+        # company = self.company_id or pricelist.company_id or self.env.company
+        # VFE FIXME multi company checks
 
         # VFE TODO remove this context bullshit at this step ?
         quantity = self.env.context.get('quantity', add_qty)
-        context = dict(quantity=quantity)
-        if pricelist:
-            context['pricelist_id'] = pricelist.id
-        self = self.with_context(**context)
 
         if not product_id and not combination and not only_template:
-            # VFE TODO check if context needed for this call ??
             combination = self._get_first_possible_combination(parent_combination)
-
-        self = self.with_context(ptav_ids=tuple(combination.ids))
 
         if only_template:
             product = self.env['product.product']
@@ -215,39 +209,34 @@ class ProductTemplate(models.Model):
         else:
             product = self._get_variant_for_combination(combination)
 
+        # We need to add the price_extra for the attributes that are not
+        # in the variant, typically those of type no_variant, but it is
+        # possible that a no_variant attribute is still in a variant if
+        # the type of the attribute has been changed after creation.
+        # depends on context ptav_ids, pricelist_id, uom_id, quantity
         if product:
-            # We need to add the price_extra for the attributes that are not
-            # in the variant, typically those of type no_variant, but it is
-            # possible that a no_variant attribute is still in a variant if
-            # the type of the attribute has been changed after creation.
-            price = product.price
-            # depends on context ptav_ids, pricelist_id, uom_id, quantity
-            list_price = product.price_compute('list_price')[product.id]
+            product = product.with_context(p_id=product.id, ptav_ids=tuple(combination.ids))
+        else:
+            self = self.with_context(p_id=self.id, ptav_ids=tuple(combination.ids))
+        price = price_without_discount = 0.0
+        pricelist_kwargs = dict(
+            product=product or self,
+            quantity=quantity,
+            uom=self.uom_id,
+            date=fields.Date.today(),
+            currency=currency,
+        )
+        price, price_without_discount = pricelist._get_detailed_prices(**pricelist_kwargs)
+
+        if product:
             display_image = bool(product.image_1920)
             display_name = product.display_name
         else:
-            list_price = self.price_compute('list_price')[self.id]
-            price = self.price
             display_image = bool(self.image_1920)
 
             combination_name = combination._get_combination_name()
             if combination_name:
                 display_name = "%s (%s)" % (display_name, combination_name)
-
-        target_currency = pricelist.currency_id or self.currency_id
-        if target_currency != self.currency_id:
-            list_price = self.currency_id._convert(
-                from_amount=list_price,
-                to_currency=target_currency,
-                company=company,
-                date=fields.Date.today()
-                # VFE TODO consider and support date arguments for modification in old/future SO's ???
-            )
-
-        price_without_discount = list_price if pricelist and pricelist.discount_policy == 'without_discount' else price
-        # VFE BULLLLLLLLLLSHIIIIIIIIT TO FIX
-        # What of pricelists chains, what of standard price-based pricelist rules ???
-        has_discounted_price = target_currency.compare_amounts(price_without_discount, price) == 1
 
         return {
             'product_id': product.id,
@@ -255,8 +244,8 @@ class ProductTemplate(models.Model):
             'display_name': display_name,
             'display_image': display_image,
             'price': price,
-            'list_price': list_price,
-            'has_discounted_price': has_discounted_price,
+            'list_price': price_without_discount,
+            'has_discounted_price': price_without_discount != price,
         }
 
     def _is_add_to_cart_possible(self, parent_combination=None):

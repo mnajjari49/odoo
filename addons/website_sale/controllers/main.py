@@ -1163,6 +1163,7 @@ class WebsiteSale(http.Controller):
                 - 'products_count' (int): the number of products in the database
                         that matched the search query
         """
+        # VFE TODO do everything in website company
         ProductTemplate = request.env['product.template']
 
         display_description = options.get('display_description', True)
@@ -1198,7 +1199,7 @@ class WebsiteSale(http.Controller):
         if display_price:
             FieldMonetary = request.env['ir.qweb.field.monetary']
             monetary_options = {
-                'display_currency': request.website.get_current_pricelist().currency_id,
+                'display_currency': request.website.currency_id,
             }
             for res_product, product in zip(res['products'], products):
                 combination_info = product._get_combination_info(only_template=True)
@@ -1232,7 +1233,7 @@ class WebsiteSale(http.Controller):
 
                 FieldMonetary = request.env['ir.qweb.field.monetary']
                 monetary_options = {
-                    'display_currency': request.website.get_current_pricelist().currency_id,
+                    'display_currency': request.website.currency_id,
                 }
                 rating = request.website.viewref('website_sale.product_comment').active
                 res = {'products': []}

@@ -1453,7 +1453,6 @@ class SaleOrderLine(models.Model):
             self = self.with_context(p_id=self.product_id.id,ptav_ids=tuple(self.product_no_variant_attribute_value_ids.ids))
         product = self.product_id
         price = price_without_discount = 0.0
-        pricelist = self.order_id.pricelist_id
         pricelist_kwargs = dict(
             product=product,
             quantity=self.product_uom_qty,
@@ -1461,35 +1460,11 @@ class SaleOrderLine(models.Model):
             date=self.order_id.date_order or fields.Date.today(),
             currency=self.currency_id,
         )
-        if not pricelist or pricelist.discount_policy == 'with_discount':
-            # if not pricelist: use product lst_price instead...
-            price = self.order_id.pricelist_id.get_product_price(**pricelist_kwargs)
-        else:
-            # Price in pricelist currency (== order.currency_id)
-            price, rule_ids = self.order_id.pricelist_id.get_product_price_rules(**pricelist_kwargs)
+        price, price_without_discount = self.order_id.pricelist_id._get_detailed_prices(**pricelist_kwargs)
 
-            if rule_ids:
-                last_rule = self.env['product.pricelist.item']
-                for rule_id in rule_ids:
-                    rule = self.env['product.pricelist.item'].browse(rule_id)
-                    if rule.pricelist_id.discount_policy == 'without_discount':
-                        last_rule = rule
-                    else:
-                        # The price given by rule is the price before discount
-                        # because its pricelist has with_discount as discount_policy.
-                        break
-
-                if last_rule:
-                    price_without_discount = last_rule.get_base_price(
-                        **pricelist_kwargs)[0]
-                    # 0 = price, 1 = sub_rules
-
-        if price_without_discount and price:
-            self.discount = ((price_without_discount - price) / price_without_discount) * 100
-            price_unit = price_without_discount
-        else:
-            self.discount = 0
-            price_unit = price
+        self.discount = 0 if price == price_without_discount else \
+            ((price_without_discount - price) / (price_without_discount or 1.0)) * 100
+        price_unit = price_without_discount
 
         self.price_unit = self.env['account.tax']._fix_tax_included_price_company(
             price=price_unit,

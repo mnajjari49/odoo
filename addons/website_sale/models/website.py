@@ -16,8 +16,7 @@ class Website(models.Model):
 
     pricelist_id = fields.Many2one('product.pricelist', compute='_compute_pricelist_id', string='Default Pricelist')
     currency_id = fields.Many2one('res.currency',
-        related='pricelist_id.currency_id', depends=(), related_sudo=False,
-        string='Default Currency', readonly=False)
+        string='Default Currency', compute="_compute_currency_id") # Readonly=False ?
     salesperson_id = fields.Many2one('res.users', string='Salesperson')
 
     def _get_default_website_team(self):
@@ -61,6 +60,12 @@ class Website(models.Model):
             if website._context.get('website_id') != website.id:
                 website = website.with_context(website_id=website.id)
             website.pricelist_id = website.get_current_pricelist()
+
+    @api.depends('company_id', 'currency_id')
+    def _compute_currency_id(self):
+        for website in self:
+            company = website.company_id or self.env.company
+            website.currency_id = website.pricelist_id.currency_id or company.currency_id
 
     # This method is cached, must not return records! See also #8795
     @tools.ormcache('self.env.uid', 'country_code', 'show_visible', 'website_pl', 'current_pl', 'all_pl', 'partner_pl', 'order_pl')
@@ -139,6 +144,7 @@ class Website(models.Model):
         last_order_pl = partner.last_website_so_id.pricelist_id
         partner_pl = partner.with_user(self.env.user).property_product_pricelist
         pricelists = website._get_pl_partner_order(isocountry, show_visible,
+                                                    # VFE fixme Shouldn't it be taken with the website company ?
                                                    website.user_id.sudo().partner_id.property_product_pricelist.id,
                                                    req and req.session.get('website_sale_current_pl') or None,
                                                    website.pricelist_ids,
@@ -173,7 +179,7 @@ class Website(models.Model):
             #  - Either, he entered a coupon code
             pl = self.env['product.pricelist'].browse(request.session['website_sale_current_pl'])
             if pl not in available_pricelists:
-                pl = None
+                pl = self.env['product.pricelist']
                 request.session.pop('website_sale_current_pl')
         if not pl:
             # If the user has a saved cart, it take the pricelist of this last unconfirmed cart
@@ -181,7 +187,9 @@ class Website(models.Model):
             if not pl:
                 # The pricelist of the user set on its partner form.
                 # If the user is not signed in, it's the public user pricelist
+                # VFE TODO use correct company to fetch property...
                 pl = partner.property_product_pricelist
+                # VFE TODO check if inactive, return an empty recordset...
             if available_pricelists and pl not in available_pricelists:
                 # If there is at least one pricelist in the available pricelists
                 # and the chosen pricelist is not within them
@@ -191,8 +199,7 @@ class Website(models.Model):
                 # then this special pricelist is amongs these available pricelists, and therefore it won't fall in this case.
                 pl = available_pricelists[0]
 
-        if not pl:
-            _logger.error('Fail to find pricelist for partner "%s" (id %s)', partner.name, partner.id)
+        # VFE TODO ensure empty recordset is returned.
         return pl
 
     def sale_product_domain(self):
@@ -233,10 +240,10 @@ class Website(models.Model):
         return values
 
     def sale_get_order(self, force_create=False, code=None, update_pricelist=False, force_pricelist=False):
-        """ Return the current sales order after mofications specified by params.
+        """ Return the current sales order after modifications specified by params.
         :param bool force_create: Create sales order if not already existing
         :param str code: Code to force a pricelist (promo code)
-                         If empty, it's a special case to reset the pricelist with the first available else the default.
+            If empty, it's a special case to reset the pricelist with the first available else the default.
         :param bool update_pricelist: Force to recompute all the lines from sales order to adapt the price with the current pricelist.
         :param int force_pricelist: pricelist_id - if set,  we change the pricelist with this one
         :returns: browse record for the current sales order

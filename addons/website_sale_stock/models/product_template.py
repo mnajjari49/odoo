@@ -38,6 +38,7 @@ class ProductTemplate(models.Model):
                 'uom_name': product.uom_id.name,
             })
         else:
+            # VFE TODO Do we ever enter this section?
             product_template = self.sudo()
             combination_info.update({
                 'virtual_available': 0,

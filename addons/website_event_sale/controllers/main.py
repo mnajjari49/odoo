@@ -32,18 +32,18 @@ class WebsiteEventSaleController(WebsiteEventController):
     @http.route()
     def registration_confirm(self, event, **post):
         order = request.website.sale_get_order(force_create=1)
-        attendee_ids = set()
 
         registrations = self._process_registration_details(post)
         for registration in registrations:
             ticket = request.env['event.event.ticket'].sudo().browse(int(registration['ticket_id']))
-            cart_values = order.with_context(event_ticket_id=ticket.id, fixed_price=True)._cart_update(product_id=ticket.product_id.id, add_qty=1, registration_data=[registration])
-            attendee_ids |= set(cart_values.get('attendee_ids', []))
+            order.with_context(event_ticket_id=ticket.id, fixed_price=True)._cart_update(product_id=ticket.product_id.id, add_qty=1, registration_data=[registration])
 
         # free tickets -> order with amount = 0: auto-confirm, no checkout
         if not order.amount_total:
             order.action_confirm()  # tde notsure: email sending ?
-            attendees = request.env['event.registration'].browse(list(attendee_ids)).sudo()
+            attendees = request.env['event.registration'].sudo().search([
+                ('sale_order_line_id.order_id', '=', order.id),
+                ('state', '!=', 'cancel')])
             # clean context and session, then redirect to the confirmation page
             request.website.sale_reset()
             urls = event._get_event_resource_urls()

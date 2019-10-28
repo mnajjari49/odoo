@@ -54,6 +54,7 @@ def get_request_website():
     my_var = ir_http.get_request_website()
     ```
     """
+    # VFE Why not returning an empty website recordset ?
     return request and getattr(request, 'website', False) or False
 
 
