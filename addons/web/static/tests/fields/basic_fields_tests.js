@@ -3,7 +3,6 @@ odoo.define('web.basic_fields_tests', function (require) {
 
 var ajax = require('web.ajax');
 var basicFields = require('web.basic_fields');
-var concurrency = require('web.concurrency');
 var config = require('web.config');
 var core = require('web.core');
 var FormView = require('web.FormView');
@@ -2380,7 +2379,6 @@ QUnit.module('basic_fields', {
     });
 
     QUnit.test('field changes are correctly debounced in text fields', async function (assert) {
-        var done = assert.async();
         assert.expect(5);
 
         this.data.partner.fields.foo.type = 'text';
@@ -2414,7 +2412,7 @@ QUnit.module('basic_fields', {
         assert.strictEqual(nbNotifyChanges, 0,
             "no event should have been triggered");
 
-        return waitForChangeTriggered().then(async function () {
+        await waitForChangeTriggered();
             assert.strictEqual(nbNotifyChanges, 1,
                 "one event should have been triggered");
 
@@ -2423,14 +2421,11 @@ QUnit.module('basic_fields', {
             assert.strictEqual(nbNotifyChanges, 2,
                 "one event should have been triggered immediately");
 
-            return waitForChangeTriggered();
-        }).then(function () {
-            assert.strictEqual(nbNotifyChanges, 2,
-                "no extra event should have been triggered");
+        await waitForChangeTriggered();
+        assert.strictEqual(nbNotifyChanges, 2,
+            "no extra event should have been triggered");
 
-            form.destroy();
-            done();
-        });
+        form.destroy();
 
         function waitForChangeTriggered() {
             return def.then(function () {
@@ -2484,7 +2479,7 @@ QUnit.module('basic_fields', {
     QUnit.test('image: option accepted_file_extensions', async function (assert) {
         assert.expect(2);
 
-        var form = await createView({
+        let form = await createView({
             View: FormView,
             model: 'partner',
             data: this.data,
@@ -2496,7 +2491,7 @@ QUnit.module('basic_fields', {
             "the input should have the correct ``accept`` attribute");
         form.destroy();
 
-        var form = await createView({
+        form = await createView({
             View: FormView,
             model: 'partner',
             data: this.data,
@@ -2658,7 +2653,6 @@ QUnit.module('basic_fields', {
 
     QUnit.test('graph dashboard widget attach/detach callbacks', async function (assert) {
         // This widget is rendered with Chart.js.
-        var done = assert.async();
         assert.expect(6);
 
         testUtils.mock.patch(JournalDashboardGraph, {
@@ -2670,7 +2664,7 @@ QUnit.module('basic_fields', {
             },
         });
 
-        createView({
+        const kanban = await createView({
             View: KanbanView,
             model: 'partner',
             data: this.data,
@@ -2683,30 +2677,28 @@ QUnit.module('basic_fields', {
                     '</t>' +
                 '</templates></kanban>',
             domain: [['id', 'in', [1, 2]]],
-        }).then(function (kanban) {
-            assert.verifySteps([
-                'on_attach_callback',
-                'on_attach_callback'
-            ]);
-
-            kanban.on_detach_callback();
-
-            assert.verifySteps([
-                'on_detach_callback',
-                'on_detach_callback'
-            ]);
-
-            kanban.destroy();
-            testUtils.mock.unpatch(JournalDashboardGraph);
-            done();
         });
+
+        assert.verifySteps([
+            'on_attach_callback',
+            'on_attach_callback'
+        ]);
+
+        kanban.on_detach_callback();
+
+        assert.verifySteps([
+            'on_detach_callback',
+            'on_detach_callback'
+        ]);
+
+        kanban.destroy();
+        testUtils.mock.unpatch(JournalDashboardGraph);
     });
 
     QUnit.test('graph dashboard widget is rendered correctly', async function (assert) {
-        var done = assert.async();
         assert.expect(3);
 
-        createView({
+        const kanban = await createView({
             View: KanbanView,
             model: 'partner',
             data: this.data,
@@ -2719,35 +2711,29 @@ QUnit.module('basic_fields', {
                     '</t>' +
                 '</templates></kanban>',
             domain: [['id', 'in', [1, 2]]],
-        }).then(function (kanban) {
-            concurrency.delay(0).then(function () {
-                assert.strictEqual(kanban.$('.o_kanban_record:first() .o_graph_barchart').length, 1,
-                    "graph of first record should be a barchart");
-                assert.strictEqual(kanban.$('.o_kanban_record:nth(1) .o_dashboard_graph').length, 1,
-                    "graph of second record should be a linechart");
-
-                // force a re-rendering of the first record (to check if the
-                // previous rendered graph is correctly removed from the DOM)
-                var firstRecordState = kanban.model.get(kanban.handle).data[0];
-                return kanban.renderer.updateRecord(firstRecordState);
-            }).then(function () {
-                return concurrency.delay(0);
-            }).then(function () {
-                assert.strictEqual(kanban.$('.o_kanban_record:first() canvas').length, 1,
-                    "there should be only one rendered graph by record");
-
-                kanban.destroy();
-                done();
-            });
         });
+
+        await testUtils.nextTick();
+        assert.strictEqual(kanban.$('.o_kanban_record:first() .o_graph_barchart').length, 1,
+            "graph of first record should be a barchart");
+        assert.strictEqual(kanban.$('.o_kanban_record:nth(1) .o_dashboard_graph').length, 1,
+            "graph of second record should be a linechart");
+
+        // force a re-rendering of the first record (to check if the
+        // previous rendered graph is correctly removed from the DOM)
+        var firstRecordState = kanban.model.get(kanban.handle).data[0];
+        await kanban.renderer.updateRecord(firstRecordState);
+        await testUtils.nextTick();
+        assert.strictEqual(kanban.$('.o_kanban_record:first() canvas').length, 1,
+            "there should be only one rendered graph by record");
+
+        kanban.destroy();
     });
 
     QUnit.test('rendering of a field with dashboard_graph widget in an updated kanban view (ungrouped)', async function (assert) {
-
-        var done = assert.async();
         assert.expect(2);
 
-        createView({
+        const kanban = await createView({
             View: KanbanView,
             model: 'partner',
             data: this.data,
@@ -2760,26 +2746,20 @@ QUnit.module('basic_fields', {
                     '</t>' +
                 '</templates></kanban>',
             domain: [['id', 'in', [1, 2]]],
-        }).then(function (kanban) {
-            concurrency.delay(0).then(function () {
-                assert.containsN(kanban, '.o_dashboard_graph canvas', 2, "there should be two graph rendered");
-                return kanban.update({});
-            }).then(function () {
-                return concurrency.delay(0); // one graph is re-rendered
-            }).then(function () {
-                assert.containsN(kanban, '.o_dashboard_graph canvas', 2, "there should be one graph rendered");
-                kanban.destroy();
-                done();
-            });
         });
+
+        await testUtils.nextTick();
+        assert.containsN(kanban, '.o_dashboard_graph canvas', 2, "there should be two graph rendered");
+        await kanban.update({});
+        await testUtils.nextTick(); // one graph is re-rendered
+        assert.containsN(kanban, '.o_dashboard_graph canvas', 2, "there should be one graph rendered");
+        kanban.destroy();
     });
 
     QUnit.test('rendering of a field with dashboard_graph widget in an updated kanban view (grouped)', async function (assert) {
-
-        var done = assert.async();
         assert.expect(2);
 
-        createView({
+        const kanban = await createView({
             View: KanbanView,
             model: 'partner',
             data: this.data,
@@ -2792,26 +2772,23 @@ QUnit.module('basic_fields', {
                     '</t>' +
                 '</templates></kanban>',
             domain: [['id', 'in', [1, 2]]],
-        }).then(function (kanban) {
-            concurrency.delay(0).then(function () {
-                assert.containsN(kanban, '.o_dashboard_graph canvas', 2, "there should be two graph rendered");
-                return kanban.update({groupBy: ['selection'], domain: [['int_field', '=', 10]]});
-            }).then(function () {
-                assert.containsOnce(kanban, '.o_dashboard_graph canvas', "there should be one graph rendered");
-                kanban.destroy();
-                done();
-            });
         });
+
+        await testUtils.nextTick();
+        assert.containsN(kanban, '.o_dashboard_graph canvas', 2, "there should be two graph rendered");
+        await kanban.update({groupBy: ['selection'], domain: [['int_field', '=', 10]]});
+        assert.containsOnce(kanban, '.o_dashboard_graph canvas', "there should be one graph rendered");
+
+        kanban.destroy();
     });
 
     QUnit.module('AceEditor');
 
     QUnit.test('ace widget on text fields works', async function (assert) {
         assert.expect(2);
-        var done = assert.async();
 
         this.data.partner.fields.foo.type = 'text';
-        testUtils.createView({
+        const form = await createView({
             View: FormView,
             model: 'partner',
             data: this.data,
@@ -2819,12 +2796,12 @@ QUnit.module('basic_fields', {
                     '<field name="foo" widget="ace"/>' +
                 '</form>',
             res_id: 1,
-        }).then(function (form) {
-            assert.ok('ace' in window, "the ace library should be loaded");
-            assert.ok(form.$('div.ace_content').length, "should have rendered something with ace editor");
-            form.destroy();
-            done();
         });
+
+        assert.ok('ace' in window, "the ace library should be loaded");
+        assert.ok(form.$('div.ace_content').length, "should have rendered something with ace editor");
+
+        form.destroy();
     });
 
     QUnit.module('HandleWidget');
@@ -3098,7 +3075,7 @@ QUnit.module('basic_fields', {
             id: 1,
             date: "9999-12-30",
             foo: "yop",
-        }]
+        }];
 
         var form = await createView({
             View: FormView,
@@ -6325,7 +6302,7 @@ QUnit.module('basic_fields', {
         $view.prependTo('body'); // => select with click position
 
         assert.strictEqual(form.$('.o_progressbar_value').text(), '99%',
-            'Initial value should be correct')
+            'Initial value should be correct');
 
         var $progressBarEl = form.$('.o_progress');
         var top = $progressBarEl.offset().top + 5;
@@ -6372,7 +6349,7 @@ QUnit.module('basic_fields', {
         assert.ok(form.$('.o_form_view').hasClass('o_form_editable'), 'Form in edit mode');
 
         assert.strictEqual(form.$('.o_progressbar_value').text(), '99%',
-            'Initial value should be correct')
+            'Initial value should be correct');
 
         var $progressBarEl = form.$('.o_progress');
         var top = $progressBarEl.offset().top + 5;
