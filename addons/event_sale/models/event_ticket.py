@@ -21,8 +21,7 @@ class EventTicket(models.Model):
         required=True, domain=[("event_ok", "=", True)],
         default=_default_product_id)
     price = fields.Float(string='Price', digits='Product Price')
-    price_reduce = fields.Float(string="Price Reduce", compute="_compute_price_reduce", digits='Product Price')
-    price_reduce_taxinc = fields.Float(compute='_get_price_reduce_tax', string='Price Reduce Tax inc')
+    currency_id = fields.Many2one('res.currency', compute="_compute_currency_id", store=True)
     # sale
     start_sale_date = fields.Date(string="Sales Start")
     end_sale_date = fields.Date(string="Sales End")
@@ -39,6 +38,11 @@ class EventTicket(models.Model):
     seats_available = fields.Integer(string='Available Seats', compute='_compute_seats', store=True)
     seats_unconfirmed = fields.Integer(string='Unconfirmed Seat Reservations', compute='_compute_seats', store=True)
     seats_used = fields.Integer(compute='_compute_seats', store=True)
+
+    @api.depends('company_id')
+    def _compute_currency_id(self):
+        for ticket in self:
+            ticket.currency_id = ticket.company_id.currency_id or self.env.company.currency_id
 
     def _compute_is_expired(self):
         for ticket in self:
@@ -60,19 +64,6 @@ class EventTicket(models.Model):
                 ticket.sale_available = False
             else:
                 ticket.sale_available = True
-
-    def _compute_price_reduce(self):
-        for record in self:
-            product = record.product_id
-            discount = product.lst_price and (product.lst_price - product.price) / product.lst_price or 0.0
-            record.price_reduce = (1.0 - discount) * record.price
-
-    def _get_price_reduce_tax(self):
-        for record in self:
-            # sudo necessary here since the field is most probably accessed through the website
-            tax_ids = record.sudo().product_id.taxes_id.filtered(lambda r: r.company_id == record.event_id.company_id)
-            taxes = tax_ids.compute_all(record.price_reduce, record.event_id.company_id.currency_id, 1.0, product=record.product_id)
-            record.price_reduce_taxinc = taxes['total_included']
 
     @api.depends('seats_max', 'registration_ids.state')
     def _compute_seats(self):

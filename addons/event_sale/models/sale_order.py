@@ -36,17 +36,19 @@ class SaleOrderLine(models.Model):
     @api.onchange('product_uom', 'product_uom_qty')
     def quantity_change(self):
         # removing attendees
-        if not (self.event_id and self.event_ticket_id) or self.product_uom_qty <= 0:
+        if not (self.event_id and self.event_ticket_id):
             return super(SaleOrderLine, self).quantity_change()
         registrations = self.env['event.registration'].search([
                 ('state', '!=', 'cancel'),
                 ('sale_order_id', '=', self.id),  # To avoid break on multi record set
-                ('event_ticket_id', '=', ticket.id),
+                ('event_ticket_id', '=', self.event_ticket_id.id),
             ], order='create_date asc')
         missing_qty = self.product_uom_qty - len(registrations)
+        # VFE TODO readonly when event soline
         if missing_qty > 0:
             self._update_registrations()
-        else:
+        elif missing_qty < 0:
+            # Cancel latest registrations if quantity decreased.
             registrations[missing_qty::].button_reg_cancel()
 
         super(SaleOrderLine, self).quantity_change()
@@ -88,14 +90,19 @@ class SaleOrderLine(models.Model):
         if self.event_ticket_id and (not self.event_id or self.event_id != self.event_ticket_id.event_id):
             self.event_ticket_id = None
 
-    @api.onchange('product_uom', 'product_uom_qty')
-    def product_uom_change(self):
-        if not self.event_ticket_id:
-            super(SaleOrderLine, self).product_uom_change()
+    def _compute_price(self):
+        self.ensure_one()
+        if self.event_ticket_id and self.event_id:
+            self = self.with_context(
+                fixed_sales_price=self.event_ticket_id.price,
+                fixed_sales_currency=self.event_ticket_id.currency_id.id,
+            )
+        super(SaleOrderLine, self)._compute_price()
 
     @api.onchange('event_ticket_id')
     def _onchange_event_ticket_id(self):
         # we call this to force update the default name
+        # and update of price
         self.product_id_change()
 
     def get_sale_order_line_multiline_description_sale(self, product):

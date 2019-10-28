@@ -73,6 +73,8 @@
                                             <field name="name"/>
                                             <field name="product_id"/>
                                             <field name="price"/>
+                                            <field name="currency_id" invisible="1"/>
+                                            <field name="company_id" invisible="1"/>
                                         </tree>
                                     </field>
                                 </div>
@@ -97,6 +99,8 @@
                                 <field name="start_sale_date"/>
                                 <field name="end_sale_date"/>
                                 <field name="price"/>
+                                <field name="currency_id" invisible="1"/>
+                                <field name="company_id" invisible="1"/>
                                 <field name="seats_max"/>
                                 <field name="seats_reserved" readonly="1"/>
                                 <field name="seats_unconfirmed" readonly="1"/>
