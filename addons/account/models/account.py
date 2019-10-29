@@ -1,21 +1,20 @@
 # -*- coding: utf-8 -*-
 
-import time
 import math
-import re
+import logging
 
 from odoo.osv import expression
 from odoo.tools.float_utils import float_round as round, float_compare
-from odoo.tools import DEFAULT_SERVER_DATETIME_FORMAT
 from odoo.exceptions import UserError, ValidationError
 from odoo import api, fields, models, _, tools
-from odoo.tests.common import Form
 
 TYPE_TAX_USE = [
     ('sale', 'Sales'),
     ('purchase', 'Purchases'),
     ('none', 'None'),
 ]
+
+_logger = logging.getLogger(__name__)
 
 
 class AccountAccountType(models.Model):
@@ -934,12 +933,30 @@ class AccountJournal(models.Model):
         ondelete='restrict')
     default_debit_account_id = fields.Many2one('account.account', string='Default Debit Account',
         domain="[('deprecated', '=', False), ('company_id', '=', company_id)]", help="It acts as a default account for debit amount", ondelete='restrict')
+    payment_transfer_account_id = fields.Many2one('account.account', string='Outstanding Payments Account',
+        ondelete='restrict', change_default=True,
+        domain=[('deprecated', '=', False)],
+        help="Payments entries triggered by invoices/bills will be posted on the Payment Orders account and displayed "
+             "as blue lines in the bank reconciliation widget. During the reconciliation process, concerned "
+             "transactions will be reconciled with entries on the payment Orders account instead of the "
+             "receivable/payable account.")
+    suspense_account_id = fields.Many2one('account.account', string='Bank Suspense Account',
+        ondelete='restrict', readonly=False, store=True, require=True,
+        compute='_compute_suspense_account_id',
+        domain=[('deprecated', '=', False), ('reconcile', '=', True)],
+        help="Bank statements transactions will be posted on the suspense account until the final reconciliation "
+             "allowing finding the right account.")
     restrict_mode_hash_table = fields.Boolean(string="Lock Posted Entries with Hash",
         help="If ticked, the accounting entry or invoice receives a hash as soon as it is posted and cannot be modified anymore.")
     sequence_id = fields.Many2one('ir.sequence', string='Entry Sequence',
-        help="This field contains the information related to the numbering of the journal entries of this journal.", required=True, copy=False)
+        required=True, copy=False, readonly=True,
+        help="This field contains the information related to the numbering of the journal entries of this journal.")
     refund_sequence_id = fields.Many2one('ir.sequence', string='Credit Note Entry Sequence',
-        help="This field contains the information related to the numbering of the credit note entries of this journal.", copy=False)
+        copy=False, readonly=True,
+        help="This field contains the information related to the numbering of the credit note entries of this journal.")
+    payment_sequence_id = fields.Many2one('ir.sequence', string='Payment Sequence',
+        copy=False, readonly=True,
+        help="This field contains the information related to the numbering of the payment sequence.")
     sequence = fields.Integer(help='Used to order Journals in the dashboard view', default=10)
     sequence_number_next = fields.Integer(string='Next Number',
         help='The next sequence number will be used for the next invoice.',
@@ -981,7 +998,6 @@ class AccountJournal(models.Model):
     bank_statements_source = fields.Selection(selection=_get_bank_statements_available_sources, string='Bank Feeds', default='undefined', help="Defines how the bank statements will be registered")
     bank_acc_number = fields.Char(related='bank_account_id.acc_number', readonly=False)
     bank_id = fields.Many2one('res.bank', related='bank_account_id.bank_id', readonly=False)
-    post_at = fields.Selection([('pay_val', 'Payment Validation'), ('bank_rec', 'Bank Reconciliation')], string="Post At", default='pay_val')
 
     # alias configuration for journals
     alias_id = fields.Many2one('mail.alias', string='Alias', copy=False)
@@ -995,6 +1011,19 @@ class AccountJournal(models.Model):
     _sql_constraints = [
         ('code_company_uniq', 'unique (code, name, company_id)', 'The code and name of the journal must be unique per company !'),
     ]
+
+    @api.depends('company_id', 'type')
+    def _compute_suspense_account_id(self):
+        for journal in self:
+            if journal.type not in ('bank', 'cash'):
+                journal.suspense_account_id = False
+            elif journal.suspense_account_id:
+                journal.suspense_account_id = journal.suspense_account_id
+            elif journal.company_id.default_journal_suspense_account_id:
+                journal.suspense_account_id = journal.company_id.default_journal_suspense_account_id
+            else:
+
+                journal.suspense_account_id = False
 
     def _compute_alias_domain(self):
         alias_domain = self.env["ir.config_parameter"].sudo().get_param("mail.catchall.domain")
@@ -1190,10 +1219,10 @@ class AccountJournal(models.Model):
             if ('code' in vals and journal.code != vals['code']):
                 if self.env['account.move'].search([('journal_id', 'in', self.ids)], limit=1):
                     raise UserError(_('This journal already contains items, therefore you cannot modify its short name.'))
-                new_prefix = self._get_sequence_prefix(vals['code'], refund=False)
+                new_prefix = vals['code'].upper() + '/%(range_year)s/'
                 journal.sequence_id.write({'prefix': new_prefix})
                 if journal.refund_sequence_id:
-                    new_prefix = self._get_sequence_prefix(vals['code'], refund=True)
+                    new_prefix = 'R' + vals['code'].upper() + '/%(range_year)s/'
                     journal.refund_sequence_id.write({'prefix': new_prefix})
             if 'currency_id' in vals:
                 if not 'default_debit_account_id' in vals and journal.default_debit_account_id:
@@ -1225,19 +1254,26 @@ class AccountJournal(models.Model):
         # create the relevant refund sequence
         if vals.get('refund_sequence'):
             for journal in self.filtered(lambda j: j.type in ('sale', 'purchase') and not j.refund_sequence_id):
-                journal_vals = {
+                journal.refund_sequence_id = self._create_refund_sequence({
                     'name': journal.name,
+                    'type': vals.get('type', journal.type),
                     'company_id': journal.company_id.id,
                     'code': journal.code,
                     'refund_sequence_number_next': vals.get('refund_sequence_number_next', journal.refund_sequence_number_next),
-                }
-                journal.refund_sequence_id = self.sudo()._create_sequence(journal_vals, refund=True).id
-        # Changing the 'post_at' option will post the draft payment moves and change the related invoices' state.
-        if 'post_at' in vals and vals['post_at'] != 'bank_rec':
-            draft_moves = self.env['account.move'].search([('journal_id', 'in', self.ids), ('state', '=', 'draft')])
-            pending_payments = draft_moves.mapped('line_ids.payment_id')
-            pending_payments.mapped('move_line_ids.move_id').post()
-            pending_payments.mapped('reconciled_invoice_ids').filtered(lambda x: x.state == 'in_payment').write({'state': 'paid'})
+                }, {
+                    'name': _('%s: Refund Sequence') % vals['code'],
+                    'prefix': 'R' + vals['code'].upper() + '/%(range_year)s/',
+                    'implementation': 'no_gap',
+                    'padding': 4,
+                    'number_increment': 1,
+                    'use_date_range': True,
+                    'company_id': journal.company_id.id,
+                }).id
+        if vals.get('code'):
+            self.filtered(lambda j: j.type in ('bank', 'cash')).mapped('payment_sequence_id').write({
+                'name': _('%s: Payment Sequence') % vals['code'],
+                'prefix': 'TEMP' + vals['code'].upper() + '/%(range_year)s/',
+            })
         for record in self:
             if record.restrict_mode_hash_table and not record.secure_sequence_id:
                 record._create_secure_sequence(['secure_sequence_id'])
@@ -1245,68 +1281,9 @@ class AccountJournal(models.Model):
         return result
 
     @api.model
-    def _get_sequence_prefix(self, code, refund=False):
-        prefix = code.upper()
-        if refund:
-            prefix = 'R' + prefix
-        return prefix + '/%(range_year)s/'
-
-    @api.model
-    def _create_sequence(self, vals, refund=False):
-        """ Create new no_gap entry sequence for every new Journal"""
-        prefix = self._get_sequence_prefix(vals['code'], refund)
-        seq_name = refund and vals['code'] + _(': Refund') or vals['code']
-        seq = {
-            'name': _('%s Sequence') % seq_name,
-            'implementation': 'no_gap',
-            'prefix': prefix,
-            'padding': 4,
-            'number_increment': 1,
-            'use_date_range': True,
-        }
-        if 'company_id' in vals:
-            seq['company_id'] = vals['company_id']
-        seq = self.env['ir.sequence'].create(seq)
-        seq_date_range = seq._get_current_sequence()
-        seq_date_range.number_next = refund and vals.get('refund_sequence_number_next', 1) or vals.get('sequence_number_next', 1)
-        return seq
-
-    @api.model
-    def _prepare_liquidity_account(self, name, company, currency_id, type):
-        '''
-        This function prepares the value to use for the creation of the default debit and credit accounts of a
-        liquidity journal (created through the wizard of generating COA from templates for example).
-
-        :param name: name of the bank account
-        :param company: company for which the wizard is running
-        :param currency_id: ID of the currency in which is the bank account
-        :param type: either 'cash' or 'bank'
-        :return: mapping of field names and values
-        :rtype: dict
-        '''
-        digits = 6
-        acc = self.env['account.account'].search([('company_id', '=', company.id)], limit=1)
-        if acc:
-            digits = len(acc.code)
-        # Seek the next available number for the account code
-        if type == 'bank':
-            account_code_prefix = company.bank_account_code_prefix or ''
-        else:
-            account_code_prefix = company.cash_account_code_prefix or company.bank_account_code_prefix or ''
-
-        liquidity_type = self.env.ref('account.data_account_type_liquidity')
-        return {
-                'name': name,
-                'currency_id': currency_id or False,
-                'code': self.env['account.account']._search_new_account_code(company, digits, account_code_prefix),
-                'user_type_id': liquidity_type and liquidity_type.id or False,
-                'company_id': company.id,
-        }
-
-    @api.model
-    def get_next_bank_cash_default_code(self, journal_type, company_id):
+    def get_next_bank_cash_default_code(self, journal_type, company):
         journal_code_base = (journal_type == 'cash' and 'CSH' or 'BNK')
-        journals = self.env['account.journal'].search([('code', 'like', journal_code_base + '%'), ('company_id', '=', company_id)])
+        journals = self.env['account.journal'].search([('code', 'like', journal_code_base + '%'), ('company_id', '=', company.id)])
         for num in range(1, 100):
             # journal_code has a maximal size of 5, hence we can enforce the boundary num < 100
             journal_code = journal_code_base + str(num)
@@ -1314,43 +1291,160 @@ class AccountJournal(models.Model):
                 return journal_code
 
     @api.model
-    def create(self, vals):
-        company_id = vals.get('company_id', self.env.company.id)
-        if vals.get('type') in ('bank', 'cash'):
-            # For convenience, the name can be inferred from account number
-            if not vals.get('name') and 'bank_acc_number' in vals:
-                vals['name'] = vals['bank_acc_number']
+    def _create_liquidity_account(self, journal_vals, account_vals):
+        ''' Hook to be overrided in localizations modules to add custom values.
+        :param journal_vals:    Parameter of the account.journal's create method.
+        :param account_vals:    Parameter of the account.account's create method.
+        :return:                An account.account record.
+        '''
+        return self.env['account.account'].create(account_vals)
 
-            # If no code provided, loop to find next available journal code
+    @api.model
+    def _create_payment_transfer_account(self, journal_vals, account_vals):
+        ''' Hook to be overrided in localizations modules to add custom values.
+        :param journal_vals:    Parameter of the account.journal's create method.
+        :param account_vals:    Parameter of the account.account's create method.
+        :return:                An account.account record.
+        '''
+        return self.env['account.account'].create(account_vals)
+
+    @api.model
+    def _create_sequence(self, journal_vals, sequence_vals):
+        ''' Hook to be overrided in localizations modules to add custom values.
+        :param journal_vals:    Parameter of the account.journal's create method.
+        :param sequence_vals:   Parameter of the ir.sequence's create method.
+        :return:                An ir.sequence record.
+        '''
+        sequence = self.env['ir.sequence'].sudo().create(sequence_vals)
+        seq_date_range = sequence._get_current_sequence()
+        seq_date_range.number_next = journal_vals.get('sequence_number_next', 1)
+        return sequence
+
+    @api.model
+    def _create_refund_sequence(self, journal_vals, sequence_vals):
+        ''' Hook to be overrided in localizations modules to add custom values.
+        :param journal_vals:    Parameter of the account.journal's create method.
+        :param sequence_vals:   Parameter of the ir.sequence's create method.
+        :return:                An ir.sequence record.
+        '''
+        sequence = self.env['ir.sequence'].sudo().create(sequence_vals)
+        seq_date_range = sequence._get_current_sequence()
+        seq_date_range.number_next = journal_vals.get('refund_sequence_number_next', 1)
+        return sequence
+
+    @api.model
+    def _create_payment_sequence(self, journal_vals, sequence_vals):
+        ''' Hook to be overrided in localizations modules to add custom values.
+        :param journal_vals:    Parameter of the account.journal's create method.
+        :param sequence_vals:   Parameter of the ir.sequence's create method.
+        :return:                An ir.sequence record.
+        '''
+        return self.env['ir.sequence'].sudo().create(sequence_vals)
+
+    @api.model
+    def _fill_missing_values(self, vals):
+        journal_type = vals.get('type')
+
+        # 'type' field is required.
+        if not journal_type:
+            return
+
+        # === Fill missing company ===
+        company = self.env['res.company'].browse(vals['company_id']) if vals.get('company_id') else self.env.company
+        vals['company_id'] = company.id
+
+        # Don't get the digits on 'chart_template_id' since the chart template could be a custom one.
+        random_account = self.env['account.account'].search([('company_id', '=', company.id)], limit=1)
+        digits = len(random_account.code) if random_account else 6
+
+        liquidity_type = self.env.ref('account.data_account_type_liquidity')
+        current_assets_type = self.env.ref('account.data_account_type_current_assets')
+
+        if journal_type in ('bank', 'cash'):
+            has_liquidity_accounts = vals.get('default_debit_account_id') or vals.get('default_credit_account_id')
+            has_payment_transfer_account = vals.get('payment_transfer_account_id')
+            has_profit_account = vals.get('profit_account_id')
+            has_loss_account = vals.get('loss_account_id')
+
+            if journal_type == 'bank':
+                liquidity_account_prefix = company.bank_account_code_prefix or ''
+            else:
+                liquidity_account_prefix = company.cash_account_code_prefix or company.bank_account_code_prefix or ''
+
+            # === Fill missing name ===
+            vals['name'] = vals.get('name') or vals.get('bank_acc_number')
+
+            # === Fill missing code ===
             if not vals.get('code'):
-                vals['code'] = self.get_next_bank_cash_default_code(vals['type'], company_id)
+                vals['code'] = self.get_next_bank_cash_default_code(vals['type'], company)
                 if not vals['code']:
                     raise UserError(_("Cannot generate an unused journal code. Please fill the 'Shortcode' field."))
 
+            # === Fill missing accounts ===
+            if not has_liquidity_accounts:
+                liquidity_account = self._create_liquidity_account(vals, {
+                    'name': vals.get('name'),
+                    'code': self.env['account.account']._search_new_account_code(company, digits, liquidity_account_prefix),
+                    'user_type_id': liquidity_type.id,
+                    'currency_id': vals.get('currency_id'),
+                    'company_id': company.id,
+                })
 
-            # Create a default debit/credit account if not given
-            default_account = vals.get('default_debit_account_id') or vals.get('default_credit_account_id')
-            company = self.env['res.company'].browse(company_id)
-            if not default_account:
-                account_vals = self._prepare_liquidity_account(vals.get('name'), company, vals.get('currency_id'), vals.get('type'))
-                default_account = self.env['account.account'].create(account_vals)
-                vals['default_debit_account_id'] = default_account.id
-                vals['default_credit_account_id'] = default_account.id
-            if vals['type'] == 'cash':
-                if not vals.get('profit_account_id'):
-                    vals['profit_account_id'] = company.default_cash_difference_income_account_id.id
-                if not vals.get('loss_account_id'):
-                    vals['loss_account_id'] = company.default_cash_difference_expense_account_id.id
+                vals.update({
+                    'default_debit_account_id': liquidity_account.id,
+                    'default_credit_account_id': liquidity_account.id,
+                })
+            if not has_payment_transfer_account:
+                vals['payment_transfer_account_id'] = self._create_payment_transfer_account(vals, {
+                    'name': _("Outstanding Receipts/Payments"),
+                    'code': self.env['account.account']._search_new_account_code(company, digits, liquidity_account_prefix),
+                    'reconcile': True,
+                    'user_type_id': current_assets_type.id,
+                    'currency_id': vals.get('currency_id'),
+                    'company_id': company.id,
+                }).id
+            if journal_type == 'cash' and not has_profit_account:
+                vals['profit_account_id'] = company.default_cash_difference_income_account_id.id
+            if journal_type == 'cash' and not has_loss_account:
+                vals['loss_account_id'] = company.default_cash_difference_expense_account_id.id
+
+        # === Fill missing sequences ===
+        default_sequence_vals = {
+            'implementation': 'no_gap',
+            'padding': 4,
+            'number_increment': 1,
+            'use_date_range': True,
+            'company_id': company.id,
+        }
 
         if 'refund_sequence' not in vals:
-            vals['refund_sequence'] = vals['type'] in ('sale', 'purchase')
-
-        # We just need to create the relevant sequences according to the chosen options
+            vals['refund_sequence'] = journal_type in ('sale', 'purchase')
         if not vals.get('sequence_id'):
-            vals.update({'sequence_id': self.sudo()._create_sequence(vals).id})
-        if vals.get('type') in ('sale', 'purchase') and vals.get('refund_sequence') and not vals.get('refund_sequence_id'):
-            vals.update({'refund_sequence_id': self.sudo()._create_sequence(vals, refund=True).id})
+            vals['sequence_id'] = self._create_sequence(vals, {
+                **default_sequence_vals,
+                'name': _('%s Sequence') % vals['code'],
+                'prefix': vals['code'].upper() + '/%(range_year)s/',
+            }).id
+        if journal_type in ('sale', 'purchase') and vals.get('refund_sequence') and not vals.get('refund_sequence_id'):
+            vals['refund_sequence_id'] = self._create_refund_sequence(vals, {
+                **default_sequence_vals,
+                'name': _('%s: Refund Sequence') % vals['code'],
+                'prefix': 'R' + vals['code'].upper() + '/%(range_year)s/',
+            }).id
+        if journal_type in ('bank', 'cash') and not vals.get('payment_sequence_id'):
+            vals['payment_sequence_id'] = self._create_payment_sequence(vals, {
+                **default_sequence_vals,
+                'name': _('%s: Payment Sequence') % vals['code'],
+                'prefix': 'TEMP' + vals['code'].upper() + '/%(range_year)s/',
+            }).id
+
+    @api.model
+    def create(self, vals):
+        # OVERRIDE
+        self._fill_missing_values(vals)
+
         journal = super(AccountJournal, self.with_context(mail_create_nolog=True)).create(vals)
+
         if 'alias_name' in vals:
             journal._update_mail_alias(vals)
 
@@ -1454,6 +1548,65 @@ class AccountJournal(models.Model):
                     vals_write[seq_field] = seq.id
             if vals_write:
                 journal.write(vals_write)
+
+    # -------------------------------------------------------------------------
+    # REPORTING METHODS
+    # -------------------------------------------------------------------------
+
+    def _get_journal_balance(self, domain=None):
+        ''' Get the balance of the current journal by filtering the journal items using the journal's accounts.
+
+        /!\ The current journal is not part of the applied domain. This is the expected behavior since we only want
+        a logic based on accounts.
+
+        :param domain:  An additional domain to be applied on the account.move.line model.
+        :return:        The balance expressed in the journal's currency.
+        '''
+        self.ensure_one()
+        self.env['account.move.line'].check_access_rights('read')
+
+        accounts = self.default_debit_account_id + self.default_credit_account_id
+        if not accounts:
+            return 0.0
+
+        domain = (domain or []) + [('account_id', 'in', tuple(accounts.ids))] + [
+            ('display_type', 'not in', ('line_section', 'line_note')),
+            ('move_id.state', '!=', 'cancel'),
+        ]
+        query = self.env['account.move.line']._where_calc(domain)
+        tables, where_clause, where_params = query.get_sql()
+
+        query = '''
+            SELECT
+                SUM(account_move_line.balance),
+                SUM(account_move_line.amount_currency),
+                account_move_line.currency_id
+            FROM ''' + tables + '''
+            WHERE ''' + where_clause + '''
+            GROUP BY account_move_line.currency_id
+        '''
+        self._cr.execute(query, where_params)
+
+        company_currency = self.company_id.currency_id
+        journal_currency = self.currency_id if self.currency_id and self.currency_id != company_currency else False
+
+        account_balance = 0.0
+        for balance, amount_currency, currency_id in self._cr.fetchall():
+            if journal_currency:
+                account_balance += amount_currency
+            else:
+                account_balance += balance
+
+        return account_balance
+
+    def _get_last_bank_statement(self, domain=None):
+        ''' Retrieve the last bank statement created using this journal.
+        :param domain:  An additional domain to be applied on the account.bank.statement model.
+        :return:        An account.bank.statement record or an empty recordset.
+        '''
+        self.ensure_one()
+        last_statement_domain = (domain or []) + [('journal_id', '=', self.id)]
+        return self.env['account.bank.statement'].search(last_statement_domain, order="date desc, id desc", limit=1)
 
 
 class ResPartnerBank(models.Model):

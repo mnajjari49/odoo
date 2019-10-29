@@ -21,6 +21,7 @@ class AccountTestCommon(SavepointCase):
     @classmethod
     def setUpClass(cls):
         super(AccountTestCommon, cls).setUpClass()
+        cls.env.user.groups_id |= cls.env.ref('account.group_account_user')
         cls.create_accounting_minimal_data()
 
     @classmethod
@@ -133,6 +134,12 @@ class AccountTestCommon(SavepointCase):
             'name': 'Opening Expense - (test)',
             'user_type_id': cls.env.ref('account.data_account_type_expenses').id,
         })
+        cls.sus = cls.env['account.account'].create({
+            'name': 'Suspense Account - (test)',
+            'code': 'X1115',
+            'user_type_id': cls.env.ref('account.data_account_type_current_assets').id,
+        })
+        cls.company.default_journal_suspense_account_id = cls.sus
 
         # Profit and Loss
         cls.income_fx_income = cls.env['account.account'].create({
@@ -413,6 +420,12 @@ class AccountTestNoChartCommon(SavepointCaseWithUserDemo):
             'name': 'General Journal - Test',
             'code': 'AJ-GENERAL',
             'type': 'general',
+            'company_id': cls.env.user.company_id.id,
+        })
+        cls.journal_bank = cls.env['account.journal'].create({
+            'name': 'Bank Journal - Test',
+            'code': 'AJ-BANK',
+            'type': 'bank',
             'company_id': cls.env.user.company_id.id,
         })
 
@@ -793,29 +806,30 @@ class AccountTestInvoicingCommon(SavepointCase):
         }
 
     @classmethod
-    def setup_multi_currency_data(cls):
-        gold_currency = cls.env['res.currency'].create({
+    def setup_multi_currency_data(cls, default_values={}, rate2016=3.0, rate2017=2.0):
+        foreign_currency = cls.env['res.currency'].create({
             'name': 'Gold Coin',
             'symbol': '☺',
             'rounding': 0.001,
             'position': 'after',
             'currency_unit_label': 'Gold',
             'currency_subunit_label': 'Silver',
+            **default_values,
         })
         rate1 = cls.env['res.currency.rate'].create({
             'name': '2016-01-01',
-            'rate': 3.0,
-            'currency_id': gold_currency.id,
+            'rate': rate2016,
+            'currency_id': foreign_currency.id,
             'company_id': cls.env.company.id,
         })
         rate2 = cls.env['res.currency.rate'].create({
             'name': '2017-01-01',
-            'rate': 2.0,
-            'currency_id': gold_currency.id,
+            'rate': rate2017,
+            'currency_id': foreign_currency.id,
             'company_id': cls.env.company.id,
         })
         return {
-            'currency': gold_currency,
+            'currency': foreign_currency,
             'rates': rate1 + rate2,
         }
 
@@ -931,8 +945,9 @@ class TestAccountReconciliationCommon(AccountTestCommon):
         super(TestAccountReconciliationCommon, cls).setUpClass()
         cls.company = cls.env['res.company'].create({
             'name': 'A test company',
-            'currency_id': cls.env.ref('base.EUR').id
+            'currency_id': cls.env.ref('base.EUR').id,
         })
+
         cls.env.user.company_id = cls.company
         # Generate minimal data for my new company
         cls.create_accounting_minimal_data()
@@ -1116,41 +1131,35 @@ class TestAccountReconciliationCommon(AccountTestCommon):
             auto_validate=True
         )
 
-    def make_payment(self, invoice_record, bank_journal, amount=0.0, amount_currency=0.0, currency_id=None):
+    def make_payment(self, invoice_record, bank_journal, amount=0.0, amount_currency=0.0, currency_id=None, reconcile_param=[]):
         bank_stmt = self.acc_bank_stmt_model.create({
             'journal_id': bank_journal.id,
             'date': time.strftime('%Y') + '-07-15',
-            'name': 'payment' + invoice_record.name
+            'name': 'payment' + invoice_record.name,
+            'line_ids': [(0, 0, {
+                'payment_ref': 'payment',
+                'partner_id': self.partner_agrolait_id,
+                'amount': amount,
+                'amount_currency': amount_currency,
+                'foreign_currency_id': currency_id,
+            })],
         })
 
-        bank_stmt_line = self.acc_bank_stmt_line_model.create({'name': 'payment',
-            'statement_id': bank_stmt.id,
-            'partner_id': self.partner_agrolait_id,
-            'amount': amount,
-            'amount_currency': amount_currency,
-            'currency_id': currency_id,
-            'date': time.strftime('%Y') + '-07-15',
-        })
-        line_id = invoice_record.line_ids.filtered(lambda line: line.account_id.user_type_id.type in ('receivable', 'payable'))
-        amount_in_widget = currency_id and amount_currency or amount
-        bank_stmt_line.process_reconciliation(counterpart_aml_dicts=[{
-            'move_line': line_id,
-            'debit': amount_in_widget < 0 and -amount_in_widget or 0.0,
-            'credit': amount_in_widget > 0 and amount_in_widget or 0.0,
-            'name': line_id.name,
-            }])
+        bank_stmt.line_ids[0].reconcile(reconcile_param)
         return bank_stmt
 
     def make_customer_and_supplier_flows(self, invoice_currency_id, invoice_amount, bank_journal, amount, amount_currency, transaction_currency_id):
         #we create an invoice in given invoice_currency
         invoice_record = self.create_invoice(type='out_invoice', invoice_amount=invoice_amount, currency_id=invoice_currency_id)
         #we encode a payment on it, on the given bank_journal with amount, amount_currency and transaction_currency given
-        bank_stmt = self.make_payment(invoice_record, bank_journal, amount=amount, amount_currency=amount_currency, currency_id=transaction_currency_id)
-        customer_move_lines = bank_stmt.move_line_ids
+        line = invoice_record.line_ids.filtered(lambda line: line.account_id.user_type_id.type in ('receivable', 'payable'))
+        bank_stmt = self.make_payment(invoice_record, bank_journal, amount=amount, amount_currency=amount_currency, currency_id=transaction_currency_id, reconcile_param=[{'id': line.id}])
+        customer_move_lines = bank_stmt.line_ids.line_ids
 
         #we create a supplier bill in given invoice_currency
         invoice_record = self.create_invoice(type='in_invoice', invoice_amount=invoice_amount, currency_id=invoice_currency_id)
         #we encode a payment on it, on the given bank_journal with amount, amount_currency and transaction_currency given
-        bank_stmt = self.make_payment(invoice_record, bank_journal, amount=-amount, amount_currency=-amount_currency, currency_id=transaction_currency_id)
-        supplier_move_lines = bank_stmt.move_line_ids
+        line = invoice_record.line_ids.filtered(lambda line: line.account_id.user_type_id.type in ('receivable', 'payable'))
+        bank_stmt = self.make_payment(invoice_record, bank_journal, amount=-amount, amount_currency=-amount_currency, currency_id=transaction_currency_id, reconcile_param=[{'id': line.id}])
+        supplier_move_lines = bank_stmt.line_ids.line_ids
         return customer_move_lines, supplier_move_lines

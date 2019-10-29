@@ -434,6 +434,16 @@ class account_payment(models.Model):
             raise UserError(_('It is not allowed to delete a payment that already created a journal entry since it would create a gap in the numbering. You should create the journal entry again and cancel it thanks to a regular revert.'))
         return super(account_payment, self).unlink()
 
+    def _get_liquidity_account(self, journal=None):
+        self.ensure_one()
+
+        journal = journal or self.journal_id
+        liquidity_account = journal.default_debit_account_id if self.amount >= 0.0 else journal.default_credit_account_id
+        if self.env.user.has_group('account.group_account_user'):
+            return journal.payment_transfer_account_id
+        else:
+            return liquidity_account
+
     def _prepare_payment_moves(self):
         ''' Prepare the creation of journal entries (account.move) by creating a list of python dictionary to be passed
         to the 'create' method.
@@ -460,16 +470,13 @@ class account_payment(models.Model):
         all_move_vals = []
         for payment in self:
             company_currency = payment.company_id.currency_id
+            journal = payment.journal_id
             move_names = payment.move_name.split(payment._get_move_name_transfer_separator()) if payment.move_name else None
 
             # Compute amounts.
             write_off_amount = payment.payment_difference_handling == 'reconcile' and -payment.payment_difference or 0.0
-            if payment.payment_type in ('outbound', 'transfer'):
-                counterpart_amount = payment.amount
-                liquidity_line_account = payment.journal_id.default_debit_account_id
-            else:
-                counterpart_amount = -payment.amount
-                liquidity_line_account = payment.journal_id.default_credit_account_id
+            counterpart_amount = payment.amount if payment.payment_type in ('outbound', 'transfer') else -payment.amount
+            liquidity_line_account = payment._get_liquidity_account()
 
             # Manage currency.
             if payment.currency_id == company_currency:
@@ -485,15 +492,10 @@ class account_payment(models.Model):
                 currency_id = payment.currency_id.id
 
             # Manage custom currency on journal for liquidity line.
-            if payment.journal_id.currency_id and payment.currency_id != payment.journal_id.currency_id:
+            if journal.currency_id and payment.currency_id != journal.currency_id:
                 # Custom currency on journal.
-                if payment.journal_id.currency_id == company_currency:
-                    # Single-currency
-                    liquidity_line_currency_id = False
-                else:
-                    liquidity_line_currency_id = payment.journal_id.currency_id.id
-                liquidity_amount = company_currency._convert(
-                    balance, payment.journal_id.currency_id, payment.company_id, payment.payment_date)
+                liquidity_line_currency_id = journal.currency_id.id
+                liquidity_amount = company_currency._convert(balance, journal.currency_id, payment.company_id, payment.payment_date)
             else:
                 # Use the payment currency.
                 liquidity_line_currency_id = currency_id
@@ -528,8 +530,8 @@ class account_payment(models.Model):
             move_vals = {
                 'date': payment.payment_date,
                 'ref': payment.communication,
-                'journal_id': payment.journal_id.id,
-                'currency_id': payment.journal_id.currency_id.id or payment.company_id.currency_id.id,
+                'journal_id': journal.id,
+                'currency_id': journal.currency_id.id or payment.company_id.currency_id.id,
                 'partner_id': payment.partner_id.id,
                 'line_ids': [
                     # Receivable / Payable / Transfer line.
@@ -580,6 +582,7 @@ class account_payment(models.Model):
             # ==== 'transfer' ====
             if payment.payment_type == 'transfer':
                 journal = payment.destination_journal_id
+                liquidity_line_account = payment._get_liquidity_account(journal=journal)
 
                 # Manage custom currency on journal for liquidity line.
                 if journal.currency_id and payment.currency_id != journal.currency_id:
@@ -611,14 +614,14 @@ class account_payment(models.Model):
                         }),
                         # Liquidity credit line.
                         (0, 0, {
-                            'name': _('Transfer from %s') % payment.journal_id.name,
+                            'name': _('Transfer from %s') % journal.name,
                             'amount_currency': transfer_amount if liquidity_line_currency_id else 0.0,
                             'currency_id': liquidity_line_currency_id,
                             'debit': balance > 0.0 and balance or 0.0,
                             'credit': balance < 0.0 and -balance or 0.0,
                             'date_maturity': payment.payment_date,
                             'partner_id': payment.partner_id.id,
-                            'account_id': payment.destination_journal_id.default_credit_account_id.id,
+                            'account_id': liquidity_line_account.id,
                             'payment_id': payment.id,
                         }),
                     ],
@@ -667,7 +670,7 @@ class account_payment(models.Model):
                     raise UserError(_("You have to define a sequence for %s in your company.") % (sequence_code,))
 
             moves = AccountMove.create(rec._prepare_payment_moves())
-            moves.filtered(lambda move: move.journal_id.post_at != 'bank_rec').post()
+            moves.post()
 
             # Update the state / move before performing any reconciliation.
             move_name = self._get_move_name_transfer_separator().join(moves.mapped('name'))

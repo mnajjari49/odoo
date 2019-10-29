@@ -505,7 +505,7 @@ class TestPointOfSaleFlow(TestPointOfSaleCommon):
             'amount': 1000,
             'partner_id': self.partner4.id,
             'statement_id': account_statement.id,
-            'name': 'EXT001'
+            'payment_ref': 'EXT001'
         })
         # I modify the bank statement and set the Closing Balance.
         account_statement.write({
@@ -522,7 +522,7 @@ class TestPointOfSaleFlow(TestPointOfSaleCommon):
 
         # I confirm the bank statement using Confirm button
 
-        self.AccountBankStatement.button_confirm_bank()
+        self.AccountBankStatement.button_validate()
 
     def test_create_from_ui(self):
         """
