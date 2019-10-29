@@ -16,7 +16,8 @@ from uuid import getnode as get_mac
 from PIL import Image, ImageOps
 
 from odoo import http, _
-from odoo.addons.hw_drivers.controllers.driver import event_manager, Driver, PPDs, conn, printers, cups_lock, iot_devices
+from odoo.addons.hw_drivers.controllers.driver import event_manager, Driver, iot_devices
+from odoo.addons.hw_drivers.iot_handlers.interfaces.PrinterInterface import PPDs, conn, printers, cups_lock
 from odoo.addons.hw_drivers.tools import helpers
 from odoo.addons.hw_proxy.controllers.main import drivers as old_drivers
 
