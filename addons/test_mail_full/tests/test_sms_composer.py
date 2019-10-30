@@ -120,6 +120,7 @@ class TestSMSComposerComment(test_mail_full_common.TestSMSCommon, test_mail_full
 
     def test_composer_numbers_no_model(self):
         with self.with_user('employee'):
+            self.env.user.write({'country_id': self.env.ref('base.be').id})
             composer = self.env['sms.composer'].with_context(
                 default_composition_mode='numbers'
             ).create({

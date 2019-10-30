@@ -658,6 +658,7 @@ class TestExpression(SavepointCaseWithUserDemo):
         vals = {
             'name': 'OpenERP Test',
             'active': False,
+            'country_id': self.ref("base.be"),
             'category_id': [(6, 0, [self.partner_category.id])],
             'child_ids': [(0, 0, {'name': 'address of OpenERP Test', 'country_id': self.ref("base.be")})],
         }
