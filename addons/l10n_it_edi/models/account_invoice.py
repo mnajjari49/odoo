@@ -155,7 +155,7 @@ class AccountMove(models.Model):
             invoice.l10n_it_einvoice_name = report_name
 
             data = b"<?xml version='1.0' encoding='UTF-8'?>" + invoice._export_as_xml()
-            description = _('Italian invoice: %s') % invoice.type
+            description = _('Italian invoice: %s') % invoice.move_type
             invoice.l10n_it_einvoice_id = self.env['ir.attachment'].create({
                 'name': report_name,
                 'res_id': invoice.id,
@@ -220,9 +220,9 @@ class AccountMove(models.Model):
         if len(self.commercial_partner_id.l10n_it_pa_index or '1') == 6:
             formato_trasmissione = "FPA12"
 
-        if self.type == 'out_invoice':
+        if self.move_type == 'out_invoice':
             document_type = 'TD01'
-        elif self.type == 'out_refund':
+        elif self.move_type == 'out_refund':
             document_type = 'TD04'
         else:
             document_type = 'TD0X'

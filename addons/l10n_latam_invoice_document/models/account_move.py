@@ -93,7 +93,7 @@ class AccountMove(models.Model):
         for rec in self.filtered(lambda x: x.l10n_latam_use_documents and (not x.name or x.name == '/')):
             if not rec.l10n_latam_sequence_id:
                 raise UserError(_('No sequence or document number linked to invoice id %s') % rec.id)
-            if rec.type in ('in_receipt', 'out_receipt'):
+            if rec.move_type in ('in_receipt', 'out_receipt'):
                 raise UserError(_('We do not accept the usage of document types on receipts yet. '))
             rec.l10n_latam_document_number = rec.l10n_latam_sequence_id.next_by_id()
         return super().post()
@@ -102,7 +102,7 @@ class AccountMove(models.Model):
     def _check_unique_sequence_number(self):
         """ Do not apply unique sequence number for vendoer bills and refunds.
         Also apply constraint when state change """
-        vendor = self.filtered(lambda x: x.type in ['in_refund', 'in_invoice'])
+        vendor = self.filtered(lambda x: x.move_type in ['in_refund', 'in_invoice'])
         try:
             return super(AccountMove, self - vendor)._check_unique_sequence_number()
         except ValidationError:
@@ -123,11 +123,11 @@ class AccountMove(models.Model):
             raise ValidationError(_('Please set the document number on the following invoices %s.' % (
                 without_number.ids)))
 
-    @api.constrains('type', 'l10n_latam_document_type_id')
+    @api.constrains('move_type', 'l10n_latam_document_type_id')
     def _check_invoice_type_document_type(self):
         for rec in self.filtered('l10n_latam_document_type_id.internal_type'):
             internal_type = rec.l10n_latam_document_type_id.internal_type
-            invoice_type = rec.type
+            invoice_type = rec.tmove_ype
             if internal_type in ['debit_note', 'invoice'] and invoice_type in ['out_refund', 'in_refund']:
                 raise ValidationError(_('You can not use a %s document type with a refund invoice') % internal_type)
             elif internal_type == 'credit_note' and invoice_type in ['out_invoice', 'in_invoice']:
@@ -135,13 +135,13 @@ class AccountMove(models.Model):
 
     def _get_l10n_latam_documents_domain(self):
         self.ensure_one()
-        if self.type in ['out_refund', 'in_refund']:
+        if self.move_type in ['out_refund', 'in_refund']:
             internal_types = ['credit_note']
         else:
             internal_types = ['invoice', 'debit_note']
         return [('internal_type', 'in', internal_types), ('country_id', '=', self.company_id.country_id.id)]
 
-    @api.depends('journal_id', 'partner_id', 'company_id', 'type')
+    @api.depends('journal_id', 'partner_id', 'company_id', 'move_type')
     def _compute_l10n_latam_available_document_types(self):
         self.l10n_latam_available_document_type_ids = False
         for rec in self.filtered(lambda x: x.journal_id and x.l10n_latam_use_documents and x.partner_id):
@@ -200,7 +200,7 @@ class AccountMove(models.Model):
         not on entry validation """
         for rec in self.filtered(lambda x: x.is_purchase_document() and x.l10n_latam_use_documents and x.l10n_latam_document_number):
             domain = [
-                ('type', '=', rec.type),
+                ('move_type', '=', rec.move_type),
                 # by validating name we validate l10n_latam_document_number and l10n_latam_document_type_id
                 ('name', '=', rec.name),
                 ('company_id', '=', rec.company_id.id),

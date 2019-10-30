@@ -17,7 +17,7 @@
                         string="Print ISR"
                         type="object"
                         attrs="{'invisible':['|', '|', '|', '|',
-                            ('type', 'not in', ('out_invoice', 'out_refund')),
+                            ('move_type', 'not in', ('out_invoice', 'out_refund')),
                             ('l10n_ch_isr_sent', '=', True),
                             ('state', '!=', 'posted'),
                             ('invoice_payment_state', '!=', 'not_paid'),
@@ -33,7 +33,7 @@
                         string="Print ISR"
                         type="object"
                         attrs="{'invisible':['|', '|', '|', '|',
-                            ('type', 'not in', ('out_invoice', 'out_refund')),
+                            ('move_type', 'not in', ('out_invoice', 'out_refund')),
                             ('l10n_ch_isr_sent', '=', False),
                             ('state', '!=', 'posted'),
                             ('invoice_payment_state', '!=', 'not_paid'),

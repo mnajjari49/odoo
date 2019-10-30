@@ -133,7 +133,7 @@ class TestReconciliationExec(TestAccountReconciliationCommon):
         # Create a customer invoice of 50 USD.
         partner = self.env['res.partner'].create({'name': 'test'})
         move = self.env['account.move'].with_context(default_type='out_invoice').create({
-            'type': 'out_invoice',
+            'move_type': 'out_invoice',
             'partner_id': partner.id,
             'invoice_date': '%s-07-01' % time.strftime('%Y'),
             'date': '%s-07-01' % time.strftime('%Y'),
@@ -204,7 +204,7 @@ class TestReconciliationExec(TestAccountReconciliationCommon):
             'currency_id': self.currency_usd_id,
             'name': 'Foreign invoice with exchange gain',
             'account_id': self.account_rcv_id,
-            'type': 'out_invoice',
+            'move_type': 'out_invoice',
             'invoice_date': time.strftime('%Y-%m-%d'),
             'date': time.strftime('%Y-%m-%d'),
             'journal_id': self.bank_journal_usd_id,
@@ -506,7 +506,7 @@ class TestReconciliationExec(TestAccountReconciliationCommon):
 
         # Preparing Invoices (from vendor)
         invoice_a = self.env['account.move'].with_context(default_type='in_invoice').create({
-            'type': 'in_invoice',
+            'move_type': 'in_invoice',
             'partner_id': self.partner_agrolait_id,
             'currency_id': self.currency_usd_id,
             'invoice_date': '%s-07-01' % time.strftime('%Y'),
@@ -516,7 +516,7 @@ class TestReconciliationExec(TestAccountReconciliationCommon):
             ],
         })
         invoice_b = self.env['account.move'].with_context(default_type='in_invoice').create({
-            'type': 'in_invoice',
+            'move_type': 'in_invoice',
             'partner_id': self.partner_agrolait_id,
             'currency_id': self.currency_usd_id,
             'invoice_date': '%s-08-01' % time.strftime('%Y'),
@@ -815,7 +815,7 @@ class TestReconciliationExec(TestAccountReconciliationCommon):
         })
 
         invoice_cust_1 = self.env['account.move'].with_context(default_type='out_invoice').create({
-            'type': 'out_invoice',
+            'move_type': 'out_invoice',
             'partner_id': self.partner_agrolait_id,
             'invoice_date': '%s-01-01' % time.strftime('%Y'),
             'date': '%s-01-01' % time.strftime('%Y'),

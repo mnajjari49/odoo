@@ -1065,7 +1065,7 @@ class TestAccountMoveInInvoiceOnchanges(AccountTestInvoicingCommon):
     def test_in_invoice_create_1(self):
         # Test creating an account_move with the least information.
         move = self.env['account.move'].create({
-            'type': 'in_invoice',
+            'move_type': 'in_invoice',
             'partner_id': self.partner_a.id,
             'invoice_date': fields.Date.from_string('2019-01-01'),
             'currency_id': self.currency_data['currency'].id,
@@ -1115,7 +1115,7 @@ class TestAccountMoveInInvoiceOnchanges(AccountTestInvoicingCommon):
     def test_in_invoice_write_1(self):
         # Test creating an account_move with the least information.
         move = self.env['account.move'].create({
-            'type': 'in_invoice',
+            'move_type': 'in_invoice',
             'partner_id': self.partner_a.id,
             'invoice_date': fields.Date.from_string('2019-01-01'),
             'currency_id': self.currency_data['currency'].id,
@@ -1177,7 +1177,7 @@ class TestAccountMoveInInvoiceOnchanges(AccountTestInvoicingCommon):
     def test_in_invoice_switch_in_refund_1(self):
         # Test creating an account_move with an in_invoice_type and switch it in an in_refund.
         move = self.env['account.move'].create({
-            'type': 'in_invoice',
+            'move_type': 'in_invoice',
             'partner_id': self.partner_a.id,
             'invoice_date': fields.Date.from_string('2019-01-01'),
             'currency_id': self.currency_data['currency'].id,
@@ -1189,7 +1189,7 @@ class TestAccountMoveInInvoiceOnchanges(AccountTestInvoicingCommon):
         })
         move.action_switch_invoice_into_refund_credit_note()
 
-        self.assertRecordValues(move, [{'type': 'in_refund'}])
+        self.assertRecordValues(move, [{'move_type': 'in_refund'}])
         self.assertInvoiceValues(move, [
             {
                 **self.product_line_vals_1,
@@ -1238,7 +1238,7 @@ class TestAccountMoveInInvoiceOnchanges(AccountTestInvoicingCommon):
         modified_product_line_vals_2 = self.product_line_vals_2.copy()
         modified_product_line_vals_2.update({'quantity': -modified_product_line_vals_2['quantity']})
         move = self.env['account.move'].create({
-            'type': 'in_invoice',
+            'move_type': 'in_invoice',
             'partner_id': self.partner_a.id,
             'invoice_date': fields.Date.from_string('2019-01-01'),
             'currency_id': self.currency_data['currency'].id,
@@ -1309,7 +1309,7 @@ class TestAccountMoveInInvoiceOnchanges(AccountTestInvoicingCommon):
         })
         move.action_switch_invoice_into_refund_credit_note()
 
-        self.assertRecordValues(move, [{'type': 'in_refund'}])
+        self.assertRecordValues(move, [{'move_type': 'in_refund'}])
         self.assertInvoiceValues(move, [
             {
                 **self.product_line_vals_1,
@@ -1356,7 +1356,7 @@ class TestAccountMoveInInvoiceOnchanges(AccountTestInvoicingCommon):
 
     def test_in_invoice_change_period_accrual_1(self):
         move = self.env['account.move'].create({
-            'type': 'in_invoice',
+            'move_type': 'in_invoice',
             'date': '2017-01-01',
             'partner_id': self.partner_a.id,
             'invoice_date': fields.Date.from_string('2017-01-01'),

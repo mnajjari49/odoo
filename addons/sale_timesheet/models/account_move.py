@@ -55,7 +55,7 @@ class AccountMoveLine(models.Model):
         # are concerned, since in ordered quantity, the timesheet quantity is not invoiced, but is simply
         # to compute the delivered one (for reporting).
         lines = super(AccountMoveLine, self).create(vals_list)
-        lines_to_process = lines.filtered(lambda line: line.move_id.type == 'out_invoice'
+        lines_to_process = lines.filtered(lambda line: line.move_id.move_type == 'out_invoice'
                                                        and line.move_id.state == 'draft')
         for line in lines_to_process:
             sale_line_delivery = line.sale_line_ids.filtered(lambda sol: sol.product_id.invoice_policy == 'delivery' and sol.product_id.service_type == 'timesheet')

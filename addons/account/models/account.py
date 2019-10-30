@@ -1330,10 +1330,10 @@ class AccountTax(models.Model):
     def _search(self, args, offset=0, limit=None, order=None, count=False, access_rights_uid=None):
         context = self._context or {}
 
-        if context.get('type'):
-            if context.get('type') in ('out_invoice', 'out_refund'):
+        if context.get('move_type'):
+            if context.get('move_type') in ('out_invoice', 'out_refund'):
                 args += [('type_tax_use', '=', 'sale')]
-            elif context.get('type') in ('in_invoice', 'in_refund'):
+            elif context.get('move_type') in ('in_invoice', 'in_refund'):
                 args += [('type_tax_use', '=', 'purchase')]
 
         if context.get('journal_id'):

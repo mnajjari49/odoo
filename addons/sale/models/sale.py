@@ -59,7 +59,7 @@ class SaleOrder(models.Model):
         # existing invoices. This is necessary since such a refund is not
         # directly linked to the SO.
         for order in self:
-            invoices = order.order_line.invoice_lines.move_id.filtered(lambda r: r.type in ('out_invoice', 'out_refund'))
+            invoices = order.order_line.invoice_lines.move_id.filtered(lambda r: r.move_type in ('out_invoice', 'out_refund'))
             order.invoice_ids = invoices
             order.invoice_count = len(invoices)
 
@@ -496,7 +496,7 @@ class SaleOrder(models.Model):
 
         invoice_vals = {
             'ref': self.client_order_ref or '',
-            'type': 'out_invoice',
+            'move_type': 'out_invoice',
             'narration': self.note,
             'currency_id': self.pricelist_id.currency_id.id,
             'campaign_id': self.campaign_id.id,
@@ -616,7 +616,7 @@ class SaleOrder(models.Model):
                 if sum(l[2]['quantity'] * l[2]['price_unit'] for l in invoice_vals['invoice_line_ids']) < 0:
                     for l in invoice_vals['invoice_line_ids']:
                         l[2]['quantity'] = -l[2]['quantity']
-                    invoice_vals['type'] = 'out_refund'
+                    invoice_vals['move_type'] = 'out_refund'
                     refund_invoice_vals_list.append(invoice_vals)
                 else:
                     out_invoice_vals_list.append(invoice_vals)
@@ -1061,9 +1061,9 @@ class SaleOrderLine(models.Model):
             qty_invoiced = 0.0
             for invoice_line in line.invoice_lines:
                 if invoice_line.move_id.state != 'cancel':
-                    if invoice_line.move_id.type == 'out_invoice':
+                    if invoice_line.move_id.move_type == 'out_invoice':
                         qty_invoiced += invoice_line.product_uom_id._compute_quantity(invoice_line.quantity, line.product_uom)
-                    elif invoice_line.move_id.type == 'out_refund' :
+                    elif invoice_line.move_id.move_type == 'out_refund':
                         if not line.is_downpayment or line.untaxed_amount_to_invoice == 0 :
                             qty_invoiced -= invoice_line.product_uom_id._compute_quantity(invoice_line.quantity, line.product_uom)
             line.qty_invoiced = qty_invoiced
@@ -1349,7 +1349,7 @@ class SaleOrderLine(models.Model):
             else:
                 line.qty_delivered_manual = 0.0
 
-    @api.depends('invoice_lines', 'invoice_lines.price_total', 'invoice_lines.move_id.state', 'invoice_lines.move_id.type')
+    @api.depends('invoice_lines', 'invoice_lines.price_total', 'invoice_lines.move_id.state', 'invoice_lines.move_id.move_type')
     def _compute_untaxed_amount_invoiced(self):
         """ Compute the untaxed amount already invoiced from the sale order line, taking the refund attached
             the so line into account. This amount is computed as
@@ -1363,9 +1363,9 @@ class SaleOrderLine(models.Model):
             for invoice_line in line.invoice_lines:
                 if invoice_line.move_id.state == 'posted':
                     invoice_date = invoice_line.move_id.invoice_date or fields.Date.today()
-                    if invoice_line.move_id.type == 'out_invoice':
+                    if invoice_line.move_id.move_type == 'out_invoice':
                         amount_invoiced += invoice_line.currency_id._convert(invoice_line.price_subtotal, line.currency_id, line.company_id, invoice_date)
-                    elif invoice_line.move_id.type == 'out_refund':
+                    elif invoice_line.move_id.move_type == 'out_refund':
                         amount_invoiced -= invoice_line.currency_id._convert(invoice_line.price_subtotal, line.currency_id, line.company_id, invoice_date)
             line.untaxed_amount_invoiced = amount_invoiced
 

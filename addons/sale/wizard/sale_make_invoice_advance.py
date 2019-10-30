@@ -80,7 +80,7 @@ class SaleAdvancePaymentInv(models.TransientModel):
             name = _('Down Payment')
 
         invoice_vals = {
-            'type': 'out_invoice',
+            'move_type': 'out_invoice',
             'invoice_origin': order.name,
             'invoice_user_id': order.user_id.id,
             'narration': order.note,

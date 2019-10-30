@@ -50,7 +50,7 @@
             </field>
 
             <field name="journal_id" position="attributes">
-                <attribute name="context">{'default_type': type}</attribute>
+                <attribute name="context">{'default_type': move_type}</attribute>
             </field>
 
         </field>

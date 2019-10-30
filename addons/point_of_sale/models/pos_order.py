@@ -378,7 +378,7 @@ class PosOrder(models.Model):
                 'invoice_payment_ref': order.name,
                 'invoice_origin': order.name,
                 'journal_id': order.session_id.config_id.invoice_journal_id.id,
-                'type': 'out_invoice' if order.amount_total >= 0 else 'out_refund',
+                'move_type': 'out_invoice' if order.amount_total >= 0 else 'out_refund',
                 'ref': order.name,
                 'partner_id': order.partner_id.id,
                 'narration': order.note or '',
@@ -391,7 +391,7 @@ class PosOrder(models.Model):
             }
             new_move = moves.sudo()\
                             .with_company(order.company_id)\
-                            .with_context(default_type=move_vals['type'])\
+                            .with_context(default_type=move_vals['move_type'])\
                             .create(move_vals)
             message = _("This invoice has been created from the point of sale session: <a href=# data-oe-model=pos.order data-oe-id=%d>%s</a>") % (order.id, order.name)
             new_move.message_post(body=message)
@@ -406,7 +406,7 @@ class PosOrder(models.Model):
             'view_mode': 'form',
             'view_id': self.env.ref('account.view_move_form').id,
             'res_model': 'account.move',
-            'context': "{'type':'out_invoice'}",
+            'context': "{'move_type':'out_invoice'}",
             'type': 'ir.actions.act_window',
             'nodestroy': True,
             'target': 'current',

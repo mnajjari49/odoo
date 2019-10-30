@@ -848,7 +848,7 @@ class TestAccountMoveInRefundOnchanges(AccountTestInvoicingCommon):
     def test_in_refund_create_1(self):
         # Test creating an account_move with the least information.
         move = self.env['account.move'].create({
-            'type': 'in_refund',
+            'move_type': 'in_refund',
             'partner_id': self.partner_a.id,
             'invoice_date': fields.Date.from_string('2019-01-01'),
             'currency_id': self.currency_data['currency'].id,
@@ -898,7 +898,7 @@ class TestAccountMoveInRefundOnchanges(AccountTestInvoicingCommon):
     def test_in_refund_write_1(self):
         # Test creating an account_move with the least information.
         move = self.env['account.move'].create({
-            'type': 'in_refund',
+            'move_type': 'in_refund',
             'partner_id': self.partner_a.id,
             'invoice_date': fields.Date.from_string('2019-01-01'),
             'currency_id': self.currency_data['currency'].id,
