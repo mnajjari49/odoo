@@ -4,6 +4,7 @@
 from ast import literal_eval
 from datetime import date
 from itertools import groupby
+from collections import defaultdict
 from operator import itemgetter
 import time
 
@@ -368,6 +369,7 @@ class Picking(models.Model):
     immediate_transfer = fields.Boolean(default=False)
     package_level_ids = fields.One2many('stock.package_level', 'picking_id')
     package_level_ids_details = fields.One2many('stock.package_level', 'picking_id')
+    inventory_ids = fields.One2many('stock.inventory', 'picking_id')
 
     _sql_constraints = [
         ('name_uniq', 'unique(name, company_id)', 'Reference must be unique per company!'),
@@ -683,6 +685,13 @@ class Picking(models.Model):
         todo_moves._action_done(cancel_backorder=self.env.context.get('cancel_backorder'))
         self.write({'date_done': fields.Datetime.now()})
         self._send_confirmation_email()
+
+        # We validate eventual linked inventories after _action_done, as those ones
+        # can imply that the current picking(s) considered done by the ZQC.
+        for inventory in self.inventory_ids:
+            if inventory.state == 'confirm':
+                inventory.line_ids.action_refresh_quantity()
+                inventory.action_validate()
         return True
 
     def _send_confirmation_email(self):
@@ -829,6 +838,13 @@ class Picking(models.Model):
             pickings_to_backorder = self._check_backorder()
             if pickings_to_backorder:
                 return pickings_to_backorder._action_generate_backorder_wizard()
+        
+        # Zero Quantity Count Wizard
+        if self.env.user.has_group('stock.group_stock_zero_quantity_count') and not self.env.context.get('skip_zqc'):
+            empty_locations = self._check_zqc()
+            if empty_locations:
+                return self._action_generate_zqc_wizard(empty_locations)
+        
         return True
 
     def _action_generate_backorder_wizard(self):
@@ -854,6 +870,24 @@ class Picking(models.Model):
             'type': 'ir.actions.act_window',
             'view_mode': 'form',
             'res_model': 'stock.immediate.transfer',
+            'views': [(view.id, 'form')],
+            'view_id': view.id,
+            'target': 'new',
+            'res_id': wiz.id,
+            'context': self.env.context,
+        }
+
+    def _action_generate_zqc_wizard(self, empty_locations):
+        wiz = self.env['stock.zero.quantity.count'].create({
+            'location_ids': [(4, loc.id) for loc in empty_locations],
+            'pick_ids': [(4, p.id) for p in self]
+        })
+        view = self.env.ref('stock.view_zero_quantity_count')
+        return {
+            'name': _('Zero Quantity Cycle Count'),
+            'type': 'ir.actions.act_window',
+            'view_mode': 'form',
+            'res_model': 'stock.zero.quantity.count',
             'views': [(view.id, 'form')],
             'view_id': view.id,
             'target': 'new',
@@ -894,6 +928,23 @@ class Picking(models.Model):
             if all(float_is_zero(move_line.qty_done, precision_digits=precision_digits) for move_line in picking.move_line_ids.filtered(lambda m: m.state not in ('done', 'cancel'))):
                 immediate_pickings |= picking
         return immediate_pickings
+
+    def _check_zqc(self):
+        """ Return the locations that will be emptied out when `self` is processed. """
+        locations = self.mapped('move_line_ids.location_id')
+        empty_locations = self.env['stock.location']
+
+        # Group move lines per locations
+        ml_per_loc = defaultdict(lambda: self.env['stock.move.line'])
+        for ml in self.move_line_ids:
+            ml_per_loc[ml.location_id] |= ml
+
+        # Check if locations would be emptied by those movelines
+        for loc, move_line_ids in ml_per_loc.items():
+            if move_line_ids._will_empty_location(loc):
+                empty_locations |= loc
+
+        return empty_locations
 
     def _autoconfirm_picking(self):
         """ Automatically run `action_confirm` on `self` if the picking is an immediate transfer or
