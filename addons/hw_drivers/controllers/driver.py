@@ -109,7 +109,7 @@ class Interface(Thread, metaclass=InterfaceMetaClass):
 
     def __init__(self):
         super(Interface, self).__init__()
-        self.drivers = [d for d in drivers if d.connection_type == self.connection_type]
+        self.drivers = sorted([d for d in drivers if d.connection_type == self.connection_type], key=lambda d: d.priority, reverse=True)
 
     def run(self):
         if self.drivers:
@@ -145,11 +145,11 @@ class Interface(Thread, metaclass=InterfaceMetaClass):
 class DriverMetaClass(type):
     def __new__(cls, clsname, bases, attrs):
         newclass = super(DriverMetaClass, cls).__new__(cls, clsname, bases, attrs)
-        # Some drivers must be tried only when all the others have been ruled out. These are kept at the bottom of the list.
-        if newclass.is_tested_last:
-            drivers.append(newclass)
+        if hasattr(newclass, 'priority'):
+            newclass.priority += 1
         else:
-            drivers.insert(0, newclass)
+            newclass.priority = 0
+        drivers.append(newclass)
         return newclass
 
 class Driver(Thread, metaclass=DriverMetaClass):
@@ -157,7 +157,6 @@ class Driver(Thread, metaclass=DriverMetaClass):
     Hook to register the driver into the drivers list
     """
     connection_type = ""
-    is_tested_last = False
 
     def __init__(self, device):
         super(Driver, self).__init__()
