@@ -293,17 +293,22 @@ class ResCompany(models.Model):
             if(from_init):
                 module_ids.sudo().button_install()
             else:
-                #a new company is being created.
-                self.env.user.company_ids += self
-                #localization for the given country isn't installed.
-                if module_ids:
-                    #all localization module call function try_loading from data file so pass company in context so COA is load of this company.
-                    module_ids.sudo().with_context({'allowed_company_ids': [self.id]}).button_immediate_install()
-                #filter out the list of templates that belong to newly created company's country and load the first one.
-                chart_template_xml_ids = self.env['ir.model.data'].search([('module', 'in', module_list), ('model', '=', 'account.chart.template')], limit=1)
-                if chart_template_xml_ids and not self.chart_template_id:
-                    chart_template = self.env['account.chart.template'].browse(chart_template_xml_ids.res_id)
-                    chart_template.try_loading(company=self)
+                self._install_localization_module_or_load_coa(module_ids, module_list)
+
+    def _install_localization_module_or_load_coa(self, module_ids, module_list):
+        """
+            If you pass module_ids then it install(we don't need to load for company because the try_loading method is in XML in almost every localization)
+            Else module is already installed so we find COA from module_list and load for company(self)
+        """
+        self.ensure_one()
+        if module_ids:
+            module_ids.sudo().with_context({'allowed_company_ids': [self.id]}).button_immediate_install()
+        else:
+            chart_template_xml_ids = self.env['ir.model.data'].search([('module', 'in', module_list), ('model', '=', 'account.chart.template')], limit=1)
+            chart_template = self.env['account.chart.template'].browse(chart_template_xml_ids.res_id)
+            chart_template.try_loading(company=self)
+
+
 
     @api.model
     def create(self, vals):
@@ -314,7 +319,8 @@ class ResCompany(models.Model):
     def write(self, values):
         #restrict the closing of FY if there are still unposted entries
         self._validate_fiscalyear_lock(values)
-        company_without_coa = self.filtered(lambda c: not c.chart_template_id)
+        company_without_country_and_existing_accounting = self.env['res.company']
+        AccountChartTemplate = self.env['account.chart.template']
         # Reflect the change on accounts
         for company in self:
             if values.get('bank_account_code_prefix'):
@@ -328,11 +334,13 @@ class ResCompany(models.Model):
             if 'currency_id' in values and values['currency_id'] != company.currency_id.id:
                 if self.env['account.move.line'].search([('company_id', '=', company.id)]):
                     raise UserError(_('You cannot change the currency of the company since some journal items already exist'))
+            if not company.country_id and not AccountChartTemplate.existing_accounting(company):
+                company_without_country_and_existing_accounting += company
         res = super().write(values)
         #do it after super because country_id need to be updated.
         if values.get('country_id'):
-            for company in company_without_coa:
-                company_without_coa.sudo()._install_localization_packages()
+            for company in company_without_country_and_existing_accounting:
+                company.sudo()._install_localization_packages()
         return res
 
     @api.model
