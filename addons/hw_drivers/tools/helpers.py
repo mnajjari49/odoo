@@ -155,6 +155,9 @@ def download_iot_handlers(auto=True):
                 subprocess.check_call(["sudo", "mount", "-o", "remount,rw", "/"])
                 zip_file = zipfile.ZipFile(io.BytesIO(resp.data))
                 zip_file.extractall(get_resource_path('hw_drivers', 'iot_handlers'))
+                bin_path = Path.home() / 'odoo/addons/hw_drivers/iot_handlers/bin/'
+                if bin_path.exists():
+                    subprocess.check_call(["chmod", "-R", "+x", str(bin_path)])
                 subprocess.check_call(["sudo", "mount", "-o", "remount,ro", "/"])
                 subprocess.check_call(["sudo", "mount", "-o", "remount,rw", "/root_bypass_ramdisks/etc/cups"])
         except Exception as e:

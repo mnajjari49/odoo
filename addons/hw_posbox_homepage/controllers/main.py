@@ -196,7 +196,7 @@ class IoTboxHomepage(web.Home):
 
     @http.route('/handlers_clear', type='http', auth='none', cors='*', csrf=False)
     def clear_handlers_list(self):
-        for directory in ['drivers', 'interfaces']:
+        for directory in ['drivers', 'interfaces', 'bin']:
             for file in os.listdir(get_resource_path('hw_drivers', 'iot_handlers', directory)):
                 if file != '__pycache__':
                     helpers.unlink_file(get_resource_path('hw_drivers', 'iot_handlers', directory, file))
