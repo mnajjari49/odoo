@@ -424,7 +424,8 @@ var NumericField = InputField.extend({
      * @private
      */
     _formatValue: function (value) {
-        if (this.mode === 'edit' && this.nodeOptions.type === 'number') {
+        var noFormat = !!JSON.parse(this.nodeOptions.no_format || false);
+        if (noFormat || (this.mode === 'edit' && this.nodeOptions.type === 'number')) {
             return value;
         }
         return this._super.apply(this, arguments);
