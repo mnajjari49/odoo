@@ -5,7 +5,7 @@ from collections import OrderedDict
 
 from odoo import models
 from odoo.http import request
-from odoo.addons.base.models.assetsbundle import AssetsBundle
+from odoo.addons.bus.models.assetsbundle import BusAssetsBundle
 from odoo.addons.http_routing.models.ir_http import url_for
 from odoo.addons.website.models import ir_http
 from odoo.tools import html_escape as escape
@@ -13,7 +13,7 @@ from odoo.tools import html_escape as escape
 re_background_image = re.compile(r"(background-image\s*:\s*url\(\s*['\"]?\s*)([^)'\"]+)")
 
 
-class AssetsBundleMultiWebsite(AssetsBundle):
+class AssetsBundleMultiWebsite(BusAssetsBundle):
     def _get_asset_url_values(self, id, unique, extra, name, sep, type):
         website_id = self.env.context.get('website_id')
         website_id_path = website_id and ('%s/' % website_id) or ''

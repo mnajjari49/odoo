@@ -23,20 +23,25 @@ class BusController(Controller):
         # update the user presence
         if request.session.uid and 'bus_inactivity' in options:
             request.env['bus.presence'].update(options.get('bus_inactivity'))
+        if request.session.uid:
+            channels.append((request.db, 'bundle_changed'))
         request.cr.close()
         request._cr = None
         return dispatch.poll(dbname, channels, last, options)
+
+    def _check_availability(self):
+        if not dispatch:
+            raise Exception("bus.Bus unavailable")
+        if request.registry.in_test_mode():
+            raise exceptions.UserError(_("bus.Bus not available in test mode"))
 
     @route('/longpolling/poll', type="json", auth="public", cors="*")
     def poll(self, channels, last, options=None):
         if options is None:
             options = {}
-        if not dispatch:
-            raise Exception("bus.Bus unavailable")
+        self._check_availability()
         if [c for c in channels if not isinstance(c, str)]:
             raise Exception("bus.Bus only string channels are allowed.")
-        if request.registry.in_test_mode():
-            raise exceptions.UserError(_("bus.Bus not available in test mode"))
         return self._poll(request.db, channels, last, options)
 
     @route('/longpolling/im_status', type="json", auth="user")
