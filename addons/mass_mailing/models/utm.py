@@ -19,7 +19,7 @@ class UtmCampaign(models.Model):
     total = fields.Integer(compute="_compute_statistics")
     scheduled = fields.Integer(compute="_compute_statistics")
     failed = fields.Integer(compute="_compute_statistics")
-    ignored = fields.Integer(compute="_compute_statistics")
+    canceled = fields.Integer(compute="_compute_statistics")
     sent = fields.Integer(compute="_compute_statistics", string="Sent Emails")
     delivered = fields.Integer(compute="_compute_statistics")
     opened = fields.Integer(compute="_compute_statistics")
@@ -63,9 +63,9 @@ class UtmCampaign(models.Model):
                 c.id as campaign_id,
                 COUNT(s.id) AS total,
                 COUNT(CASE WHEN s.sent is not null THEN 1 ELSE null END) AS sent,
-                COUNT(CASE WHEN s.scheduled is not null AND s.sent is null AND s.exception is null AND s.ignored is null THEN 1 ELSE null END) AS scheduled,
+                COUNT(CASE WHEN s.scheduled is not null AND s.sent is null AND s.exception is null AND s.canceled is null THEN 1 ELSE null END) AS scheduled,
                 COUNT(CASE WHEN s.scheduled is not null AND s.sent is null AND s.exception is not null THEN 1 ELSE null END) AS failed,
-                COUNT(CASE WHEN s.scheduled is not null AND s.sent is null AND s.exception is null AND s.ignored is not null THEN 1 ELSE null END) AS ignored,
+                COUNT(CASE WHEN s.scheduled is not null AND s.sent is null AND s.exception is null AND s.canceled is not null THEN 1 ELSE null END) AS canceled,
                 COUNT(CASE WHEN s.id is not null AND s.bounced is null THEN 1 ELSE null END) AS delivered,
                 COUNT(CASE WHEN s.opened is not null THEN 1 ELSE null END) AS opened,
                 COUNT(CASE WHEN s.replied is not null THEN 1 ELSE null END) AS replied ,
@@ -82,7 +82,7 @@ class UtmCampaign(models.Model):
         """, (tuple(self.ids), ))
 
         for row in self.env.cr.dictfetchall():
-            total = (row['total'] - row['ignored']) or 1
+            total = (row['total'] - row['canceled']) or 1
             row['delivered'] = row['sent'] - row['bounced']
             row['received_ratio'] = 100.0 * row['delivered'] / total
             row['opened_ratio'] = 100.0 * row['opened'] / total
