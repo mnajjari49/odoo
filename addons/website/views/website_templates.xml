@@ -382,6 +382,24 @@
     </xpath>
 </template>
 
+<template id="header_visibility_freeze" inherit_id="website.layout" name="Header Visibility Freeze" active="False">
+    <xpath expr="//header" position="attributes">
+        <attribute name="t-attf-class" add="o_header_fixed" separator=" "/>
+    </xpath>
+</template>
+
+<template id="header_visibility_disappears" inherit_id="website.layout" name="Header Visibility Disappears" active="False">
+    <xpath expr="//header" position="attributes">
+        <attribute name="t-attf-class" add="o_header_fixed o_header_disappears" separator=" "/>
+    </xpath>
+</template>
+
+<template id="header_visibility_fade_out" inherit_id="website.layout" name="Header Visibility Fade Out" active="False">
+    <xpath expr="//header" position="attributes">
+        <attribute name="t-attf-class" add="o_header_fixed o_header_fade_out" separator=" "/>
+    </xpath>
+</template>
+
 <!-- Features template -->
 <template id="login_layout" inherit_id="web.login_layout" name="Website Login Layout" priority="20">
     <xpath expr="t" position="replace">
@@ -761,7 +779,6 @@
         <!-- Menu options -->
         <content id="theme_customize_content_navbar" string="Header" title="Choose your header">
             <list string="Main Layout">
-                <checkbox><opt data-xmlid="website.affix_top_menu" data-reload="/"/></checkbox>
                 <checkbox><opt data-xmlid="portal.portal_show_sign_in" data-reload="/"/></checkbox>
                 <opt data-widget="input" data-unit="rem" data-variable="header-font-size" string="Font Size"/>
             </list>
@@ -776,6 +793,15 @@
                     <opt id="option_template_header_logo_menu_below" string="Logo - Menu" data-xmlid="" data-widget="auto" data-variable="header-template" data-value="brand" data-reload="/"/>
                     <opt id="option_template_header_menu_logo_below" string="Menu - Logo" data-xmlid="" data-widget="auto" data-variable="header-template" data-value="pizza" data-reload="/"/>
                     <opt id="option_template_header_logo_hamburger" string="Logo - Hamburger" data-xmlid="website.template_header_logo_hamburger" data-widget="auto" data-variable="header-template" data-value="space" data-reload="/"/>
+                </selection>
+            </list>
+            <list id="header_visibilities_list" string="Header Visibility">
+                <selection>
+                    <opt id="option_header_visibility_standard" string="Standard" data-xmlid="website.affix_top_menu" data-reload="/"/>
+                    <opt id="option_header_visibility_scroll" string="Scroll" data-xmlid="" data-reload="/"/>
+                    <opt id="option_header_visibility_freeze" string="Freeze" data-xmlid="website.header_visibility_freeze" data-reload="/"/>
+                    <opt id="option_header_visibility_disappears" string="Disappears" data-xmlid="website.header_visibility_disappears" data-reload="/"/>
+                    <opt id="option_header_visibility_fade_out" string="Fade Out" data-xmlid="website.header_visibility_fade_out" data-reload="/"/>
                 </selection>
             </list>
         </content>
