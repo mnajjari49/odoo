@@ -11,7 +11,7 @@ from odoo.tools.config import configmanager
 CALLBACKS = ('button_immediate_install', 'button_immediate_uninstall')
 BLACKLIST = {
     'auth_ldap', 'document_ftp', 'base_gengo', 'website_gengo', 'website_instantclick', 'pad',
-    'pad_project', 'note_pad', 'pos_cache', 'pos_blackbox_be', 'payment_test' 'base', 'web',
+    'pad_project', 'note_pad', 'pos_cache', 'pos_blackbox_be', 'payment_test',
 }
 IGNORE = ('hw_', 'theme_', 'l10n_', 'test_', 'payment_')
 
@@ -64,18 +64,25 @@ def main():
     if args.paths:
         conf = configmanager()
         paths = args.paths[0]
-        conf.parse_config([f"--addons-path={paths}"])
+        conf._parse_config([f"--addons-path={paths}"])
+        odoo.tools.config = conf
 
     with odoo.api.Environment.manage():
         with odoo.registry(args.database[0]).cursor() as cr:
             env = odoo.api.Environment(cr, odoo.SUPERUSER_ID, {})
 
-            def filter_mod(mod):
-                return not (mod.name in BLACKLIST or mod.name.startswith(IGNORE))
+            def filter_mod(mod_dep):
+                return not (
+                    mod_dep.name in BLACKLIST
+                    or mod_dep.name.startswith(IGNORE)
+                    or mod_dep.state in ('installed', 'uninstallable')
+                )
 
+            # TODO: check if it's easier to just search for ir.module.module.dependency
             mods = env['ir.module.module'].search([]).filtered(filter_mod)
             sorted_mods = topological_sort({
-                mod.id: mod.dependencies_id.mapped('depend_id').ids for mod in mods
+                mod.id: mod.dependencies_id.mapped('depend_id').ids
+                for mod in mods
             })
             mod_names = {mod.id: mod.name for mod in mods}
 
