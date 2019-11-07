@@ -47,6 +47,24 @@ LivechatButton.include({
     },
 
     /**
+     * @private
+     * @param {Object} message
+     * @return {Promise}
+     */
+    _sendMessage: function (message) {
+        return this._super.apply(this, arguments).then(function (){
+            if(message.isFeedback){
+                var cookie = utils.get_cookie('im_livechat_session');
+                if (cookie) {
+                    var channel = JSON.parse(cookie);
+                    session.rpc('/im_livechat/visitor_leave_session', {uuid: channel.uuid});
+                    utils.set_cookie('im_livechat_session', "", -1); // remove cookie
+                }
+            }
+        });
+    },
+
+    /**
     * Utils to correctly re-encode json string sent by server.
     * Copied from StackOverflow.
     */
