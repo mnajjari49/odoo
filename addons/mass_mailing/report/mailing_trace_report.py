@@ -48,7 +48,7 @@ class MailingTraceReport(models.Model):
                     count(trace.clicked) as clicked,
                     count(trace.bounced) as bounced
                 FROM
-                    mailing_trace as trace
+                    mail_notification as trace
                     left join mailing_mailing as mailing ON (trace.mass_mailing_id=mailing.id)
                     left join utm_campaign as utm_campaign ON (mailing.campaign_id = utm_campaign.id)
                     left join utm_source as utm_source ON (mailing.source_id = utm_source.id)
