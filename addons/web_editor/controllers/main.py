@@ -215,6 +215,13 @@ class Web_Editor(http.Controller):
             attachments_to_remove.unlink()
         return removal_blocked_by
 
+    @http.route('/web_editor/attachment/toggle_favorite', type='json', auth='user', website=True)
+    def toggle_favorite(self, ids, **kwargs):
+        """ Toggles a web-based image attachment's favorite status"""
+        for attachment in request.env['ir.attachment'].browse(ids):
+            attachment.is_favorite = not attachment.is_favorite
+        return attachment
+
     @http.route('/web_editor/get_image_info', type='json', auth='user', website=True)
     def get_image_info(self, image_id=None, xml_id=None):
         """This route is used from CropImageDialog to get image info.

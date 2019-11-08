@@ -114,6 +114,7 @@ var FileWidget = SearchableMediaWidget.extend({
         'dblclick .o_existing_attachment_cell': '_onAttachmentDblClick',
         'click .o_existing_attachment_remove': '_onRemoveClick',
         'click .o_existing_attachment_optimize': '_onExistingOptimizeClick',
+        'click .o_existing_attachment_favorite': '_onFavoriteClick',
         'click .o_load_more': '_onLoadMoreClick',
     }),
     existingAttachmentsTemplate: undefined,
@@ -225,13 +226,16 @@ var FileWidget = SearchableMediaWidget.extend({
             args: [],
             kwargs: {
                 domain: this._getAttachmentsDomain(needle),
-                fields: ['name', 'mimetype', 'checksum', 'url', 'type', 'res_id', 'res_model', 'public', 'access_token', 'image_src', 'image_width', 'image_height'],
-                order: [{name: 'id', asc: false}],
+                fields: ['name', 'mimetype', 'checksum', 'url', 'type', 'res_id', 'res_model', 'public', 'access_token', 'image_src', 'image_width', 'image_height', 'is_favorite', 'write_date'],
+                order: [{name: 'create_date', asc: false}],
                 context: this.options.context,
             },
         }).then(function (attachments) {
             self.attachments = _.chain(attachments)
                 .sortBy(function (r) {
+                    if (r.is_favorite) {
+                        return -2;
+                    }
                     if (_.any(self.options.firstFilters, function (filter) {
                         var regex = new RegExp(filter, 'i');
                         return r.name && r.name.match(regex);
@@ -634,7 +638,7 @@ var FileWidget = SearchableMediaWidget.extend({
                         route: '/web_editor/attachment/add_data',
                         params: params,
                     }).then(function (attachment) {
-                        if (attachment.image_src && !self.quickUpload) {
+                        if (attachment.image_src && !self.quickUpload && false) {
                             optimizeMutex.exec(function () {
                                 return self._openImageOptimizeDialog(attachment).then(function (updatedAttachment) {
                                     self._handleNewAttachment(updatedAttachment);
@@ -702,6 +706,24 @@ var FileWidget = SearchableMediaWidget.extend({
     /**
      * @private
      */
+    _onFavoriteClick: function (ev) {
+        ev.stopPropagation();
+        const $cell = $(ev.currentTarget).closest('.o_existing_attachment_cell');
+        const id = parseInt($cell.data('id'), 10);
+        const attachment = _.findWhere(this.attachments, {id: id});
+         return this._rpc({
+            route: '/web_editor/attachment/toggle_favorite',
+            params: {
+                ids: [id],
+            },
+        }).then(function () {
+            ev.currentTarget.classList.toggle('active');
+            attachment.is_favorite = !attachment.is_favorite;
+        });
+    },
+    /**
+     * @private
+     */
     _onURLInputChange: function () {
         var inputValue = this.$urlInput.val();
         var emptyValue = (inputValue === '');
@@ -731,6 +753,12 @@ var FileWidget = SearchableMediaWidget.extend({
      */
     _addUrl: function () {
         var self = this;
+        // If input is collapse, uncollapse it first
+        if (this.$urlInput.is('.o_we_horizontal_collapse')) {
+            this.$urlInput.removeClass('o_we_horizontal_collapse');
+            this._updateAddUrlUi(true, false, false);
+            return;
+        }
         return this._rpc({
             route: '/web_editor/attachment/add_url',
             params: {
@@ -790,7 +818,7 @@ var ImageWidget = FileWidget.extend({
      */
     _updateAddUrlUi: function (emptyValue, isURL, isImage) {
         this._super.apply(this, arguments);
-        this.$addUrlButton.text((isURL && !isImage) ? _t("Add as document") : _t("Add image"));
+        this.$addUrlButton.text((isURL && !isImage) ? _t("Add as document") : _t("Add"));
         this.$urlWarning.toggleClass('d-none', !isURL || isImage);
     },
 });
@@ -823,7 +851,7 @@ var DocumentWidget = FileWidget.extend({
      */
     _updateAddUrlUi: function (emptyValue, isURL, isImage) {
         this._super.apply(this, arguments);
-        this.$addUrlButton.text((isURL && isImage) ? _t("Add as image") : _t("Add document"));
+        this.$addUrlButton.text((isURL && isImage) ? _t("Add as image") : _t("Add"));
         this.$urlWarning.toggleClass('d-none', !isURL || !isImage);
     },
     /**
