@@ -170,9 +170,7 @@ var SnippetEditor = Widget.extend({
         if (this.isDestroyed()) {
             return;
         }
-        _.each(this.styles, function (option) {
-            option.cleanForSave();
-        });
+        return Promise.all(_.map(this.styles, option => option.cleanForSave()));
     },
     /**
      * Closes all widgets of all options.
@@ -350,6 +348,9 @@ var SnippetEditor = Widget.extend({
     _getName: function () {
         if (this.$target.data('name') !== undefined) {
             return this.$target.data('name');
+        }
+        if (this.$target.is('img')) {
+            return _t("Image");
         }
         if (this.$target.parent('.row').length) {
             return _t("Column");
@@ -865,14 +866,16 @@ var SnippetsMenu = Widget.extend({
     cleanForSave: function () {
         this._activateSnippet(false);
         this.trigger_up('ready_to_clean_for_save');
-        this._destroyEditors();
+        return this._cleanEditors().then(() => {
+            this._destroyEditors();
 
-        this.getEditableArea().find('[contentEditable]')
-            .removeAttr('contentEditable')
-            .removeProp('contentEditable');
+            this.getEditableArea().find('[contentEditable]')
+                .removeAttr('contentEditable')
+                .removeProp('contentEditable');
 
-        this.getEditableArea().find('.o_we_selected_image')
-            .removeClass('o_we_selected_image');
+            this.getEditableArea().find('.o_we_selected_image')
+                .removeClass('o_we_selected_image');
+        });
     },
     /**
      * Load snippets.
@@ -1134,6 +1137,12 @@ var SnippetsMenu = Widget.extend({
                 return editorToEnable;
             });
         });
+    },
+    /**
+     * @private
+     */
+    _cleanEditors: function () {
+        return Promise.all(_.map(this.snippetEditors, snippetEditor => snippetEditor.cleanForSave()));
     },
     /**
      * @private

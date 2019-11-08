@@ -168,10 +168,12 @@ var EditorMenuBar = Widget.extend({
         var defs = [];
         this.trigger_up('ready_to_save', {defs: defs});
         return Promise.all(defs).then(function () {
+            const defs = [];
             if (self.snippetsMenu) {
-                self.snippetsMenu.cleanForSave();
+                defs.push(self.snippetsMenu.cleanForSave());
             }
-            return self._saveCroppedImages();
+            defs.push(self._saveCroppedImages());
+            return Promise.all(defs);
         }).then(function () {
             return self.rte.save();
         }).then(function () {

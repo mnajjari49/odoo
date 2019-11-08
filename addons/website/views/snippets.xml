@@ -1235,10 +1235,31 @@
         </we-select>
     </div>
 
+    <!-- Image -->
+    <div data-js="Image"
+        data-selector="img">
+        <div class="o_we_quality_option">
+            <div class="d-flex justify-content-between pb-0 mb-0"><span>Quality</span><span class="o_we_image_file_size"></span></div>
+            <input class="custom-range pt-0 mt-0" type="range" data-optimize="true" min="1" max="100" value="80"/>
+            <we-select string="Width" data-no-preview="true"></we-select>
+        </div>
+    </div>
+    <div data-js="FavoriteImage"
+        data-selector="img">
+        <we-button class="fa fa-star o_existing_attachment_favorite" title="Favorite" data-favorite="true" data-no-preview="true"></we-button>
+    </div>
+
     <!-- Background Image -->
     <div data-js="background" string="Background"
         data-selector="section, .parallax, .carousel-item"
-        data-exclude=".s_hr, .s_image_gallery, .o_gallery .carousel-item"/>
+        data-exclude=".s_hr, .s_image_gallery, .o_gallery .carousel-item">
+        <we-button data-favorite="true" data-no-preview="true">Favorite</we-button>
+        <div class="o_we_quality_option">
+            <div class="d-flex justify-content-between pb-0 mb-0"><span>Quality</span><span class="o_we_image_file_size"></span></div>
+            <input class="custom-range pt-0 mt-0" type="range" data-optimize="true" min="1" max="100" value="80"/>
+            <we-select string="Width" data-no-preview="true"></we-select>
+        </div>
+    </div>
 
     <!-- Background Image Size/Position -->
     <div data-js="BackgroundPosition"

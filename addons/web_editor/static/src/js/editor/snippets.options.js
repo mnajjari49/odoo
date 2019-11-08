@@ -7,6 +7,7 @@ var Widget = require('web.Widget');
 var ColorPaletteWidget = require('web_editor.ColorPalette').ColorPaletteWidget;
 const weUtils = require('web_editor.utils');
 var weWidgets = require('wysiwyg.widgets');
+const ImageManager = require('web_editor.ImageManager');
 
 var qweb = core.qweb;
 var _t = core._t;
@@ -1881,20 +1882,233 @@ registry['sizing_y'] = registry.sizing.extend({
         return this.grid;
     },
 });
-
 /**
- * Handles the edition of snippet's background image.
+ * Handles the edition of non-background images.
  */
-registry.background = SnippetOptionWidget.extend({
+registry.Image = SnippetOptionWidget.extend({
+    events: _.extend({}, SnippetOptionWidget.prototype.events || {}, {
+        'input .custom-range': '_onQualityChange',
+    }),
+
     /**
      * @override
      */
     start: function () {
+        this._acquireUIElements();
+        // Only update preview when the user stops moving the input
+        this._onQualityChange = _.debounce(this._onQualityChange.bind(this), 200);
+        this.$target.on('content_changed.image-option', this._onContentChanged.bind(this));
+
+        this.imageManager = new ImageManager(this.$target[0], this._rpc.bind(this));
+
+        const _super = this._super;
+
+        const isStarted = Promise.all([
+            this.imageManager.getAttachmentFromSrc().then(options => {
+                this.imageManager.onUpdateAttachment(this._updateOptions.bind(this));
+                return this._updateOptions(options);
+            }),
+            _super.apply(this, arguments),
+        ]);
+        return isStarted;
+    },
+    /**
+     * @override
+     */
+    destroy: function () {
+        this.$target.off('.image-option');
+    },
+    /**
+     * @override
+     */
+    cleanForSave: function () {
+        return this.imageManager.cleanForSave();
+    },
+
+    //--------------------------------------------------------------------------
+    // Options
+    //--------------------------------------------------------------------------
+
+    /**
+     * Handles changes to the width select.
+     *
+     * @private
+     * @see this.selectClass for parameters
+     */
+    selectWidth: function (previewMode, value, $opt) {
+        console.log('Selectwidth value:', value);
+        this.width = value;
+        this.imageManager.changeImageWidth(parseInt(value));
+        this.$target.one('load', () => this.trigger_up('cover_update'));
+        this._updateWeight();
+    },
+
+    //--------------------------------------------------------------------------
+    // Private
+    //--------------------------------------------------------------------------
+
+    /**
+     * Updates the selection with the available widths.
+     *
+     * @private
+     */
+    _updateWidthSelection: function () {
+        const availableWidths = this.imageManager.computeAvailableWidths();
+        return this._rerenderXML(() => {
+            const $xml = this.$originalUIElements.clone(true);
+            $xml.find('we-select').append(_.map(availableWidths, (labels, width) =>
+                $(`<we-button data-select-width="${width}">${width} ${labels.length ? `(${labels.join(', ')})` : ''}</we-button>`)
+            ));
+            return $xml;
+        }).then(() => {
+            this._acquireUIElements();
+            this.$widthSelect.val(this.$target[0].naturalWidth);
+        });
+    },
+    _acquireUIElements: function () {
+        this.$qualityOption = this.$el.find('.o_we_quality_option');
+        this.$qualityInput = this.$qualityOption.find('input');
+        this.$fileSize = this.$el.find('.o_we_image_file_size');
+        this.$widthSelect = this.$el.find('we-select we-select-menu');
+    },
+    /**
+     * Hides options that are unavailable.
+     *
+     * @private
+     */
+    _updateOptions: function ({quality}) {
+        return this._updateWidthSelection().then(() => {
+            this.$qualityOption.toggleClass('d-none', quality === false);
+            if (quality !== false) {
+                this.$qualityInput.val(quality || 100);
+            }
+            this._updateWeight();
+
+            this.width = this.imageManager.width;
+            this.trigger_up('cover_update');
+        });
+    },
+    /**
+     * Updates the image's weight in the UI.
+     *
+     * @private
+     */
+    _updateWeight: function () {
+        this.imageManager.getImageWeight().then(weight => this.$fileSize.text(weight));
+    },
+    /**
+     * @override
+     */
+    _setActive: function () {
+        this._super.apply(this, arguments);
+        this.$el.find('[data-select-width]').removeClass('active')
+            .filter('[data-select-width=' + this.width + ']').addClass('active');
+    },
+
+    //--------------------------------------------------------------------------
+    // Handlers
+    //--------------------------------------------------------------------------
+
+    /**
+     * Handles changes to the quality range input.
+     *
+     * @private
+     */
+    _onQualityChange: function (ev) {
+        // % 100 because we want 0 when quality is set to 100.
+        this.quality = parseInt(ev.target.value) % 100;
+        this.imageManager.changeImageQuality(this.quality);
+        this._updateWeight();
+    },
+    /**
+     * Updates the state if the image is changed by the user.
+     *
+     * @private
+     */
+    _onContentChanged: function (ev) {
+        if (this.imageManager.originalId !== this.$target[0].dataset.originalId) {
+            this.imageManager.getAttachmentFromOriginalId();
+        } else {
+            this.imageManager.updatePreview();
+        }
+    },
+});
+/**
+ * Handles the edition of snippet's background image.
+ */
+registry.FavoriteImage = SnippetOptionWidget.extend({
+    start: function () {
+        this.imageManager = new ImageManager(this.$target[0], this._rpc.bind(this), true);
+        // override updatepreview so as to not alter the image's src on load.
+        this.imageManager.updatePreview = () => undefined;
+        this.imageManager.onUpdateAttachment(() => this._updateFavorite());
+        return Promise.all([
+            this._super.apply(this, arguments),
+            this.imageManager.getAttachmentFromSrc(),
+        ]);
+    },
+    isTopOption: function () {
+        return true;
+    },
+    /**
+     * Toggles the favorite status of the image.
+     *
+     * @see this.selectClass for parameters
+     */
+    favorite: function () {
+        this.imageManager.favorite().then(() => this._updateFavorite());
+    },
+    _updateFavorite: function () {
+        this.$el.find('we-button').css('color', this.imageManager.isFavorite ? '#FD0' : 'var(--o-we-bg-color-dark)');
+    },
+}),
+/**
+ * Handles the edition of snippet's background image.
+ */
+registry.background = SnippetOptionWidget.extend({
+    events: _.extend({}, SnippetOptionWidget.prototype.events || {}, {
+        'input .custom-range': '_onQualityChange',
+    }),
+
+    /**
+     * @override
+     */
+    start: function () {
+        const defs = [this._super.apply(this, arguments)];
+
         // Initialize background and events
         this.bindBackgroundEvents();
         this.__customImageSrc = this._getSrcFromCssValue();
 
-        return this._super(...arguments);
+        // Image proxy for the background image
+        this.img = document.createElement('img');
+        this.img.classList.add('d-none');
+        this.img.src = this._getSrcFromCssValue();
+        this.imageManager = new ImageManager(this.img, this._rpc.bind(this));
+        this.imageManager.onUpdateAttachment(this._updateOptions.bind(this));
+        window.imageManager = this.imageManager;
+        new MutationObserver(mutations => mutations.forEach(mutation => {
+            // Waiting for the image to load can reduce or eliminate flickering.
+            this.img.addEventListener('load', () => {
+                this._setCustomBackground(this.img.attributes.src.value);
+            }, {once: true});
+        })).observe(this.img, {attributes: true, attributeFilter: ['src']});
+        this.$target.append(this.img);
+
+        // Options that need UI updates
+        this.$qualityOption = this.$el.find('.o_we_quality_option');
+        this._onQualityChange = _.debounce(this._onQualityChange.bind(this), 200);
+        this.$qualityInput = this.$qualityOption.find('input');
+        this.$favorite = this.$el.find('[data-favorite]');
+        this.$fileSize = this.$el.find('.o_we_image_file_size');
+        this.$widthSelect = this.$el.find('we-select we-select-menu');
+
+        defs.push(this.imageManager.getAttachmentFromSrc().then(() => {
+            this.$qualityInput.val(this.imageManager.quality);
+            this._updateWeight();
+        }));
+
+        return Promise.all(defs);
     },
 
     //--------------------------------------------------------------------------
@@ -1929,18 +2143,33 @@ registry.background = SnippetOptionWidget.extend({
      */
     chooseImage: function (previewMode, widgetValue, params) {
         var options = this._getMediaDialogOptions();
-        var media = this._getEditableMedia();
+        var media = this.img;
 
         var _editor = new weWidgets.MediaDialog(this, options, media).open();
         _editor.on('save', this, data => {
             this._onSaveMediaDialog(data);
             this.$target.trigger('content_changed');
         });
-        _editor.on('closed', this, () => {
-            if (media.classList.contains('o_we_fake_image')) {
-                media.parentNode.removeChild(media);
-            }
-        });
+    },
+    /**
+     * Toggles the favorite status of the image.
+     *
+     * @see this.selectClass for parameters
+     */
+    favorite: function () {
+        this.imageManager.favorite().then(() => this._updateFavorite());
+    },
+    /**
+     * Handles changes to the width select.
+     *
+     * @private
+     * @see this.selectClass for parameters
+     */
+    selectWidth: function (previewMode, value, $opt) {
+        console.log('select width');
+        this.width = value;
+        this.imageManager.changeImageWidth(parseInt(value));
+        this._updateWeight();
     },
 
     //--------------------------------------------------------------------------
@@ -1981,6 +2210,12 @@ registry.background = SnippetOptionWidget.extend({
             this.editBgTextEl.textContent = this._getDefaultTextContent();
         }
     },
+    cleanForSave: function () {
+        return this.imageManager.cleanForSave().then(() => {
+            this._setCustomBackground(this.img.attributes.src.value);
+            this.img.remove();
+        });
+    },
 
     //--------------------------------------------------------------------------
     // Private
@@ -1992,19 +2227,6 @@ registry.background = SnippetOptionWidget.extend({
      */
     _getDefaultTextContent: function () {
         return _t("Choose a picture");
-    },
-    /**
-     * Returns a media element the media dialog will be able to edit to use
-     * the result as the snippet's background somehow.
-     *
-     * @private
-     * @returns {HTMLElement}
-     */
-    _getEditableMedia: function () {
-        var $image = $('<img/>', {
-            class: 'd-none o_we_fake_image',
-        }).appendTo(this.$target);
-        return $image[0];
     },
     /**
      * Returns the options to be given to the MediaDialog instance when choosing
@@ -2034,7 +2256,7 @@ registry.background = SnippetOptionWidget.extend({
      */
     _getSrcFromCssValue: function (value) {
         if (value === undefined) {
-            value = this.$target.css('background-image');
+            value = this.$target[0].style.backgroundImage;
         }
         var srcValueWrapper = /url\(['"]*|['"]*\)|^none$/g;
         return value && value.replace(srcValueWrapper, '') || '';
@@ -2078,10 +2300,52 @@ registry.background = SnippetOptionWidget.extend({
      */
     _setCustomBackground: function (value) {
         this.__customImageSrc = value;
-        this.background(false, this.__customImageSrc, {});
+        this.background(false, this.__customImageSrc);
         this.$target.toggleClass('oe_custom_bg', !!value);
         this.updateUI();
         this.$target.trigger('snippet-option-change', [this]);
+    },
+    /**
+     * Updates the selection with the available widths.
+     *
+     * @private
+     */
+    _updateWidthSelection: function () {
+        const availableWidths = this.imageManager.computeAvailableWidths();
+        this.$widthSelect.empty().append(_.map(availableWidths, (labels, width) =>
+            $(`<we-button data-select-width="${width}">${width} ${labels.length ? `(${labels.join(', ')})` : ''}</we-button>`)
+        ));
+        this.$widthSelect.val(this.$target[0].naturalWidth);
+    },
+    /**
+     * Hides options that are unavailable, highlights favorite if needed.
+     *
+     * @private
+     */
+    _updateOptions: function ({favorite, quality}) {
+        this.$qualityOption.toggleClass('d-none', !quality);
+        this.$favorite.toggleClass('d-none', !favorite);
+        this._updateFavorite();
+        this._updateWeight();
+
+        this.width = this.imageManager.width;
+        this._updateWidthSelection();
+        this.trigger_up('cover_update');
+        this.updateUI();
+    },
+    _updateWeight: function () {
+        this.imageManager.getImageWeight().then(weight => this.$fileSize.text(weight));
+    },
+    /**
+     * @override
+     */
+    _setActive: function () {
+        this._super.apply(this, arguments);
+        this.$el.find('[data-select-width]').removeClass('active')
+            .filter('[data-select-width=' + this.width + ']').addClass('active');
+    },
+    _updateFavorite: function () {
+        this.$favorite.css('background-color', this.imageManager.isFavorite ? '#FD0' : 'var(--o-we-bg-color-dark)');
     },
 
     //--------------------------------------------------------------------------
@@ -2117,7 +2381,18 @@ registry.background = SnippetOptionWidget.extend({
      * @param {Object} data
      */
     _onSaveMediaDialog: function (data) {
-        this._setCustomBackground(data.src);
+        this.imageManager.getAttachmentFromOriginalId();
+    },
+    /**
+     * Handles changes to the quality range input.
+     *
+     * @private
+     */
+    _onQualityChange: function (ev) {
+        // % 100 because we want 0 when quality is set to 100.
+        this.quality = parseInt(ev.target.value) % 100;
+        this.imageManager.changeImageQuality(this.quality);
+        this._updateWeight();
     },
 });
 
