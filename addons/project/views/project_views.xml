@@ -181,6 +181,7 @@
 
                                     <field name="subtask_project_id" groups="project.group_subtask_project"/>
                                     <field name="company_id" groups="base.group_multi_company"/>
+                                    <field name="is_template" string="Project Template" groups="base.group_no_one"/>
                                 </group>
                             </group>
                             <div class="row mt16 o_settings_container" id="project_settings">
@@ -203,17 +204,6 @@
                                                 <label for="portal_show_rating"/>
                                                 <field name="portal_show_rating"/>
                                             </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-lg-6 o_setting_box"  id="template_settings" groups="base.group_no_one">
-                                    <div class="o_setting_left_pane">
-                                        <field name="is_template"/>
-                                    </div>
-                                    <div class="o_setting_right_pane">
-                                        <label for="is_template" string="Project Template"/>
-                                        <div class="text-muted">
-                                            This project will be used as a template for other projects.
                                         </div>
                                     </div>
                                 </div>
@@ -485,9 +475,9 @@
                 }</field>
             <field name="help" type="html">
                 <p class="o_view_nocontent_empty_folder">
-                    Create a new project
+                    Create a new project template
                 </p><p>
-                    Organize your activities (plan tasks, track issues, invoice timesheets) for internal, personal or customer projects.
+                    Organize your projects and tasks based on templates.
                 </p>
             </field>
         </record>

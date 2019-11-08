@@ -20,7 +20,7 @@
         <field name="model">project.project</field>
         <field name="inherit_id" ref="project.edit_project"/>
         <field name="arch" type="xml">
-            <div id="project_settings" position="inside">
+            <div id="rating_settings" position="after">
                 <div class="col-lg-6 o_setting_box"  id="pads_settings">
                     <div class="o_setting_left_pane">
                         <field name="use_pads"/>

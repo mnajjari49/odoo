@@ -312,8 +312,6 @@ class Project(models.Model):
     @api.onchange('project_template_id')
     def copy_template(self):
         if self.project_template_id:
-            if self.name == False:
-                setattr(self, 'name', _("%s (copy)") % (self.project_template_id.name))
             fields = ['partner_id', 'company_id', 'currency_id', 'type_ids', 'label_tasks', 
                       'resource_calendar_id', 'color', 'user_id', 
                       'privacy_visibility', 'display_name']

@@ -41,7 +41,7 @@
                 <div name="button_box" position="inside">
                     <button class="oe_stat_button" name="%(act_hr_timesheet_line_by_project)d" type="action" icon="fa-calendar" string="Timesheets" attrs="{'invisible': ['|', ('allow_timesheets', '=', False), ('is_template', '=', True)]}" groups="hr_timesheet.group_hr_timesheet_user"/>
                 </div>
-                <div id="project_settings" position="inside">
+                <div id="rating_settings" position="before">
                     <div class="col-lg-6 o_setting_box"  id="timesheet_settings">
                         <div class="o_setting_left_pane">
                             <field name="allow_timesheets"/>
@@ -53,28 +53,18 @@
                             </div>
                         </div>
                     </div>
-                </div>
-            </field>
-        </record>
-
-        <record id="project_view_form_inherit" model="ir.ui.view">
-            <field name="name">project.view.form.inherit</field>
-            <field name="model">project.project</field>
-            <field name="inherit_id" ref="hr_timesheet.project_invoice_form"/>
-            <field name="arch" type="xml">
-                <xpath expr="//div[@id='timesheet_settings']" position="after">
-                        <div class="col-lg-6 o_setting_box"  attrs="{'invisible': [('allow_timesheets', '=', False)]}">
-                            <div class="o_setting_left_pane">
-                                <field name="allow_timesheet_timer"/>
-                            </div>
-                            <div class="o_setting_right_pane">
-                                <label for="allow_timesheet_timer"/>
-                                <div class="text-muted">
-                                    Track your time using a timer
-                                </div>
+                    <div class="col-lg-6 o_setting_box" id="timesheet_timer_settings">
+                        <div class="o_setting_left_pane" attrs="{'invisible': [('allow_timesheets', '=', False)]}">
+                            <field name="allow_timesheet_timer"/>
+                        </div>
+                        <div class="o_setting_right_pane" attrs="{'invisible': [('allow_timesheets', '=', False)]}">
+                            <label for="allow_timesheet_timer"/>
+                            <div class="text-muted">
+                                Track your time using a timer
                             </div>
                         </div>
-                </xpath>
+                    </div>
+                </div>
             </field>
         </record>
 

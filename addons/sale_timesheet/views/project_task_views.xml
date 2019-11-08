@@ -10,7 +10,7 @@
                 <button name="action_make_billable" string="Create Sales Order" type="object" attrs="{'invisible': ['|', '|', ('sale_order_id', '!=', False), ('billable_type', '!=', 'no'), ('is_template', '=', True)]}" groups="sales_team.group_sale_salesman"/>
             </xpath>
             <xpath expr="//page[@name='emails']" position="after">
-                <page name="billing_employee_rate" string="Invoicing" attrs="{'invisible': [('billable_type', '=', 'no')]}">
+                <page name="billing_employee_rate" string="Invoicing" attrs="{'invisible': ['|', ('billable_type', '=', 'no'), ('is_template', '=', True)]}">
                     <group>
                         <field name="billable_type" invisible="1"/>
                         <field name="sale_order_id" attrs="{'invisible': ['|', ('billable_type', '=', 'no'), ('is_template', '=', True)]}"/>
@@ -33,17 +33,15 @@
         <field name="model">project.project</field>
         <field name="inherit_id" ref="hr_timesheet.project_invoice_form"/>
         <field name="arch" type="xml">
-            <xpath expr="//div[@id='timesheet_settings']/.." position="after">
-                <div class="row mt16 o_settings_container">
-                    <div class="col-lg-6 o_setting_box" id="allow_billable_container" attrs="{'invisible': [('billable_type', '=', 'employee_rate')]}">
-                        <div class="o_setting_left_pane">
-                            <field name="allow_billable"/>
-                        </div>
-                        <div class="o_setting_right_pane">
-                            <label for="allow_billable"/>
-                            <div class="text-muted" id="allow_billable_setting">
-                                Invoice your time and material from tasks
-                            </div>
+            <div id="rating_settings" position="before">
+                <div class="col-lg-6 o_setting_box" id="allow_billable_settings" attrs="{'invisible': [('billable_type', '=', 'employee_rate')]}">
+                    <div class="o_setting_left_pane">
+                        <field name="allow_billable"/>
+                    </div>
+                    <div class="o_setting_right_pane" id="allow_billable_container_right_pane">
+                        <label for="allow_billable"/>
+                        <div class="text-muted" id="allow_billable_setting">
+                            Invoice your time and material from tasks
                         </div>
                     </div>
                 </div>
@@ -71,6 +69,11 @@
         <field name="model">project.task</field>
         <field name="inherit_id" ref="hr_timesheet.view_task_form2_inherited"/>
         <field name="arch" type="xml">
+            <xpath expr="//header" position='inside'>
+                <field name="allow_billable" invisible="1"/>
+                <field name="billable_type" invisible="1"/>
+                <button name="action_make_billable" string="Create Sales Order" type="object" attrs="{'invisible': ['|', '|', '|', '|', '|', '|', ('is_template', '=', True), ('allow_billable', '=', False), ('allow_timesheets', '=', False), ('billable_type', '=', 'employee_rate'), ('partner_id', '=', False), ('sale_order_id', '!=', False), '&amp;', ('display_timesheet_timer', '=', True), ('timer_start', '!=', False)]}" groups="sales_team.group_sale_salesman"/>
+            </xpath>
             <xpath expr="//field[@name='timesheet_ids']/tree" position="attributes">
                 <attribute name="decoration-muted">timesheet_invoice_id != False</attribute>
             </xpath>
