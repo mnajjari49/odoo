@@ -226,14 +226,14 @@ body .modal {
                     content: "";
                     flex: auto;
                 }
-                
+
                 .o_existing_attachment_cell {
                     // give enough space for the hover buttons
                     min-width: 64px;
-                    
+
                     max-width: 256px;
                     max-height: 192px;
-                    
+
                     img {
                         width: 100%;
                         height: 100%;
@@ -269,7 +269,7 @@ body .modal {
                         color: $o-we-color-danger;
                     }
                 }
-                
+
                 .o_existing_attachment_favorite {
                     @include o-position-absolute($top: 0, $left: 0);
                     background-color: transparent;

@@ -106,7 +106,6 @@ var SearchableMediaWidget = MediaWidget.extend({
 var FileWidget = SearchableMediaWidget.extend({
     events: _.extend({}, SearchableMediaWidget.prototype.events || {}, {
         'click .o_upload_media_button': '_onUploadButtonClick',
-        'click .o_we_quick_upload': '_onQuickUploadClick',
         'change .o_file_input': '_onFileInputChange',
         'click .o_upload_media_url_button': '_onUploadURLButtonClick',
         'input .o_we_url_input': '_onURLInputChange',
@@ -142,7 +141,6 @@ var FileWidget = SearchableMediaWidget.extend({
         this.options = _.extend({
             firstFilters: [],
             lastFilters: [],
-            showQuickUpload: config.isDebug(),
         }, options || {});
 
         this.attachments = [];
@@ -619,55 +617,29 @@ var FileWidget = SearchableMediaWidget.extend({
             // Upload one file at a time: no need to parallel as upload is
             // limited by bandwidth.
             uploadMutex.exec(function () {
-                return utils.getDataURLFromFile(file).then(function (result) {
-                    var params = {
-                        'name': file.name,
-                        'data': result.split(',')[1],
-                        'res_id': self.options.res_id,
-                        'res_model': self.options.res_model,
-                        'filters': self.options.firstFilters.join('_'),
-                    };
-                    if (self.quickUpload) {
-                        params['width'] = self._computeOptimizedWidth();
-                        params['quality'] = 80;
-                    } else {
-                        params['width'] = 0;
-                        params['quality'] = 0;
-                    }
+                return utils.getDataURLFromFile(file).then(function (dataURL) {
                     return self._rpc({
                         route: '/web_editor/attachment/add_data',
-                        params: params,
-                    }).then(function (attachment) {
-                        if (attachment.image_src && !self.quickUpload && false) {
-                            optimizeMutex.exec(function () {
-                                return self._openImageOptimizeDialog(attachment).then(function (updatedAttachment) {
-                                    self._handleNewAttachment(updatedAttachment);
-                                });
-                            });
-                        } else {
-                            self._handleNewAttachment(attachment);
-                        }
-                    });
+                        params: {
+                            'name': file.name,
+                            'data': dataURL.split(',')[1],
+                            'res_id': self.options.res_id,
+                            'res_model': self.options.res_model,
+                            'filters': self.options.firstFilters.join('_'),
+                        },
+                    }).then(self._handleNewAttachment.bind(self));
                 });
             });
         });
 
         return uploadMutex.getUnlockedDef().then(function () {
             return optimizeMutex.getUnlockedDef().then(function () {
-                self.quickUpload = false;
                 if (!self.options.multiImages && !self.noSave) {
                     self.trigger_up('save_request');
                 }
                 self.noSave = false;
             });
         });
-    },
-    /**
-     * @private
-     */
-    _onQuickUploadClick: function () {
-        this.quickUpload = true;
-        this.$uploadButton.trigger('click');
     },
     /**
      * @private
