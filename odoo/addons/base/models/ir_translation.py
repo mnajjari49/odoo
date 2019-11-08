@@ -564,7 +564,10 @@ class IrTranslation(models.Model):
     def unlink(self):
         self.check('unlink')
         self._modified()
-        return super(IrTranslation, self.sudo()).unlink()
+
+        # avoid calling super().unlink(), as it clears the whole cache
+        # This method may be called when updating translated fields, clearing the whole cache is overkill.
+        self._cr.execute("DELETE FROM ir_translation WHERE id=ANY(%s)", [list(self.ids)])
 
     @api.model
     def _search(self, args, offset=0, limit=None, order=None, count=False, access_rights_uid=None):

@@ -680,9 +680,12 @@ class TestXMLTranslation(TransactionCase):
         self.assertEqual(len(translations), 2)
 
         # modifying the arch should sync existing translations without errors
+        new_arch = archf % ('Subtotal', 'Subtotal:<br/>')
         view.write({
-            "arch": archf % ('Subtotal', 'Subtotal:<br/>')
+            "arch": new_arch
         })
+
+        self.assertEqual(view.arch, new_arch)
 
         translations = self.env['ir.translation'].search([
             ('type', '=', 'model_terms'),
