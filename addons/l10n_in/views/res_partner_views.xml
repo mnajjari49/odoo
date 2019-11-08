@@ -8,12 +8,17 @@
         <field name="arch" type="xml">
             <xpath expr="//field[@name='vat']" position="attributes">
                 <attribute name="string">GSTIN</attribute>
+                <attribute name="attrs">{'required':[('l10n_in_gst_treatment','in',['regular','composition','special_economic_zone','deemed_export']),('l10n_in_company_country_code','=', 'IN')],'invisible': [('l10n_in_company_country_code','=', 'IN'),('l10n_in_gst_treatment','in',['consumer','unregistered','overseas'])], 'readonly': [('parent_id','!=',False)]}</attribute>
             </xpath>
-            <xpath expr="//field[@name='state_id']" position="before">
-                <field name="l10n_in_country_code" invisible="1"/>
+            <xpath expr="//field[@name='vat']" position="before">
+                <field name="l10n_in_company_country_code" invisible="1"/>
+                <field name="l10n_in_gst_treatment" attrs="{'required':[('l10n_in_company_country_code','=','IN')],'invisible':[('l10n_in_company_country_code','!=','IN')]}"/>
             </xpath>
-            <xpath expr="//field[@name='state_id']" position="attributes">
-                <attribute name="attrs">{'required': ['|', ('l10n_in_country_code','=', 'IN'), ('l10n_in_country_code','=', False)]}</attribute>
+            <xpath expr="//field[@name='vat']" position="after">
+                <field name="l10n_in_place_of_supply_id"
+                    attrs="{'required':[('l10n_in_gst_treatment','!=','overseas'),('l10n_in_company_country_code','=','IN')],'invisible':['|',('l10n_in_company_country_code','!=','IN'),('l10n_in_gst_treatment','=','overseas')]}"/>
+                <field name="l10n_in_pan_number"
+                    attrs="{'invisible':['|',('l10n_in_company_country_code','!=', 'IN'),('l10n_in_gst_treatment','not in',['consumer','unregistered'])]}"/>
             </xpath>
         </field>
     </record>

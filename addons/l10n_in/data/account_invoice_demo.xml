@@ -45,6 +45,9 @@
             }),
         ]"/>
     </record>
+    <function model="account.move" name="_onchange_partner_id">
+        <value eval="[ref('demo_invoice_b2b')]"/>
+    </function>
 
     <!-- Demo of B2CS (business to consumer small) Taxable supplies made to other unregistered Person and below INR 2.5 lakhs invoice value.-->
     <record id="demo_invoice_b2cs" model="account.move">
@@ -92,6 +95,9 @@
             }),
         ]"/>
     </record>
+    <function model="account.move" name="_onchange_partner_id">
+        <value eval="[ref('demo_invoice_b2cs')]"/>
+    </function>
 
     <!-- Demo of B2CL (business to consumer - Large) Taxable supplies made to other unregistered Person and invoice value is more than INR 2.5 lakhs.-->
     <record id="demo_invoice_b2cl" model="account.move">
@@ -112,6 +118,10 @@
             }),
         ]"/>
     </record>
+    <function model="account.move" name="_onchange_partner_id">
+        <value eval="[ref('demo_invoice_b2cl')]"/>
+    </function>
+
 
     <!-- Demo of EXP(Export) supplies including supplies to SEZ/SEZ Developer or deemed exports.-->
     <record id="demo_invoice_exp" model="account.move">
@@ -120,13 +130,7 @@
         <field name="invoice_user_id" ref="base.user_demo"/>
         <field name="invoice_payment_term_id" ref="account.account_payment_term_end_following_month"/>
         <field name="invoice_date" eval="time.strftime('%Y-%m')+'-01'"/>
-        <field name="l10n_in_export_type">export_with_igst</field>
-        <field name="journal_id" model="account.journal"
-            eval="obj().search([
-                ('type', '=', 'sale'),
-                ('l10n_in_import_export', '=', True),
-                ('company_id', '=', obj().env.company.id)], limit=1).id
-                or obj().search([('type', '=', 'sale')], limit=1).id"/>
+        <field name="l10n_in_gst_treatment">overseas</field>
         <field name="l10n_in_shipping_bill_number">999704</field>
         <field name="l10n_in_shipping_bill_date" eval="time.strftime('%Y-%m')+'-02'"/>
         <field name="l10n_in_shipping_port_code_id" ref="l10n_in.port_code_inixy1"/>
@@ -142,6 +146,9 @@
             }),
         ]"/>
     </record>
+    <function model="account.move" name="_onchange_partner_id">
+        <value eval="[ref('demo_invoice_exp')]"/>
+    </function>
 
     <!-- Demo of exemp(Nil Rated, Exempted and Non GST supplies). Set Nill rated and Exempted tax in line.-->
     <record id="demo_invoice_nill" model="account.move">
@@ -169,6 +176,9 @@
             }),
         ]"/>
     </record>
+    <function model="account.move" name="_onchange_partner_id">
+        <value eval="[ref('demo_invoice_nill')]"/>
+    </function>
 
     <!-- Demo of cdnr(Credit/ Debit Note for registered person). Create credit note for demo b2b invoice.-->
     <record id="demo_invoice_cdnr" model="account.move">
@@ -215,6 +225,9 @@
             }),
         ]"/>
     </record>
+    <function model="account.move" name="_onchange_partner_id">
+        <value eval="[ref('demo_invoice_cdnr')]"/>
+    </function>
 
     <!-- Demo of cdnr(Credit/ Debit Note for unregistered person). Create credit note for demo b2cl invoice.-->
     <record id="demo_invoice_cdnur" model="account.move">
@@ -236,6 +249,9 @@
             }),
         ]"/>
     </record>
+    <function model="account.move" name="_onchange_partner_id">
+        <value eval="[ref('demo_invoice_cdnur')]"/>
+    </function>
 
     <!-- Demo of atadj(Advance adjustments). When invoice is reconcile against Advance payment.
     Reconciled invoice consideration for which payment have been received in the past months.-->
@@ -257,6 +273,9 @@
             }),
         ]"/>
     </record>
+    <function model="account.move" name="_onchange_partner_id">
+        <value eval="[ref('demo_invoice_atadj')]"/>
+    </function>
 
     <function model="account.move" name="post">
         <value eval="[

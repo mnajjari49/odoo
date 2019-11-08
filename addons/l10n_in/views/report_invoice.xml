@@ -2,7 +2,16 @@
 <odoo>
     <template id="l10n_in_report_invoice_document_inherit" inherit_id="account.report_invoice_document">
 
-
+        <xpath expr="//div[@t-if='o.partner_id.vat']" position="replace">
+            <div t-if="o.partner_id.vat and o.company_id.country_id.code != 'IN'" class="mt16">
+                <t t-if="o.company_id.country_id.vat_label" t-esc="o.company_id.country_id.vat_label" id="inv_tax_id_label"/>
+                <t t-else="">Tax ID</t>: <span t-field="o.partner_id.vat"/>
+            </div>
+            <div t-if="(o.partner_id.vat or o.l10n_in_gstin) and o.company_id.country_id.code == 'IN'" class="mt16">
+                <t t-if="o.company_id.country_id.vat_label" t-esc="o.company_id.country_id.vat_label" id="inv_tax_id_label"/>
+                <t t-else="">Tax ID</t>: <span t-esc="o.l10n_in_gstin or o.partner_id.vat"/>
+            </div>
+        </xpath>
         <xpath expr="//p[@t-if='o.narration']" position="before">
             <t t-if="o.company_id.country_id.code == 'IN'">
                 <p id="total_in_words" class="mb16">
