@@ -652,18 +652,18 @@ class TestXMLTranslation(TransactionCase):
         env_fr = self.env(context={'lang': 'fr_FR'})
         env_nl = self.env(context={'lang': 'nl_NL'})
 
-        self.assertEqual(view.with_env(env_en).arch_db, archf % terms_en)
-        self.assertEqual(view.with_env(env_fr).arch_db, archf % terms_fr)
-        self.assertEqual(view.with_env(env_nl).arch_db, archf % terms_nl)
+        self.assertEqual(view.with_env(env_en).arch, archf % terms_en)
+        self.assertEqual(view.with_env(env_fr).arch, archf % terms_fr)
+        self.assertEqual(view.with_env(env_nl).arch, archf % terms_nl)
 
         # modify source term in view (fixed type in 'cheeze')
         terms_en = ('Bread and cheese',)
-        view.write({'arch_db': archf % terms_en})
+        view.write({'arch': archf % terms_en})
 
         # check whether translations have been synchronized
-        self.assertEqual(view.with_env(env_en).arch_db, archf % terms_en)
-        self.assertEqual(view.with_env(env_fr).arch_db, archf % terms_fr)
-        self.assertEqual(view.with_env(env_nl).arch_db, archf % terms_nl)
+        self.assertEqual(view.with_env(env_en).arch, archf % terms_en)
+        self.assertEqual(view.with_env(env_fr).arch, archf % terms_fr)
+        self.assertEqual(view.with_env(env_nl).arch, archf % terms_nl)
 
     def test_sync_update(self):
         """ Check translations after minor change in source terms. """

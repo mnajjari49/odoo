@@ -127,3 +127,26 @@ class TestRecordCache(TransactionCase):
             mem_usage, MAX_MEMORY * 1024 * 1024,
             "Caching %s records must take less than %sMB of memory" % (NB_RECORDS, MAX_MEMORY),
         )
+
+    def test_translate_xml_cache_invalidation(self):
+        view = self.env["ir.ui.view"].create({
+            "name": "test_translate_xml_cache_invalidation",
+            "model": "res.partner",
+            "arch": "<form><b>content</b></form>",
+        })
+
+        env_fr = self.env(context={"lang": "fr_FR"})
+        view_fr = view.with_env(env_fr)
+
+        self.assertIn("<b>", view.arch_db)
+        self.assertIn("<b>", view.arch)
+        self.assertIn("<b>", view_fr.arch_db)
+        self.assertIn("<b>", view_fr.arch)
+
+        view.write({"arch": "<form><i>content</i></form>"})
+
+        # even if there is not changes in translations, the cache should be invalidated
+        self.assertIn("<i>", view.arch_db)
+        self.assertIn("<i>", view.arch)
+        self.assertIn("<i>", view_fr.arch_db)
+        self.assertIn("<i>", view_fr.arch)
