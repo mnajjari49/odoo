@@ -217,6 +217,8 @@ class TestOnchangeProductId(TransactionCase):
         order_line = self.env['sale.order.line'].new({
             'order_id': so.id,
             'product_id': computer_case.id,
+            'product_uom': computer_case.uom_id,
+            'product_uom_qty': 1.0,
         })
 
         # force compute uom and prices

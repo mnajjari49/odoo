@@ -1441,8 +1441,25 @@ class SaleOrderLine(models.Model):
     def _update_description(self):
         self.name = self.get_sale_order_line_multiline_description_sale(self.product_id)
 
+    def _check_product(self):
+        self.ensure_one()
+        product = self.product_id
+        result = {}
+        if product.sale_line_warn != 'no-message':
+            result['warning'] = dict(
+                title=_("Warning for %s") % product.name,
+                message=product.sale_line_warn_msg,
+            )
+            if product.sale_line_warn == 'block':
+                self.product_id = False
+
+        return result
+
     def _compute_price(self):
         self.ensure_one()
+        if self.product_uom_qty == 0 or not self.product_uom or not self.product_id:
+            self.price_unit = 0
+            return
 
         # it is possible that a no_variant attribute is still in a variant if
         # the type of the attribute has been changed after creation.
@@ -1478,38 +1495,26 @@ class SaleOrderLine(models.Model):
         self = self.with_context(lang=self.order_partner_id.lang)
 
         self._cleanup_variant_configuration()
+        self._update_description()
+        warning = self._check_product()
 
         product = self.product_id
+        if product:
+            self.product_uom = product.uom_id
+            self.product_uom_qty = self.product_uom_qty or 1.0
 
-        self.product_uom = product.uom_id
-        self.product_uom_qty = self.product_uom_qty or 1.0
+            self._compute_tax_id()
+            self._compute_price()
 
-        self._update_description()
-        self._compute_tax_id()
-        self._compute_price()
-
-        title = False
-        message = False
-        result = {}
-        warning = {}
-        if product.sale_line_warn != 'no-message':
-            title = _("Warning for %s") % product.name
-            message = product.sale_line_warn_msg
-            warning['title'] = title
-            warning['message'] = message
-            result = {'warning': warning}
-            if product.sale_line_warn == 'block':
-                self.product_id = False
-
-        return result
+        return warning
 
     @api.onchange('product_uom', 'product_uom_qty')
     def quantity_change(self):
-        if not self.product_uom or not self.product_id:
-            self.price_unit = 0.0
-        else:
-            # Tax recomputation ?
-            self._compute_price()
+        """Recompute prices.
+
+        Some pricelist rules are only applied from a given quantity.
+        """
+        self._compute_price()
 
     def name_get(self):
         result = []
