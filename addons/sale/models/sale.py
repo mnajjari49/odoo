@@ -456,14 +456,12 @@ class SaleOrder(models.Model):
             vals['name'] = self.env['ir.sequence'].with_company(company_id).next_by_code(
                 'sale.order', sequence_date=seq_date) or _('New')
 
-        # Makes sure partner_invoice_id', 'partner_shipping_id' and 'pricelist_id' are defined
-        if any(f not in vals for f in ['partner_invoice_id', 'partner_shipping_id', 'pricelist_id']):
+        # Makes sure partner_invoice_id', 'partner_shipping_id' are defined
+        if any(f not in vals for f in ['partner_invoice_id', 'partner_shipping_id']):
             partner = self.env['res.partner'].browse(vals.get('partner_id'))
             addr = partner.address_get(['delivery', 'invoice'])
             vals['partner_invoice_id'] = vals.setdefault('partner_invoice_id', addr['invoice'])
             vals['partner_shipping_id'] = vals.setdefault('partner_shipping_id', addr['delivery'])
-            # VFE TODO check if property_product_pricelist returns empty recordset if not set or not.
-            vals['pricelist_id'] = vals.setdefault('pricelist_id', partner.property_product_pricelist and partner.property_product_pricelist.id)
         result = super(SaleOrder, self).create(vals)
         return result
 
