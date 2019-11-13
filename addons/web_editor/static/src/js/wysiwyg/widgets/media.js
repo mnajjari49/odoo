@@ -423,10 +423,15 @@ var FileWidget = SearchableMediaWidget.extend({
     _renderImages: function () {
         var attachments = this.attachments.slice(0, this.numberOfAttachmentsToDisplay);
 
-        // Render menu & content, we set the image src to /web/image/id because that route supports resizing on the server
-        // This makes the grid render faster, at least on slow connections (hopefully)
+        // Render menu & content
         this.$('.o_we_existing_attachments').replaceWith(
-            this._renderExisting(attachments.map(a => _.extend({}, a, {image_src: `/web/image/${a.id}/${encodeURIComponent(a.name)}`})))
+            this._renderExisting(attachments.map(a => {
+                // Use a resizing url for binary attachments so they load faster
+                if (a.type === 'binary') {
+                    return _.extend({}, a, {thumbnail: `/web/image/${a.id}/${encodeURIComponent(a.name)}?width=256&height=192`});
+                }
+                return a;
+            }))
         );
 
         this._highlightSelected();
@@ -449,7 +454,6 @@ var FileWidget = SearchableMediaWidget.extend({
         }
 
         var img = this.selectedAttachments[0];
-        console.log(img);
         if (!img || !img.id) {
             return Promise.resolve(this.media);
         }
@@ -703,11 +707,15 @@ var FileWidget = SearchableMediaWidget.extend({
         var emptyValue = (inputValue === '');
 
         var isURL = /^.+\..+$/.test(inputValue); // TODO improve
-        var isImage = _.any(['.gif', '.jpeg', '.jpe', '.jpg', '.png'], function (format) {
-            return inputValue.endsWith(format);
-        });
 
-        this._updateAddUrlUi(emptyValue, isURL, isImage);
+        // Would be nice to be able to only get headers to determine content-type but we hit CORS (img src doesn't)
+        const img = document.createElement('img');
+        img.src = inputValue;
+        $(img).one('load', () => {
+            this._updateAddUrlUi(emptyValue, isURL, true);
+        }).one('error', () => {
+            this._updateAddUrlUi(emptyValue, isURL, false);
+        });
     },
     /**
      * @private

@@ -4,6 +4,7 @@ import io
 import logging
 import re
 import time
+import requests
 import werkzeug.wrappers
 from PIL import Image, ImageFont, ImageDraw
 from lxml import etree
@@ -269,6 +270,14 @@ class Web_Editor(http.Controller):
         if data:
             attachment_data['datas'] = data
         elif url:
+            try:
+                req = requests.head(url);
+                attachment_data.update({'mimetype': req.headers['content-type']})
+            except requests.exceptions.ConnectionError as e:
+                logger.exception("Connection Error: " + str(e))
+            except requests.exceptions.Timeout as e:
+                logger.exception("Timeout: " + str(e))
+
             attachment_data.update({
                 'type': 'url',
                 'url': url,

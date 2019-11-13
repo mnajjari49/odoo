@@ -16,7 +16,7 @@
                     </div>
                 </div>
                 <div t-attf-class="d-flex align-items-center h-100 w-100 bg-light">
-                    <img class="img img-fluid o_we_attachment_highlight" t-att-src="attachment.image_src + '?width=256&amp;height=192'" t-att-alt="attachment.name" t-att-title="attachment.name"/>
+                    <img class="img img-fluid o_we_attachment_highlight" t-attf-src="#{attachment.thumbnail ? attachment.thumbnail : attachment.url}" t-att-alt="attachment.name" t-att-title="attachment.name"/>
                 </div>
             </li>
         </t>

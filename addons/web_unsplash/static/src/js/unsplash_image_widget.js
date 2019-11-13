@@ -220,7 +220,6 @@ widgetsMedia.ImageWidget.include({
         var imgid = $(ev.currentTarget).data('imgid');
         var url = $(ev.currentTarget).data('url');
         var downloadURL = $(ev.currentTarget).data('download-url');
-        console.log($(ev.currentTarget), $(ev.currentTarget).data());
         if (!this.options.multiImages) {
             this._unsplash.selectedImages = {};
         }

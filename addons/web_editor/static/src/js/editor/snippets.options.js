@@ -826,7 +826,6 @@ registry.Image = SnippetOption.extend({
        });
     },
     cleanForSave: function () {
-        console.log('saving image, will take two seconds.');
         return new Promise(resolve => setTimeout(resolve, 20000));
     },
 });
@@ -936,6 +935,7 @@ registry.background = SnippetOption.extend({
     _getEditableMedia: function () {
         var $image = $('<img/>', {
             class: 'd-none o_we_fake_image',
+            src: this.__customImageSrc,
         }).appendTo(this.$target);
         return $image[0];
     },
@@ -1036,7 +1036,7 @@ registry.background = SnippetOption.extend({
      * @param {Object} data
      */
     _onSaveMediaDialog: function (data) {
-        this._setCustomBackground(data.src);
+        this._setCustomBackground(data.attributes['src'].value);
     },
 });
 
