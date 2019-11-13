@@ -10,6 +10,87 @@ from odoo.exceptions import ValidationError, RedirectWarning, UserError
 _logger = logging.getLogger(__name__)
 
 
+def compute_price(self, price_type, currency=None, uom=None, company=None, date=False):
+    """
+    :param self:
+    :type self: product.product or product.template
+
+    """
+    if not self:
+        return {}
+
+    self = self.with_company(company)
+
+    fixed_price, fixed_price_currency = False, None
+    if price_type == 'list_price' and self.env.context.get('fixed_sales_price') and self.env.context.get('fixed_sales_currency'):
+        self.ensure_one()
+        assert self.is_product_variant, _("A fixed price cannot be given for a template.")
+        # Fixed prices should only be given for a fixed product
+        fixed_price = self.env.context.get('fixed_sales_price')
+        fixed_price_currency = self.env['res.currency'].browse(self.env.context.get('fixed_sales_currency'))
+
+    ptavs = self.env['product.template.attribute.value'].browse(self.env.context.get('ptav_ids', []))
+    targeted_product_id = self.env.context.get('p_id', None)
+    if ptavs and targeted_product_id:
+        if self[0].is_product_variant:
+            # If we are computing the price on variants,
+            # We shouldn't add extras from ptavs which are already on the variant.
+            targeted_product = self.filtered(lambda p: p.id == targeted_product_id)
+            ptavs = ptavs - targeted_product.product_template_attribute_value_ids
+    ptav_extras = sum(ptavs.mapped('price_extra'))
+
+    if price_type == 'standard_price':
+        # standard_price field can only be seen by users in base.group_user
+        # Thus, in order to compute the sale price from the cost for users not in this group
+        # We fetch the standard price as the superuser
+        self = self.sudo()
+
+    if price_type == 'list_price':
+        # = list_price on template, list_price + product extra on product.
+        price_type = 'lst_price'
+
+    if date:
+        date = fields.Date.to_date(date)
+    else:
+        date = fields.Date.today()
+
+    # VFE FIXME is this better for perf purposes ???
+    prices = dict.fromkeys(self.ids, 0.0)
+    for template in self:
+        # template = product.product or product.template
+        if not fixed_price:
+            # We should take lst_price if list_price :D
+            price = template[price_type] or 0.0
+            if ptav_extras and targeted_product_id and template.id == targeted_product_id:
+                # yes, there can be attribute values for product template if it's not a variant YET
+                # (see field product.attribute create_variant)
+                price += ptav_extras
+        else:
+            price = fixed_price
+
+        if uom and template.uom_id != uom:
+            # Conversion to given uom
+            price = template.uom_id._compute_price(price, uom)
+
+        # Convert from current user company currency to asked one
+        # This is right cause a field cannot be in more than one currency
+        if currency:
+            product_currency = template.cost_currency_id if price_type == 'standard_price' else template.currency_id
+            if fixed_price:
+                product_currency = fixed_price_currency
+            # Conversion from product currency to given currency
+            if currency != product_currency:
+                price = product_currency._convert(
+                    from_amount=price,
+                    to_currency=currency,
+                    company=self.env.company,
+                    date=date)
+
+        prices[template.id] = price
+
+    return prices
+
+
 class ProductTemplate(models.Model):
     _name = "product.template"
     _inherit = ['mail.thread', 'mail.activity.mixin', 'image.mixin']
@@ -17,8 +98,8 @@ class ProductTemplate(models.Model):
     _order = "name"
 
     def _get_default_category_id(self):
-        if self._context.get('categ_id') or self._context.get('default_categ_id'):
-            return self._context.get('categ_id') or self._context.get('default_categ_id')
+        if self._context.get('categ_id'):
+            return self._context.get('categ_id')
         category = self.env.ref('product.product_category_all', raise_if_not_found=False)
         if not category:
             category = self.env['product.category'].search([], limit=1)
@@ -60,7 +141,6 @@ class ProductTemplate(models.Model):
         help='A storable product is a product for which you manage stock. The Inventory app has to be installed.\n'
              'A consumable product is a product for which stock is not managed.\n'
              'A service is a non-material product you provide.')
-    rental = fields.Boolean('Can be Rent')
     categ_id = fields.Many2one(
         'product.category', 'Product Category',
         change_default=True, default=_get_default_category_id, group_expand='_read_group_categ_id',
@@ -71,11 +151,6 @@ class ProductTemplate(models.Model):
     cost_currency_id = fields.Many2one(
         'res.currency', 'Cost Currency', compute='_compute_cost_currency_id')
 
-    # price fields
-    # price: total template price, context dependent (partner, pricelist, quantity)
-    price = fields.Float(
-        'Price', compute='_compute_template_price', inverse='_set_template_price',
-        digits='Product Price')
     # list_price: catalog price, user defined
     list_price = fields.Float(
         'Sales Price', default=1.0,
@@ -93,6 +168,10 @@ class ProductTemplate(models.Model):
         In FIFO: value of the last unit that left the stock (automatically computed).
         Used to value the product when the purchase cost is not known (e.g. inventory adjustment).
         Used to compute margins on sale orders.""")
+
+    price = fields.Float(
+        'Price', compute='_compute_price', help="Used for display purposes"
+        "takes into account contextual infos", prefetch=False, digits="Product Price")
 
     volume = fields.Float(
         'Volume', compute='_compute_volume', inverse='_set_volume', digits='Volume', store=True)
@@ -184,47 +263,56 @@ class ProductTemplate(models.Model):
 
     @api.depends_context('company')
     def _compute_cost_currency_id(self):
-        for template in self:
-            template.cost_currency_id = self.env.company.currency_id.id
+        self.cost_currency_id = self.env.company.currency_id
 
     def _compute_template_price(self):
         prices = self._compute_template_price_no_inverse()
         for template in self:
             template.price = prices.get(template.id, 0.0)
 
-    def _compute_template_price_no_inverse(self):
-        """The _compute_template_price writes the 'list_price' field with an inverse method
-        This method allows computing the price without writing the 'list_price'
-        """
-        prices = {}
-        pricelist_id_or_name = self._context.get('pricelist')
-        if pricelist_id_or_name:
-            pricelist = None
-            partner = self.env.context.get('partner')
-            quantity = self.env.context.get('quantity', 1.0)
-
+    def _get_context_values(self):
+        pricelist_id = self.env.context.get('pricelist_id', False)
+        pricelist = self.env['product.pricelist'].browse(pricelist_id)
+        target_currency = pricelist.currency_id or self.env['res.currency'].browse(
+            self.env.context.get('currency_id', None)
+        )
+        if not pricelist and 'pricelist' in self.env.context:
+            pricelist_key = self.env.context.get('pricelist')
             # Support context pricelists specified as display_name or ID for compatibility
-            if isinstance(pricelist_id_or_name, str):
-                pricelist_data = self.env['product.pricelist'].name_search(pricelist_id_or_name, operator='=', limit=1)
-                if pricelist_data:
-                    pricelist = self.env['product.pricelist'].browse(pricelist_data[0][0])
-            elif isinstance(pricelist_id_or_name, int):
-                pricelist = self.env['product.pricelist'].browse(pricelist_id_or_name)
+            if isinstance(pricelist_key, str):
+                pricelist = pricelist.name_search(pricelist_key, operator='=', limit=1)
+            elif isinstance(pricelist_key, int):
+                pricelist = pricelist.browse(pricelist_key)
+        uom_id = self.env.context.get('uom_id', False)
+        return (
+            pricelist,
+            self.env.context.get('quantity', 1.0),
+            self.env['uom.uom'].browse(uom_id),
+            self.env.context.get('date', fields.Date.today()),
+            target_currency,
+        )
 
-            if pricelist:
-                quantities = [quantity] * len(self)
-                partners = [partner] * len(self)
-                prices = pricelist.get_products_price(self, quantities, partners)
-
-        return prices
-
-    def _set_template_price(self):
-        if self._context.get('uom'):
-            for template in self:
-                value = self.env['uom.uom'].browse(self._context['uom'])._compute_price(template.price, template.uom_id)
-                template.write({'list_price': value})
+    @api.depends_context('pricelist_id', 'quantity', 'uom_id', 'date', 'ptav_ids', 'currency_id')
+    def _compute_price(self):
+        # Computed for templates AND variants
+        pricelist, quantity, uom, date, currency = self._get_context_values()
+        if pricelist:
+            prices = pricelist.get_products_price(
+                self, quantity,
+                uom=uom,
+                date=date,
+                currency=currency,
+            )
         else:
-            self.write({'list_price': self.price})
+            prices = self.price_compute(
+                'list_price',
+                uom=uom,
+                date=date,
+                currency=currency,
+            )
+
+        for product in self:
+            product.price = prices.get(product.id)
 
     @api.depends('product_variant_ids', 'product_variant_ids.standard_price')
     def _compute_standard_price(self):
@@ -265,8 +353,7 @@ class ProductTemplate(models.Model):
             template.weight = 0.0
 
     def _compute_is_product_variant(self):
-        for template in self:
-            template.is_product_variant = False
+        self.is_product_variant = False
 
     @api.model
     def _get_weight_uom_id_from_ir_config_parameter(self):
@@ -482,42 +569,8 @@ class ProductTemplate(models.Model):
             },
         }
 
-    def price_compute(self, price_type, uom=False, currency=False, company=None):
-        # TDE FIXME: delegate to template or not ? fields are reencoded here ...
-        # compatibility about context keys used a bit everywhere in the code
-        if not uom and self._context.get('uom'):
-            uom = self.env['uom.uom'].browse(self._context['uom'])
-        if not currency and self._context.get('currency'):
-            currency = self.env['res.currency'].browse(self._context['currency'])
-
-        templates = self
-        if price_type == 'standard_price':
-            # standard_price field can only be seen by users in base.group_user
-            # Thus, in order to compute the sale price from the cost for users not in this group
-            # We fetch the standard price as the superuser
-            templates = self.with_company(company).sudo()
-        if not company:
-            company = self.env.company
-        date = self.env.context.get('date') or fields.Date.today()
-
-        prices = dict.fromkeys(self.ids, 0.0)
-        for template in templates:
-            prices[template.id] = template[price_type] or 0.0
-            # yes, there can be attribute values for product template if it's not a variant YET
-            # (see field product.attribute create_variant)
-            if price_type == 'list_price' and self._context.get('current_attributes_price_extra'):
-                # we have a list of price_extra that comes from the attribute values, we need to sum all that
-                prices[template.id] += sum(self._context.get('current_attributes_price_extra'))
-
-            if uom:
-                prices[template.id] = template.uom_id._compute_price(prices[template.id], uom)
-
-            # Convert from current user company currency to asked one
-            # This is right cause a field cannot be in more than one currency
-            if currency:
-                prices[template.id] = template.currency_id._convert(prices[template.id], currency, company, date)
-
-        return prices
+    def price_compute(self, price_type, currency=None, uom=None, company=None, date=False):
+        return compute_price(self, price_type, currency, uom, company, date)
 
     def _create_variant_ids(self):
         self.flush()
@@ -1013,34 +1066,6 @@ class ProductTemplate(models.Model):
                 if not combination:
                     return _("There are no possible combination.")
                 combination = combination[:-1]
-
-    def _get_current_company(self, **kwargs):
-        """Get the most appropriate company for this product.
-
-        If the company is set on the product, directly return it. Otherwise,
-        fallback to a contextual company.
-
-        :param kwargs: kwargs forwarded to the fallback method.
-
-        :return: the most appropriate company for this product
-        :rtype: recordset of one `res.company`
-        """
-        self.ensure_one()
-        return self.company_id or self._get_current_company_fallback(**kwargs)
-
-    def _get_current_company_fallback(self, **kwargs):
-        """Fallback to get the most appropriate company for this product.
-
-        This should only be called from `_get_current_company` but is defined
-        separately to allow override.
-
-        The final fallback will be the current user's company.
-
-        :return: the fallback company for this product
-        :rtype: recordset of one `res.company`
-        """
-        self.ensure_one()
-        return self.env.company
 
     def get_single_product_variant(self):
         """ Method used by the product configurator to check if the product is configurable or not.
