@@ -245,56 +245,43 @@ body .modal {
             .o_existing_attachment_cell {
                 cursor: pointer;
                 list-style: none;
-
-                .o_existing_attachment_optimize, .o_existing_attachment_remove, .o_existing_attachment_favorite {
-                    background-color: scale-color($card-border-color, $alpha: -50%);
-                    text-shadow: 0 0 1px white;
-                    opacity: 0;
-                    cursor: pointer;
-
-                    &:hover {
-                        background-color: $card-border-color;
+                
+                .o_image_controls {
+                    & > div {
+                        opacity: 0;
+                        background-color: transparentize($light, 0.4);
                     }
-                }
-
-                .o_existing_attachment_optimize {
-                    @include o-position-absolute($top: 0, $left: 0);
-                    border-radius: 0 0 2px 0;
-                }
-
-                .o_existing_attachment_remove {
-                    @include o-position-absolute($top: 0, $right: 0);
-                    border-radius: 0 0 0 2px;
-                    &:hover {
-                        color: $o-we-color-danger;
-                    }
-                }
-
-                .o_existing_attachment_favorite {
-                    @include o-position-absolute($top: 0, $left: 0);
-                    background-color: transparent;
-                    border-radius: 0 0 0 2px;
-                    color: $light;
-                    text-shadow: 0 0 1px rgba(0, 0, 0, 0.5);
-
-                    &:hover {
-                        background-color: transparent;
-                        color: #FF0;
-                    }
-
-                    &.active {
-                        color: #FF0;
+                    
+                    &:hover > div {
                         opacity: 1;
+                    }
+
+                    i {
+                        text-shadow: 0 0 1px white;
+                        cursor: pointer;
+
                         &:hover {
-                            color: $light;
+                            background-color: $card-border-color;
+                        }
+                    }
+
+                    .o_existing_attachment_remove {
+                        &:hover {
+                            color: $o-we-color-danger;
+                        }
+                    }
+
+                    .o_existing_attachment_favorite {
+                        color: $light;
+                        text-shadow: 0 0 1px black;
+
+                        &.active {
+                            color: #FD0;
                         }
                     }
                 }
 
                 &:hover {
-                    .o_existing_attachment_optimize, .o_existing_attachment_remove, .o_existing_attachment_favorite {
-                        opacity: 1;
-                    }
                     &.o_we_attachment_highlight, .o_we_attachment_highlight {
                         border-color: $card-border-color;
                         box-shadow: 0px 0px 2px 2px $card-border-color;

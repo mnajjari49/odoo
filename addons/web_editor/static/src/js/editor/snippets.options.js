@@ -801,6 +801,38 @@ registry.colorpicker = SnippetOption.extend({
 /**
  * Handles the edition of snippet's background image.
  */
+registry.Image = SnippetOption.extend({
+    /**
+     * @override
+     */
+    start: function () {
+        return this._super.apply(this, arguments);
+    },
+    onFocus: function () {
+        const match = this.$target[0].src.match(/\/web\/image\/(\d+)/);
+        if (match) {
+            this.$el.removeClass('d-none');
+            this.attachment_id = parseInt(match[1]);
+        } else {
+            this.$el.addClass('d-none');
+        }
+    },
+    favorite: function () {
+        this._rpc({
+           route: '/web_editor/attachment/toggle_favorite',
+           params: {
+               ids: [this.attachment_id],
+           }
+       });
+    },
+    cleanForSave: function () {
+        console.log('saving image, will take two seconds.');
+        return new Promise(resolve => setTimeout(resolve, 20000));
+    },
+});
+/**
+ * Handles the edition of snippet's background image.
+ */
 registry.background = SnippetOption.extend({
     /**
      * @override

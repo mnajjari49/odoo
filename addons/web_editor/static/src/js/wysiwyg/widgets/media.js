@@ -191,7 +191,7 @@ var FileWidget = SearchableMediaWidget.extend({
         }
         if (o.url) {
             self._selectAttachement(_.find(self.attachments, function (attachment) {
-                return attachment.url === o.url;
+                return attachment.url === o.url || attachment.image_src === o.url;
             }) || o);
         }
 
@@ -224,7 +224,7 @@ var FileWidget = SearchableMediaWidget.extend({
             args: [],
             kwargs: {
                 domain: this._getAttachmentsDomain(needle),
-                fields: ['name', 'mimetype', 'checksum', 'url', 'type', 'res_id', 'res_model', 'public', 'access_token', 'image_src', 'image_width', 'image_height', 'is_favorite', 'write_date'],
+                fields: ['name', 'mimetype', 'checksum', 'url', 'type', 'res_id', 'res_model', 'public', 'access_token', 'image_src', 'image_width', 'image_height', 'is_favorite'],
                 order: [{name: 'create_date', asc: false}],
                 context: this.options.context,
             },
@@ -423,9 +423,10 @@ var FileWidget = SearchableMediaWidget.extend({
     _renderImages: function () {
         var attachments = this.attachments.slice(0, this.numberOfAttachmentsToDisplay);
 
-        // Render menu & content
+        // Render menu & content, we set the image src to /web/image/id because that route supports resizing on the server
+        // This makes the grid render faster, at least on slow connections (hopefully)
         this.$('.o_we_existing_attachments').replaceWith(
-            this._renderExisting(attachments)
+            this._renderExisting(attachments.map(a => _.extend({}, a, {image_src: `/web/image/${a.id}/${encodeURIComponent(a.name)}`})))
         );
 
         this._highlightSelected();
@@ -448,6 +449,7 @@ var FileWidget = SearchableMediaWidget.extend({
         }
 
         var img = this.selectedAttachments[0];
+        console.log(img);
         if (!img || !img.id) {
             return Promise.resolve(this.media);
         }
@@ -792,6 +794,14 @@ var ImageWidget = FileWidget.extend({
         this._super.apply(this, arguments);
         this.$addUrlButton.text((isURL && !isImage) ? _t("Add as document") : _t("Add"));
         this.$urlWarning.toggleClass('d-none', !isURL || isImage);
+    },
+    /**
+     * @override
+     */
+    _getAttachmentsDomain: function (needle) {
+        const domain = this._super.apply(this, arguments);
+        domain.push(['original_id', '=', false]);
+        return domain;
     },
 });
 

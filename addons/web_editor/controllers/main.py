@@ -173,7 +173,10 @@ class Web_Editor(http.Controller):
         if attachment.type == 'url':
             raise UserError(_("You cannot change the quality, the width or the name of an URL attachment."))
         if copy:
+            original = attachment
             attachment = attachment.copy()
+            attachment.original_id = original
+            attachment.quality = quality
         data = {}
         if name:
             data['name'] = name

@@ -283,7 +283,7 @@
                 <p class="o_empty_folder_image">No images found.</p>
                 <p class="o_empty_folder_subtitle">You can upload images with the button located in the top left of the screen.</p>
             </div>
-            <ol t-else="" class="d-flex flex-wrap mx-auto my-0 p-2 justify-content-between">
+            <ol t-else="" class="d-flex flex-wrap px-0 justify-content-between" style="margin: -8px;">
                 <t t-foreach="attachments" t-as="attachment">
                     <t t-call="wysiwyg.widgets.image.existing.attachment"/>
                 </t>
@@ -292,10 +292,17 @@
     </t>
 
     <t t-name="wysiwyg.widgets.image.existing.attachment">
-        <li class="o_existing_attachment_cell position-relative m-2" t-att-data-id="attachment.id">
-            <i t-if="!attachment.url" class="fa fa-cog o_existing_attachment_optimize p-2" title="Optimize" role="img" aria-label="Optimize"/>
-            <t t-call="wysiwyg.widgets.file.existing.remove"/>
-            <i t-attf-class="fa fa-star fa-lg o_existing_attachment_favorite p-2 #{attachment.is_favorite ? 'active' : ''}" title="Favorite"/>
+        <li class="o_existing_attachment_cell m-2 position-relative" t-att-data-id="attachment.id">
+            <div class="o_image_controls position-absolute w-100 h-100 d-flex flex-column justify-content-between">
+                <div class="w-100 d-flex">
+                    <i t-attf-class="fa fa-star fa-lg o_existing_attachment_favorite p-2 #{attachment.is_favorite ? 'active' : ''}" title="Favorite"/>
+                    <i t-if="!attachment.url" class="fa fa-cog o_existing_attachment_optimize p-2" title="Optimize" role="img" aria-label="Optimize"/>
+                    <t t-call="wysiwyg.widgets.file.existing.remove"/>
+                </div>
+                <div class="w-100 text-center">
+                    <span>image_name.png</span>
+                </div>
+            </div>
             <div t-attf-class="d-flex align-items-center h-100 w-100 bg-light">
                 <img class="img img-fluid o_we_attachment_highlight" t-att-src="attachment.image_src + '?width=256&amp;height=192'" t-att-alt="attachment.name" t-att-title="attachment.name"/>
             </div>
@@ -304,11 +311,7 @@
 
     <t t-name="wysiwyg.widgets.document.existing.attachments">
         <div class="o_we_existing_attachments o_we_documents">
-            <div t-if="!attachments.length" class="o_nocontent_help">
-                <p class="o_empty_folder_image">No documents found.</p>
-                <p class="o_empty_folder_subtitle">You can upload documents with the button located in the top left of the screen.</p>
-            </div>
-            <div t-else="" class="row mx-auto">
+            <div t-if="attachments.length" class="row mx-auto">
                 <t t-foreach="attachments" t-as="attachment">
                     <div class="col-2 o_existing_attachment_cell o_we_attachment_highlight my-2" t-att-data-id="attachment.id">
                         <t t-call="wysiwyg.widgets.file.existing.remove"/>
@@ -324,7 +327,7 @@
     <t t-name="wysiwyg.widgets.file.existing.remove">
         <t t-set="removeTitle" t-if="attachment.res_model === 'ir.ui.view'">This file is a public view attachment.</t>
         <t t-set="removeTitle" t-else="">This file is attached to the current record.</t>
-        <i class="fa fa-trash o_existing_attachment_remove p-2" t-att-title="removeTitle" role="img" t-att-aria-label="removeTitle"/>
+        <i class="fa fa-trash o_existing_attachment_remove p-2 ml-auto" t-att-title="removeTitle" role="img" t-att-aria-label="removeTitle"/>
     </t>
 
     <t t-name="wysiwyg.widgets.image.existing.error">

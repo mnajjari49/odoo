@@ -38,6 +38,11 @@
 
     <div data-selector=".s_hr"
          data-drop-near="p, h1, h2, h3, blockquote, .s_hr"/>
+         
+    <div data-js="Image" data-selector="img">
+        <we-button data-favorite="true" data-no-preview="true">Favorite</we-button>
+        <we-button data-optimize="optimize" data-no-preview="true">Optimize</we-button>
+    </div>
 </template>
 
 <!-- default block -->
