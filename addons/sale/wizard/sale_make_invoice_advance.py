@@ -87,7 +87,7 @@ class SaleAdvancePaymentInv(models.TransientModel):
             'partner_id': order.partner_invoice_id.id,
             'fiscal_position_id': (order.fiscal_position_id or order.fiscal_position_id.get_fiscal_position(order.partner_id.id)).id,
             'partner_shipping_id': order.partner_shipping_id.id,
-            'currency_id': order.pricelist_id.currency_id.id,
+            'currency_id': order.currency_id.id,
             'invoice_payment_ref': order.client_order_ref,
             'invoice_payment_term_id': order.payment_term_id.id,
             'invoice_partner_bank_id': order.company_id.partner_id.bank_ids[:1],

@@ -17,7 +17,8 @@ class ProjectProductEmployeeMap(models.Model):
     project_id = fields.Many2one('project.project', "Project", domain=[('billable_type', '!=', 'no')], required=True, default=_default_project_id)
     employee_id = fields.Many2one('hr.employee', "Employee", required=True)
     sale_line_id = fields.Many2one('sale.order.line', "Sale Order Item", domain=[('is_service', '=', True)], required=True)
-    price_unit = fields.Float(related='sale_line_id.price_unit', readonly=True)
+    price_unit = fields.Float(related='sale_line_id.price_unit')
+    currency_id = fields.Many2one('res.currency', related='sale_line_id.currency_id')
 
     _sql_constraints = [
         ('uniqueness_employee', 'UNIQUE(project_id,employee_id)', 'An employee cannot be selected more than once in the mapping. Please remove duplicate(s) and try again.'),

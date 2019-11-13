@@ -165,7 +165,7 @@
                                     <small><b class="text-muted">Your advantage</b></small>
                                     <small>
                                         <b t-field="sale_order.amount_undiscounted"
-                                            t-options='{"widget": "monetary", "display_currency": sale_order.pricelist_id.currency_id}'
+                                            t-options='{"widget": "monetary", "display_currency": sale_order.currency_id}'
                                             style="text-decoration: line-through"
                                             class="d-block mt-1"
                                             data-id="amount_undiscounted" />
@@ -510,7 +510,7 @@
                                         <strong class="mr16">Subtotal</strong>
                                         <span
                                             t-esc="current_subtotal"
-                                            t-options='{"widget": "monetary", "display_currency": sale_order.pricelist_id.currency_id}'
+                                            t-options='{"widget": "monetary", "display_currency": sale_order.currency_id}'
                                         />
                                     </td>
                                 </tr>
@@ -529,7 +529,7 @@
                                     <span
                                         data-id="total_untaxed"
                                         t-field="sale_order.amount_untaxed"
-                                        t-options='{"widget": "monetary","display_currency": sale_order.pricelist_id.currency_id}'
+                                        t-options='{"widget": "monetary","display_currency": sale_order.currency_id}'
                                     />
                                 </td>
                             </tr>
@@ -538,11 +538,11 @@
                                     <t t-if="amount_by_group[3] == 1 and sale_order.amount_untaxed == amount_by_group[2]">
                                         <td>
                                             <span t-esc="amount_by_group[0]"/>
-                                            <span>&amp;nbsp;<span>on</span>&amp;nbsp;<t t-esc="amount_by_group[2]" t-options='{"widget": "monetary", "display_currency": sale_order.pricelist_id.currency_id}'/></span>
+                                            <span>&amp;nbsp;<span>on</span>&amp;nbsp;<t t-esc="amount_by_group[2]" t-options='{"widget": "monetary", "display_currency": sale_order.currency_id}'/></span>
                                         </td>
                                         <td class="text-right">
                                             <span t-esc="amount_by_group[1]"
-                                                t-options='{"widget": "monetary", "display_currency": sale_order.pricelist_id.currency_id}'/>
+                                                t-options='{"widget": "monetary", "display_currency": sale_order.currency_id}'/>
                                         </td>
                                     </t>
                                     <t t-else ="">
@@ -551,7 +551,7 @@
                                         </td>
                                         <td class="text-right">
                                             <span t-esc="amount_by_group[1]"
-                                                t-options='{"widget": "monetary", "display_currency": sale_order.pricelist_id.currency_id}'/>
+                                                t-options='{"widget": "monetary", "display_currency": sale_order.currency_id}'/>
                                         </td>
                                     </t>
                                 </tr>
@@ -559,7 +559,7 @@
                             <tr class="border-black">
                                 <td><strong>Total</strong></td>
                                 <td class="text-right">
-                                    <span data-id="total_amount" t-field="sale_order.amount_total" t-options='{"widget": "monetary", "display_currency": sale_order.pricelist_id.currency_id}'/>
+                                    <span data-id="total_amount" t-field="sale_order.amount_total" t-options='{"widget": "monetary", "display_currency": sale_order.currency_id}'/>
                                 </td>
                             </tr>
                         </table>
@@ -599,7 +599,7 @@
                     <span
                         data-id="total_untaxed"
                         t-field="sale_order.amount_untaxed"
-                        t-options='{"widget": "monetary","display_currency": sale_order.pricelist_id.currency_id}'
+                        t-options='{"widget": "monetary","display_currency": sale_order.currency_id}'
                     />
                 </td>
             </tr>
@@ -608,11 +608,11 @@
                     <t t-if="amount_by_group[3] == 1 and sale_order.amount_untaxed == amount_by_group[2]">
                         <td>
                             <span t-esc="amount_by_group[0]"/>
-                            <span>&amp;nbsp;<span>on</span>&amp;nbsp;<t t-esc="amount_by_group[2]" t-options='{"widget": "monetary", "display_currency": sale_order.pricelist_id.currency_id}'/></span>
+                            <span>&amp;nbsp;<span>on</span>&amp;nbsp;<t t-esc="amount_by_group[2]" t-options='{"widget": "monetary", "display_currency": sale_order.currency_id}'/></span>
                         </td>
                         <td class="text-right">
                             <span t-esc="amount_by_group[1]"
-                                t-options='{"widget": "monetary", "display_currency": sale_order.pricelist_id.currency_id}'/>
+                                t-options='{"widget": "monetary", "display_currency": sale_order.currency_id}'/>
                         </td>
                     </t>
                     <t t-else ="">
@@ -621,7 +621,7 @@
                         </td>
                         <td class="text-right">
                             <span t-esc="amount_by_group[1]"
-                                t-options='{"widget": "monetary", "display_currency": sale_order.pricelist_id.currency_id}'/>
+                                t-options='{"widget": "monetary", "display_currency": sale_order.currency_id}'/>
                         </td>
                     </t>
                 </tr>
@@ -629,7 +629,7 @@
             <tr class="border-black">
                 <td><strong>Total</strong></td>
                 <td class="text-right">
-                    <span data-id="total_amount" t-field="sale_order.amount_total" t-options='{"widget": "monetary", "display_currency": sale_order.pricelist_id.currency_id}'/>
+                    <span data-id="total_amount" t-field="sale_order.amount_total" t-options='{"widget": "monetary", "display_currency": sale_order.currency_id}'/>
                 </td>
             </tr>
         </table>

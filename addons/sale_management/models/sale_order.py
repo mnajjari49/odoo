@@ -50,7 +50,7 @@ class SaleOrder(models.Model):
 
     def _compute_option_data_for_template_change(self, option):
         if self.pricelist_id:
-            price = self.pricelist_id.with_context(uom=option.uom_id.id).get_product_price(option.product_id, 1, False)
+            price = self.pricelist_id.with_context(uom=option.uom_id.id).get_product_price(option.product_id, 1)
         else:
             price = option.price_unit
         return {
@@ -83,7 +83,7 @@ class SaleOrder(models.Model):
             if line.product_id:
                 discount = 0
                 if self.pricelist_id:
-                    price = self.pricelist_id.with_context(uom=line.product_uom_id.id).get_product_price(line.product_id, 1, False)
+                    price = self.pricelist_id.with_context(uom=line.product_uom_id.id).get_product_price(line.product_id, 1)
                     if self.pricelist_id.discount_policy == 'without_discount' and line.price_unit:
                         discount = (line.price_unit - price) / line.price_unit * 100
                         # negative discounts (= surcharge) are included in the display price
@@ -208,7 +208,7 @@ class SaleOrderOption(models.Model):
         pricelist = self.order_id.pricelist_id
         if pricelist and product:
             partner_id = self.order_id.partner_id.id
-            self.price_unit = pricelist.with_context(uom=self.uom_id.id).get_product_price(product, self.quantity, partner_id)
+            self.price_unit = pricelist.with_context(uom=self.uom_id.id).get_product_price(product, self.quantity)
 
     def button_add_to_order(self):
         self.add_option_to_order()

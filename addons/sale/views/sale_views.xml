@@ -351,12 +351,13 @@
                                     -->
                                     <field name="sequence" invisible="1"/>
                                     <field name="product_uom_category_id" invisible="1"/>
+                                    <field name="currency_id" invisible="1"/>
                                     <group>
                                         <group attrs="{'invisible': [('display_type', '!=', False)]}">
                                             <field name="product_updatable" invisible="1"/>
                                             <field name="product_id"
                                                 domain="[('sale_ok', '=', True), '|', ('company_id', '=', False), ('company_id', '=', parent.company_id)]"
-                                                context="{'partner_id':parent.partner_id, 'quantity':product_uom_qty, 'pricelist':parent.pricelist_id, 'uom':product_uom, 'company_id': parent.company_id}"
+                                                context="{'partner_id':parent.partner_id, 'quantity':product_uom_qty, 'pricelist_id':parent.pricelist_id, 'uom_id':product_uom, 'company_id': parent.company_id}"
                                                 attrs="{
                                                     'readonly': [('product_updatable', '=', False)],
                                                     'required': [('display_type', '=', False)],
@@ -373,9 +374,7 @@
                                             <field name="price_subtotal" invisible="1"/>
                                             <label for="product_uom_qty"/>
                                             <div class="o_row" name="ordered_qty">
-                                                <field
-                                                    context="{'partner_id':parent.partner_id, 'quantity':product_uom_qty, 'pricelist':parent.pricelist_id, 'uom':product_uom, 'uom_qty_change':True, 'company_id': parent.company_id}"
-                                                    name="product_uom_qty"/>
+                                                <field name="product_uom_qty"/>
                                                 <field
                                                     name="product_uom"
                                                     force_save="1"
@@ -457,8 +456,8 @@
                                         context="{
                                             'partner_id': parent.partner_id,
                                             'quantity': product_uom_qty,
-                                            'pricelist': parent.pricelist_id,
-                                            'uom':product_uom,
+                                            'pricelist_id': parent.pricelist_id,
+                                            'uom_id':product_uom,
                                             'company_id': parent.company_id,
                                             'default_lst_price': price_unit,
                                             'default_description_sale': name
@@ -477,8 +476,8 @@
                                       context="{
                                           'partner_id': parent.partner_id,
                                           'quantity': product_uom_qty,
-                                          'pricelist': parent.pricelist_id,
-                                          'uom':product_uom,
+                                          'pricelist_id': parent.pricelist_id,
+                                          'uom_id':product_uom,
                                           'company_id': parent.company_id,
                                           'default_lst_price': price_unit,
                                           'default_description_sale': name
@@ -494,16 +493,7 @@
                                         options="{'color_field': 'color'}"
                                         domain="['|', ('company_id', '=', False), ('company_id', '=', parent.company_id)]"
                                     />
-                                    <field
-                                        name="product_uom_qty"
-                                        context="{
-                                            'partner_id': parent.partner_id,
-                                            'quantity': product_uom_qty,
-                                            'pricelist': parent.pricelist_id,
-                                            'uom': product_uom,
-                                            'company_id': parent.company_id
-                                        }"
-                                    />
+                                    <field name="product_uom_qty"/>
                                     <field
                                         name="qty_delivered"
                                         string="Delivered"
@@ -530,7 +520,6 @@
                                             'readonly': [('state', 'in', ('sale','done', 'cancel'))],
                                             'required': [('display_type', '=', False)],
                                         }"
-                                        context="{'company_id': parent.company_id}"
                                         groups="uom.group_uom"
                                         options='{"no_open": True}'
                                         optional="show"
@@ -569,6 +558,7 @@
                                     <field name="price_subtotal"/>
                                     <field name="price_tax" invisible="1"/>
                                     <field name="price_total" invisible="1"/>
+                                    <field name="currency_id" invisible="1"/>
                                     <field name="price_unit"/>
                                     <field name="display_type"/>
                                     <field name="tax_id" invisible="1"/>
@@ -630,12 +620,12 @@
                                     <field name="note" nolabel="1" placeholder="Terms and conditions..."/>
                                 </group>
                                 <group class="oe_subtotal_footer oe_right" colspan="2" name="sale_total">
-                                    <field name="amount_untaxed" widget='monetary' options="{'currency_field': 'currency_id'}"/>
-                                    <field name="amount_tax" widget='monetary' options="{'currency_field': 'currency_id'}"/>
+                                    <field name="amount_untaxed" widget='monetary'/>
+                                    <field name="amount_tax" widget='monetary'/>
                                     <div class="oe_subtotal_footer_separator oe_inline o_td_label">
                                         <label for="amount_total" />
                                     </div>
-                                    <field name="amount_total" nolabel="1" class="oe_subtotal_footer_separator" widget='monetary' options="{'currency_field': 'currency_id'}"/>
+                                    <field name="amount_total" nolabel="1" class="oe_subtotal_footer_separator" widget='monetary'/>
                                 </group>
                                 <div class="oe_clear"/>
                             </group>
@@ -991,6 +981,7 @@
                     <field name="qty_to_invoice"/>
                     <field name="product_uom" string="Unit of Measure" groups="uom.group_uom"/>
                     <field name="price_subtotal" sum="Total" widget="monetary"/>
+                    <field name="currency_id" invisible="1"/>
                 </tree>
             </field>
         </record>
