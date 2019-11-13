@@ -1781,6 +1781,7 @@ var FieldOne2Many = FieldX2Many.extend({
             parentID: this.value.id,
             viewInfo: this.view,
             deletable: this.activeActions.delete && params.deletable,
+            disable_multiple_selection: params.disable_multiple_selection,
         }));
     },
 
@@ -1841,6 +1842,7 @@ var FieldOne2Many = FieldX2Many.extend({
         } else {
             this._openFormDialog({
                 context: data.context && data.context[0],
+                disable_multiple_selection: data.disable_multiple_selection,
                 on_saved: function (record) {
                     self._setValue({ operation: 'ADD', id: record.id });
                 },
