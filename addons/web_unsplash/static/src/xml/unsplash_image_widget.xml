@@ -12,7 +12,7 @@
                         <t t-call="wysiwyg.widgets.file.existing.remove"/>
                     </div>
                     <div class="w-100 text-center">
-                        <span>image_name.png</span>
+                        <span class="o_we_attachment_name"><t t-esc="attachment.name"/></span>
                     </div>
                 </div>
                 <div t-attf-class="d-flex align-items-center h-100 w-100 bg-light">

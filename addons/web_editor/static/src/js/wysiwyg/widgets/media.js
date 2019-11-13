@@ -163,7 +163,7 @@ var FileWidget = SearchableMediaWidget.extend({
      * @override
      */
     start: function () {
-        var def = this._super.apply(this, arguments);
+        const defs = [this._super.apply(this, arguments)];
         var self = this;
         this.$urlInput = this.$('.o_we_url_input');
         this.$form = this.$('form');
@@ -190,12 +190,28 @@ var FileWidget = SearchableMediaWidget.extend({
             o.id = +o.url.match(/\/web\/content\/(\d+)/, '')[1];
         }
         if (o.url) {
-            self._selectAttachement(_.find(self.attachments, function (attachment) {
-                return attachment.url === o.url || attachment.image_src === o.url;
-            }) || o);
+            // Get the corresponding attachment
+            defs.push(this._rpc({
+                model: 'ir.attachment',
+                method: 'search_read',
+                args: [],
+                kwargs: {
+                    domain: [['image_src', 'like', o.url]],
+                    fields: ['original_id', 'image_src'],
+                    context: this.options.context,
+                },
+            }).then(media => {
+                let idToSelect = -1;
+                media = media[0];
+                if (media) {
+                    // Select the original attachment if there is one
+                    idToSelect = media.original_id ? media.original_id[0] : media.id;
+                }
+                self._selectAttachement(self.attachments.find(attachment => attachment.id === idToSelect) || o);
+            }));
         }
 
-        return def;
+        return Promise.all(defs);
     },
 
     //--------------------------------------------------------------------------

@@ -279,6 +279,13 @@ body .modal {
                             color: #FD0;
                         }
                     }
+
+                    .o_we_attachment_name {
+                        display: block;
+                        overflow: hidden;
+                        white-space: nowrap;
+                        text-overflow: ellipsis;
+                    }
                 }
 
                 &:hover {
