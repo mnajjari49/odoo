@@ -105,7 +105,7 @@ class TestLeadConvert(crm_common.TestLeadConvertCommon):
         }).create({})
 
         # test internals of convert wizard
-        # self.assertEqual(convert.lead_id, self.lead_1)
+        self.assertEqual(convert.lead_id, self.lead_1)
         self.assertEqual(convert.user_id, self.lead_1.user_id)
         self.assertEqual(convert.team_id, self.lead_1.team_id)
         self.assertFalse(convert.partner_id)
@@ -113,7 +113,6 @@ class TestLeadConvert(crm_common.TestLeadConvertCommon):
         self.assertEqual(convert.action, 'create')
 
         convert.write({'user_id': self.user_sales_salesman.id})
-        convert._onchange_user()
         self.assertEqual(convert.user_id, self.user_sales_salesman)
         self.assertEqual(convert.team_id, self.sales_team_convert)
 
@@ -258,6 +257,52 @@ class TestLeadConvertBatch(crm_common.TestLeadConvertMassCommon):
                 self.assertEqual(opp.stage_id, self.stage_gen_1)  # did not change
             else:
                 self.assertFalse(True)
+
+    @users('user_sales_manager')
+    def test_lead_convert_merge(self):
+        date = Datetime.from_string('2020-01-20 16:00:00')
+        self.crm_lead_dt_mock.now.return_value = date
+
+        leads = self._create_duplicates(self.lead_1)
+
+        convert = self.env['crm.lead2opportunity.partner'].with_context({
+            'active_model': 'crm.lead',
+            'active_id': self.lead_1.id,
+            'active_ids': self.lead_1.ids,
+        }).create({})
+
+        # test internals of convert wizard
+        self.assertEqual(convert.opportunity_ids, self.lead_1 | leads)
+        self.assertEqual(convert.user_id, self.lead_1.user_id)
+        self.assertEqual(convert.team_id, self.lead_1.team_id)
+        self.assertFalse(convert.partner_id)
+        self.assertEqual(convert.name, 'merge')
+        self.assertEqual(convert.action, 'create')
+
+        convert.write({'user_id': self.user_sales_salesman.id})
+        self.assertEqual(convert.user_id, self.user_sales_salesman)
+        self.assertEqual(convert.team_id, self.sales_team_convert)
+
+        convert.action_apply()
+        self.assertEqual(self.lead_1.type, 'opportunity')
+
+    @users('user_sales_manager')
+    def test_lead_convert_various(self):
+        self.lead_1.write({'contact_name': False})
+
+        convert = self.env['crm.lead2opportunity.partner'].with_context({
+            'active_model': 'crm.lead',
+            'active_id': self.lead_1.id,
+        }).create({})
+        self.assertEqual(convert.action, 'nothing')
+
+        self.lead_1.write({'partner_id': self.contact_1.id})
+
+        convert = self.env['crm.lead2opportunity.partner'].with_context({
+            'active_model': 'crm.lead',
+            'active_id': self.lead_1.id,
+        }).create({})
+        self.assertEqual(convert.action, 'exist')
 
 
 @tagged('lead_manage')

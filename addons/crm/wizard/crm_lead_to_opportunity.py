@@ -12,74 +12,94 @@ class Lead2OpportunityPartner(models.TransientModel):
 
     @api.model
     def default_get(self, fields):
-        """ Default get for name, opportunity_ids.
-            If there is an exisitng partner link to the lead, find all existing
-            opportunities links with this partner to merge all information together
-        """
+        """ Allow support of active_id / active_model instead of jut default_lead_id
+        to ease window action definitions, and be backward compatible. """
         result = super(Lead2OpportunityPartner, self).default_get(fields)
-        if self._context.get('active_id'):
-            tomerge = {int(self._context['active_id'])}
 
-            lead = self.env['crm.lead'].browse(self._context['active_id'])
-            result['lead_id'] = lead.id
-
-            partner_id = lead._find_matching_partner()
-            email = lead.partner_id.email if lead.partner_id else lead.email_from
-
-            tomerge.update(self.env['crm.lead']._get_duplicated_leads_by_emails(partner_id, email, include_lost=True).ids)
-
-            if 'action' in fields and not result.get('action'):
-                result['action'] = 'exist' if partner_id else 'create'
-            if 'partner_id' in fields:
-                result['partner_id'] = partner_id
-            if 'name' in fields:
-                result['name'] = 'merge' if len(tomerge) >= 2 else 'convert'
-            if 'opportunity_ids' in fields and len(tomerge) >= 2:
-                result['opportunity_ids'] = list(tomerge)
-            if lead.user_id:
-                result['user_id'] = lead.user_id.id
-            if lead.team_id:
-                result['team_id'] = lead.team_id.id
-            if not partner_id and not lead.contact_name:
-                result['action'] = 'nothing'
-
+        if not result.get('lead_id') and self.env.context.get('active_id'):
+            result['lead_id'] = self.env.context.get('active_id')
         return result
 
     name = fields.Selection([
         ('convert', 'Convert to opportunity'),
         ('merge', 'Merge with existing opportunities')
-    ], 'Conversion Action', required=True)
+    ], 'Conversion Action', compute='_compute_name', readonly=False, store=True)
     action = fields.Selection([
         ('create', 'Create a new customer'),
         ('exist', 'Link to an existing customer'),
         ('nothing', 'Do not link to a customer')
-    ], string='Related Customer', required=True)
-    lead_id = fields.Many2one('crm.lead', "Associated Lead")
-    opportunity_ids = fields.Many2many('crm.lead', string='Opportunities')
-    partner_id = fields.Many2one('res.partner', 'Customer')
-    user_id = fields.Many2one('res.users', 'Salesperson')
-    team_id = fields.Many2one('crm.team', 'Sales Team')
+    ], string='Related Customer', compute='_compute_action', readonly=False, store=True)
+    lead_id = fields.Many2one('crm.lead', 'Associated Lead', required=True)
+    opportunity_ids = fields.Many2many(
+        'crm.lead', string='Opportunities',
+        compute='_compute_opportunity_ids', readonly=False, store=True)
+    partner_id = fields.Many2one(
+        'res.partner', 'Customer',
+        compute='_compute_partner_id', readonly=False, store=True)
+    user_id = fields.Many2one(
+        'res.users', 'Salesperson',
+        compute='_compute_user_id', readonly=False, store=True)
+    team_id = fields.Many2one(
+        'crm.team', 'Sales Team',
+        compute='_compute_team_id', readonly=False, store=True)
 
-    @api.onchange('action')
-    def onchange_action(self):
-        if self.action == 'exist':
-            self.partner_id = self.lead_id._find_matching_partner()
-        else:
-            self.partner_id = False
+    @api.depends('opportunity_ids')
+    def _compute_name(self):
+        for convert in self:
+            convert.name = 'merge' if convert.opportunity_ids and len(convert.opportunity_ids) >= 2 else 'convert'
 
-    @api.onchange('user_id')
-    def _onchange_user(self):
+    @api.depends('lead_id')
+    def _compute_action(self):
+        for convert in self:
+            if not convert.lead_id:
+                convert.action = 'nothing'
+            else:
+                partner_id = convert.lead_id._find_matching_partner()
+                if partner_id:
+                    convert.action = 'exist'
+                elif convert.lead_id.contact_name:
+                    convert.action = 'create'
+                else:
+                    convert.action = 'nothing'
+
+    @api.depends('lead_id', 'partner_id')
+    def _compute_opportunity_ids(self):
+        for convert in self:
+            if not convert.lead_id:
+                convert.opportunity_ids = False
+                continue
+            prout = self.env['crm.lead']._get_duplicated_leads_by_emails(
+                convert.partner_id,
+                convert.lead_id.partner_id.email if convert.lead_id.partner_id else convert.lead_id.email_from,
+                include_lost=True).ids
+            print(prout)
+            convert.opportunity_ids = prout
+
+    @api.depends('action', 'lead_id')
+    def _compute_partner_id(self):
+        for convert in self:
+            if convert.action == 'exist' and convert.lead_id:
+                convert.partner_id = convert.lead_id._find_matching_partner()
+            else:
+                convert.partner_id = False
+
+    @api.depends('lead_id')
+    def _compute_user_id(self):
+        for convert in self:
+            convert.user_id = convert.lead_id.user_id if convert.lead_id.user_id else False
+
+    @api.depends('user_id')
+    def _compute_team_id(self):
         """ When changing the user, also set a team_id or restrict team id
             to the ones user_id is member of.
         """
-        if self.user_id:
-            if self.team_id:
-                user_in_team = self.env['crm.team'].search_count([('id', '=', self.team_id.id), '|', ('user_id', '=', self.user_id.id), ('member_ids', '=', self.user_id.id)])
-            else:
-                user_in_team = False
-            if not user_in_team:
-                values = self.env['crm.lead']._onchange_user_values(self.user_id.id if self.user_id else False)
-                self.team_id = values.get('team_id', False)
+        for convert in self:
+            user = convert.user_id or self.env.user
+            if convert.team_id and user in convert.team_id.member_ids | convert.team_id.user_id:
+                continue
+            team_domain = []
+            team = self.env['crm.team']._get_default_team_id(user_id=user.id, domain=team_domain)
+            convert.team_id = team.id
 
     # NOTE JEM : is it the good place to test this ?
     @api.model

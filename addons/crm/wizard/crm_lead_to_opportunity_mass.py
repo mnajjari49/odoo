@@ -5,7 +5,6 @@ from odoo import api, fields, models
 
 
 class Lead2OpportunityMassConvert(models.TransientModel):
-
     _name = 'crm.lead2opportunity.partner.mass'
     _description = 'Convert Lead to Opportunity (in mass)'
     _inherit = 'crm.lead2opportunity.partner'
@@ -31,11 +30,6 @@ class Lead2OpportunityMassConvert(models.TransientModel):
         ('nothing', 'Do not link to a customer')
     ], string='Related Customer', required=True)
     force_assignation = fields.Boolean('Force assignation', help='If unchecked, this will leave the salesman of duplicated opportunities')
-
-    @api.onchange('action')
-    def _onchange_action(self):
-        if self.action != 'exist':
-            self.partner_id = False
 
     @api.onchange('deduplicate')
     def _onchange_deduplicate(self):
