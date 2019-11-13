@@ -1193,6 +1193,35 @@ header {
     }
 }
 
+// Footer Templates
+
+#footer {
+    @if o-website-value('footer-template') != 'corporate' {
+        .o_footer_logo img {
+            height: $spacer * 3;
+        }
+        @if o-website-value('footer-template') == 'showcase' {
+            .o_footer_logo {
+                margin-top: $spacer;
+                margin-bottom: $spacer;
+            }
+            .o_footer_about_us {
+                margin-bottom: $spacer;
+            }
+        } @else if o-website-value('footer-template') == 'brand' {
+            &, p {
+                text-align: center;
+            }
+            &, ul, .o_footer_address, .o_footer_logo {
+                padding-top: $spacer;
+            }
+            li a {
+                text-transform: uppercase;
+            }
+        }
+    }
+}
+
 // Mega menu
 .o_mega_menu {
     width: 100%;
