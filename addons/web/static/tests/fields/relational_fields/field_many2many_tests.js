@@ -609,8 +609,8 @@ QUnit.module('fields', {}, function () {
 
             await testUtils.form.clickEdit(form);
 
-            assert.containsNone(form, '.o_field_x2many_list_row_add', "should not have the 'Add an item' link");
-            assert.containsNone(form, '.o_list_record_remove', "should not have the 'Add an item' link");
+            assert.containsOnce(form, '.o_field_x2many_list_row_add', "should have the 'Add an item' link");
+            assert.containsN(form, '.o_list_record_remove', 2, "each record should have the 'Remove Item' link");
 
             form.destroy();
         });
@@ -636,8 +636,8 @@ QUnit.module('fields', {}, function () {
 
             await testUtils.form.clickEdit(form);
 
-            assert.ok(!form.$('.o_field_x2many_list_row_add').length,
-                '"Add an item" link should not be available in edit either');
+            assert.ok(form.$('.o_field_x2many_list_row_add').length,
+                '"Add an item" link should be available in edit');
 
             form.destroy();
         });

@@ -1011,7 +1011,9 @@ var FieldX2Many = AbstractField.extend({
         this.isReadonly = this.mode === 'readonly';
         this.view = this.attrs.views[this.attrs.mode];
         this.isMany2Many = this.field.type === 'many2many' || this.attrs.widget === 'many2many';
-        this.activeActions = {};
+        this.activeActions = {
+            relation_alter: false, // Specifically the relation can be altered in its own right
+        };
         this.recordParams = {fieldName: this.name, viewType: this.viewType};
         var arch = this.view && this.view.arch;
         if (arch) {
@@ -1214,8 +1216,8 @@ var FieldX2Many = AbstractField.extend({
             this.currentColInvisibleFields = this._evalColumnInvisibleFields();
             _.extend(rendererParams, {
                 editable: this.mode === 'edit' && arch.attrs.editable,
-                addCreateLine: !this.isReadonly && this.activeActions.create,
-                addTrashIcon: !this.isReadonly && this.activeActions.delete,
+                addCreateLine: !this.isReadonly && (this.activeActions.create || this.activeActions.relation_alter),
+                addTrashIcon: !this.isReadonly && (this.activeActions.delete || this.activeActions.relation_alter),
                 isMany2Many: this.isMany2Many,
                 columnInvisibleFields: this.currentColInvisibleFields,
             });
@@ -1899,6 +1901,12 @@ var FieldMany2Many = FieldX2Many.extend({
     //--------------------------------------------------------------------------
     // Public
     //--------------------------------------------------------------------------
+    init: function () {
+        this._super.apply(this, arguments);
+        // m2m's are essentially pure relations
+        // Altering it doesn't mean we alter the comodel
+        this.activeActions.relation_alter = true;
+    },
     /**
      * Opens a SelectCreateDialog
      */
