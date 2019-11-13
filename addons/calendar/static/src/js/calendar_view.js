@@ -54,17 +54,18 @@ var AttendeeCalendarPopover = CalendarPopover.extend({
     },
 });
 
-var AttendeeCalendarRenderer = CalendarRenderer.extend({
-    config: _.extend({}, CalendarRenderer.prototype.config, {
-        CalendarPopover: AttendeeCalendarPopover,
-    }),
-});
+// MSH: Temporary commented, convert it to OWL supported
 
+// var AttendeeCalendarRenderer = CalendarRenderer.extend({
+//     config: _.extend({}, CalendarRenderer.prototype.config, {
+//         CalendarPopover: AttendeeCalendarPopover,
+//     }),
+// });
 
 var AttendeeCalendarView = CalendarView.extend({
-    config: _.extend({}, CalendarView.prototype.config, {
-        Renderer: AttendeeCalendarRenderer,
-    }),
+    // config: _.extend({}, CalendarView.prototype.config, {
+    //     Renderer: AttendeeCalendarRenderer,
+    // }),
 });
 
 viewRegistry.add('attendee_calendar', AttendeeCalendarView);

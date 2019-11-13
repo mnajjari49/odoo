@@ -1,4 +1,10 @@
 <template>
+    <div t-name="web.OwlCalendarView" class="o_calendar_container" owl="1">
+        <div class="text-center pt-5" style="width: 100%;">
+            <h4>This is OWL Calendar View</h4>
+        </div>
+    </div>
+
     <div t-name="CalendarView" class="o_calendar_container">
         <div class="o_calendar_view">
             <div class="o_calendar_buttons" role="toolbar" aria-label="Calendar toolbar"/>
