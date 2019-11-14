@@ -8,7 +8,7 @@
                 <div class="o_image_controls position-absolute w-100 h-100 d-flex flex-column justify-content-between">
                     <div class="w-100 d-flex">
                         <i t-attf-class="fa fa-star fa-lg o_existing_attachment_favorite p-2 #{attachment.is_favorite ? 'active' : ''}" title="Favorite"/>
-                        <i t-if="!attachment.url" class="fa fa-cog o_existing_attachment_optimize p-2" title="Optimize" role="img" aria-label="Optimize"/>
+                        <i t-if="attachment.type === 'binary'" class="fa fa-cog o_existing_attachment_optimize p-2" title="Optimize" role="img" aria-label="Optimize"/>
                         <t t-call="wysiwyg.widgets.file.existing.remove"/>
                     </div>
                     <div class="w-100 text-center">
@@ -57,11 +57,11 @@
     <h4><t t-esc="title"/></h4>
     <div class="details">
         <t t-esc="subtitle"/>
-        <div class="form-group mt-4 access_key_box">
+        <div class="form-group mt-4 mb-2 access_key_box">
             <input type="text" class="form-control w-100" id="accessKeyInput" placeholder="Paste your access key here"/>
         </div>
         <a href="https://www.odoo.com/documentation/user/general/unsplash/unsplash_access_key.html" target="_blank"><i class="fa fa-arrow-right"/> Generate an access key</a>
-        <div class="form-group mt-4 access_key_box">
+        <div class="form-group mt-4 mb-2 access_key_box">
             <input type="text" class="form-control w-100" id="appIdInput" placeholder="Paste your application ID here"/>
         </div>
         <a href="https://www.odoo.com/documentation/user/general/unsplash/unsplash_application_id.html" target="_blank"><i class="fa fa-arrow-right"/> How to find my Unsplash Application ID?</a>
@@ -70,12 +70,15 @@
 </t>
 
 <t t-name="web_unsplash.dialog.error.content">
-    <div class="d-flex mt-2 unsplash_error">
+    <div class="d-flex mt-2 py-2 border rounded mx-auto col-4 unsplash_error">
         <div class="mx-auto text-center">
             <t t-if="status == 'key_not_found'">
                 <t t-call="web_unsplash.dialog.error.credentials">
                     <t t-set="title">
-                        Unsplash requires an access key and an application ID
+                        Unsplash is not configured
+                    </t>
+                    <t t-set="subtitle">
+                        Search on Unsplash and in your database simultaneously by configuring an Unsplash access key and application ID
                     </t>
                 </t>
             </t>

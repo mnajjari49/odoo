@@ -27,6 +27,7 @@ widgetsMedia.ImageWidget.include({
 
         this._unsplash = {
             isActive: false,
+            records: [],
             selectedImages: {},
             isMaxed: false,
             query: false,
@@ -145,6 +146,7 @@ widgetsMedia.ImageWidget.include({
      * @override
      */
     _renderImages: function (limitDbImages) {
+        this.$('.unsplash_error').remove();
         if (!limitDbImages) {
             return this._super.apply(this, arguments);
         }
@@ -154,7 +156,6 @@ widgetsMedia.ImageWidget.include({
                     status: this._unsplash.error,
                 })
             );
-            return;
         }
 
         this.attachments = this.attachments.slice(0, this.maxDbImages)

@@ -176,6 +176,9 @@ class Web_Editor(http.Controller):
         if copy:
             original = attachment
             attachment = attachment.copy()
+            if attachment.url:
+                # Need to make the url unique for this optimization level and size
+                attachment.url += '-q=%sw=%sh=%s' % (quality, width, height)
             attachment.original_id = original
             attachment.quality = quality
         data = {}

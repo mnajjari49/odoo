@@ -133,6 +133,7 @@ var FileWidget = SearchableMediaWidget.extend({
      * @constructor
      */
     init: function (parent, media, options) {
+        console.log('options of media widget:', options);
         this._super.apply(this, arguments);
         this._mutex = new concurrency.Mutex();
 
