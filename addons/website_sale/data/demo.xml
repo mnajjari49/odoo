@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo noupdate="1">
 
+        <record model="product.pricelist" id="product.list0">
+            <field name="website_published" eval="True"/>
+            <field name="selectable" eval="True" />
+            <field name="website_id" eval="False"/>
+        </record>
+
         <record model="website" id="website.website2">
             <field name="salesteam_id" ref="sales_team.salesteam_website_sales"/>
         </record>
