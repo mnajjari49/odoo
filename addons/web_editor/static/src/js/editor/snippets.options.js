@@ -825,9 +825,6 @@ registry.Image = SnippetOption.extend({
            }
        });
     },
-    cleanForSave: function () {
-        return new Promise(resolve => setTimeout(resolve, 20000));
-    },
 });
 /**
  * Handles the edition of snippet's background image.

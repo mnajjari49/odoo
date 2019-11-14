@@ -208,7 +208,7 @@ var FileWidget = SearchableMediaWidget.extend({
                     // Select the original attachment if there is one
                     idToSelect = media.original_id ? media.original_id[0] : media.id;
                 }
-                self._selectAttachement(self.attachments.find(attachment => attachment.id === idToSelect) || o);
+                self._selectAttachment(self.attachments.find(attachment => attachment.id === idToSelect) || o);
             }));
         }
 
@@ -366,7 +366,7 @@ var FileWidget = SearchableMediaWidget.extend({
     _handleNewAttachment: function (attachment) {
         this.attachments.unshift(attachment);
         this._renderImages();
-        this._selectAttachement(attachment);
+        this._selectAttachment(attachment);
     },
     /**
      * @private
@@ -539,7 +539,7 @@ var FileWidget = SearchableMediaWidget.extend({
      *  and to close the media dialog
      * @private
      */
-    _selectAttachement: function (attachment, save) {
+    _selectAttachment: function (attachment, save) {
         if (this.options.multiImages) {
             // if the clicked attachment is already selected then unselect it
             // unless it was a save request (then keep the current selection)
@@ -587,7 +587,7 @@ var FileWidget = SearchableMediaWidget.extend({
     _onAttachmentClick: function (ev, save) {
         var $attachment = $(ev.currentTarget);
         var attachment = _.find(this.attachments, {id: $attachment.data('id')});
-        this._selectAttachement(attachment, save);
+        this._selectAttachment(attachment, save);
     },
     /**
      * @private
@@ -827,6 +827,24 @@ var ImageWidget = FileWidget.extend({
         const domain = this._super.apply(this, arguments);
         domain.push(['original_id', '=', false]);
         return domain;
+    },
+    /**
+     * Optimize before save.
+     *
+     * @override
+     */
+    _save: function () {
+        // Cache _super because we use it in a promise
+        const _super = this._super;
+        const attachment = this.selectedAttachments[0];
+        if (!this.multiImages && attachment.type === 'binary') {
+            return this._openImageOptimizeDialog(attachment, true).then((newAttachment) => {
+                this.selectedAttachments[0] = newAttachment;
+                return _super.apply(this, arguments);
+            });
+        } else {
+            return _super.apply(this, arguments);
+        }
     },
 });
 
