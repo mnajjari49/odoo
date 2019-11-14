@@ -55,8 +55,8 @@ class WebsiteVisitor(models.Model):
                     lead.partner_id = partner_id
                 self.partner_id = partner_id
             return {
-                'res_model': 'crm.lead',
-                'res_id': lead.id,
+                'res_model': 'website.visitor',
+                'res_id': self.id,
                 'partner_ids': [partner_id],
             }
         return visitor_mail_values

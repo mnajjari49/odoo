@@ -11,8 +11,8 @@ class WebsiteVisitor(models.Model):
     def _prepare_visitor_send_sms_values(self):
         if self.partner_id.mobile:
             return {
-                'res_model': 'res.partner',
-                'res_id': self.partner_id.id,
+                'res_model': 'website.visitor',
+                'res_id': self.id,
                 'partner_ids': [self.partner_id.id],
                 'number_field_name': 'mobile',
             }
