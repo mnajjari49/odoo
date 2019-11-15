@@ -5,6 +5,7 @@
         <field name="model">sms.composer</field>
         <field name="arch" type="xml">
             <form string="Send an SMS">
+                <div colspan="2" class="alert alert-danger" attrs="{'invisible': ['|',('recipient_single_number', '=', False),('recipient_single_is_valid_number', '=', True)]}" style="text-align:center" role="alert">Invalid phone number.</div>
                 <sheet>
                     <group>
                         <field name="composition_mode" invisible="1"/>
@@ -27,20 +28,31 @@
                                 </span>
                                 Check <field class="oe_inline ml-2" name="use_active_domain"/> to send to all
                                 <field class="oe_inline font-weight-bold ml-2" name="active_domain_count"/> records instead. <br/>
-                                <field class="oe_inline font-weight-bold" name="recipient_count"/> recipients are valid
+                                <field class="oe_inline font-weight-bold" name="recipient_valid_count"/> recipients are valid
                                 and <field class="oe_inline font-weight-bold" name="recipient_invalid_count"/> are invalid.
                             </p>
                         </div>
-                        <field name="recipient_description" string="Recipients"
-                            readonly="1"
-                            attrs="{'invisible': [('composition_mode', '!=', 'comment')]}"/>
+
+                        <group>
+                        <div class="o_row">
+                            <label for="recipient_description" string="Recipient" style="font-weight:bold;padding-right:60px" attrs="{'invisible': [('recipient_single_number', '=', False)]}" />
+                            <field  name="recipient_description" class="oe_inline" string="Recipients" readonly="1" attrs="{'invisible': [('composition_mode', '!=', 'comment')]}"/>
+                            <field name="recipient_single_number" class="oe_inline" nolabel="1" attrs="{'invisible': [('recipient_single_number', '=', False)]}"/>
+                        </div>
+                        </group>
+                                                
+                        <field name="recipient_single_is_valid_number" invisible="1"/>
+                        <label for="body" style="font-weight:bold">Message</label>
                         <field name="body" widget="sms_widget"/>
                         <field name="mass_keep_log" invisible="1"/>
                     </group>
                 </sheet>
                 <footer>
+                    <!-- attrs doesn't work for 'disabled'-->
                     <button string="Send SMS" type="object" class="oe_highlight" name="action_send_sms"
-                        attrs="{'invisible': [('composition_mode', 'not in', ('comment', 'numbers'))]}"/>
+                            attrs="{'invisible': ['|',('composition_mode', 'not in', ('comment', 'numbers')),('recipient_single_is_valid_number', '=', False)]}"/>
+                    <button string="Send SMS" type="object" class="oe_highlight" name="action_send_sms"
+                            attrs="{'invisible': ['|',('composition_mode', 'not in', ('comment', 'numbers')),('recipient_single_is_valid_number', '=', True)]}" disabled='1'/>
                     <button string="Put in queue" type="object" class="oe_highlight" name="action_send_sms"
                         attrs="{'invisible': [('composition_mode', '!=', 'mass')]}"/>
                     <button string="Send Now" type="object" name="action_send_sms_mass_now"

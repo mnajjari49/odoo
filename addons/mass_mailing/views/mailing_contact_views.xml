@@ -94,9 +94,9 @@
                 <field name="name"/>
                 <field name="company_name"/>
                 <field name="email"/>
+                <field name="is_blacklisted" string="Email Blacklisted"/>
                 <field name="message_bounce"/>
                 <field name="opt_out" invisible="'default_list_ids' not in context"/>
-                <field name="is_blacklisted"/>
             </tree>
         </field>
     </record>

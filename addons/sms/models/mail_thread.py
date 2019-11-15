@@ -61,7 +61,7 @@ class MailThread(models.AbstractModel):
         send an SMS on a record. """
         return ['mobile']
 
-    def _sms_get_recipients_info(self, force_field=False):
+    def _sms_get_recipients_info(self, force_field=False, return_on_forced_field_invalid=False):
         """" Get SMS recipient information on current record set. This method
         checks for numbers and sanitation in order to centralize computation.
 
@@ -96,6 +96,13 @@ class MailThread(models.AbstractModel):
                 result[record.id] = {
                     'partner': all_partners[0] if all_partners else self.env['res.partner'],
                     'sanitized': valid_number, 'number': valid_number,
+                }
+            elif force_field and return_on_forced_field_invalid: # if we asked to force a field, we don't want to sanitize another one.
+                partner = all_partners[0] if all_partners else self.env['res.partner']
+                result[record.id] = {
+                    'partner': partner,
+                    'sanitized': False,
+                    'number': partner[force_field]
                 }
             elif all_partners:
                 partner_number, partner = False, self.env['res.partner']

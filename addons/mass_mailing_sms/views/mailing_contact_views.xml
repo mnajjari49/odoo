@@ -32,6 +32,8 @@
                 <field name="create_date"/>
                 <field name="name"/>
                 <field name="company_name"/>
+                <field name="email" />
+                <field name="is_blacklisted" string="Email Blacklisted" />
                 <field name="mobile"/>
                 <field name="phone_sanitized" invisible="1"/>
                 <field name="phone_blacklisted"/>
@@ -50,7 +52,7 @@
                 <div class="o_row o_row_readonly" name="phone_details">
                     <i class="fa fa-ban" style="color: red;" role="img" title="This number is blacklisted for SMS Marketing"
                         aria-label="Phone Blacklisted" attrs="{'invisible': [('phone_blacklisted', '=', False)]}" groups="base.group_user"></i>
-                    <field name="mobile" widget="phone"/>
+                    <field name="mobile" widget="phone" options="{'enable_sms': True}"/>
                     <field name="phone_sanitized" invisible="1"/>
                     <field name="phone_blacklisted" invisible="1"/>
                 </div>
@@ -91,4 +93,16 @@
         <field name="action" ref="mailing_contact_action_sms"/>
     </record>
 
+    <!-- Adding mobile and phone_blacklisted to Mass mailing -->
+    <record model="ir.ui.view" id="view_mail_mass_mailing_contact_tree">
+        <field name="name">mailing.contact.tree.inherit.sms</field>
+        <field name="model">mailing.contact</field>
+        <field name="inherit_id" ref="mass_mailing.view_mail_mass_mailing_contact_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="/tree/field[@name='is_blacklisted']" position="after">
+                <field name="mobile" />
+                <field name="phone_blacklisted"/>
+            </xpath>
+        </field>
+    </record>
 </odoo>
