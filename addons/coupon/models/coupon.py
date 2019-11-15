@@ -41,6 +41,7 @@ class Coupon(models.Model):
         ('unique_coupon_code', 'unique(code)', 'The coupon code must be unique!'),
     ]
 
+    @api.depends('create_date', 'program_id')
     def _compute_expiration_date(self):
         self.expiration_date = 0
         for coupon in self.filtered(lambda x: x.program_id.validity_duration > 0):
