@@ -802,28 +802,93 @@ registry.colorpicker = SnippetOption.extend({
  * Handles the edition of snippet's background image.
  */
 registry.Image = SnippetOption.extend({
+    events: _.extend({}, SnippetOption.prototype.events || {}, {
+        'input .custom-range': '_onQualityChange',
+    }),
+
     /**
      * @override
      */
     start: function () {
-        return this._super.apply(this, arguments);
+        this.quality = 80;
+        this.width = 1920;
+        this.$qualityOption = this.$el.find('.o_we_quality_option');
+        this.$qualityInput = this.$qualityOption.find('input');
+        this.$favorite = this.$el.find('[data-favorite]');
+        this.$fileSize = this.$el.find('.o_we_image_file_size');
+        window.fetch(this.$target[0].src, {method: 'HEAD'}).then(resp => {
+            this.$fileSize.text(`${(resp.headers.get('Content-Length') / 1000).toFixed(2)}kb`);
+        });
+        // Only update preview when the user stops moving the input
+        this._onQualityChange = _.debounce(this._onQualityChange.bind(this), 200);
+
+        const _super = this._super;
+        return this._getAttachmentFromSrc().then(() => _super.apply(this, arguments));
     },
-    onFocus: function () {
-        const match = this.$target[0].src.match(/\/web\/image\/(\d+)/);
-        if (match) {
-            this.$el.removeClass('d-none');
-            this.attachment_id = parseInt(match[1]);
-        } else {
-            this.$el.addClass('d-none');
+    /**
+     * @override
+     */
+    cleanForSave: function () {
+        if (this.$target[0].dataset.optimizeOnSave === 'true' && this.quality !== this.originalQuality) {
+            return this._rpc({
+                route: `/web_editor/attachment/${this.$target[0].dataset.originalId}/update`,
+                params: {
+                    copy: true,
+                    quality: this.quality,
+                    width: this.width,
+                },
+            }).then((optimizedImage) => {
+                this.$target.attr('src', optimizedImage.image_src);
+                delete this.$target[0].dataset.optimizeOnSave;
+                delete this.$target[0].dataset.originalId;
+            });
         }
     },
+    // Public
     favorite: function () {
         this._rpc({
            route: '/web_editor/attachment/toggle_favorite',
            params: {
-               ids: [this.attachment_id],
+               ids: [parseInt(this.$target[0].dataset.originalId)],
            }
        });
+    },
+    _onQualityChange: function (ev) {
+        this.quality = parseInt(ev.target.value);
+        this.$target[0].dataset.optimizeOnSave = 'true';
+        const src = `/web/image/${this.$target[0].dataset.originalId}/?quality=${this.quality}`;
+        this.$target.attr('src', src);
+        window.fetch(src, {method: 'HEAD'}).then(resp => {
+            this.$fileSize.text(`${(resp.headers.get('Content-Length') / 1000).toFixed(2)}kb`);
+        });
+    },
+    _getAttachmentFromSrc: function () {
+        const url = this.$target.attr('src').split('?')[0];
+        return this._rpc({
+            model: 'ir.attachment',
+            method: 'search_read',
+            args: [],
+            kwargs: {
+                domain: [['image_src', 'like', url]],
+                fields: ['type', 'is_favorite', 'original_id', 'quality', 'name'],
+                context: this.options.context,
+            },
+        }).then(attachments => {
+            if (attachments.length) {
+                this.attachment = attachments[0];
+                this.$target[0].dataset.originalId = this.attachment.original_id[0] || this.attachment;
+                this.$qualityInput.val(this.attachment.quality);
+                this.originalQuality = this.attachment.quality;
+                this.$favorite.removeClass('d-none');
+                if (this.attachment.type === 'binary') {
+                    this.$qualityOption.removeClass('d-none');
+                } else {
+                    this.$qualityOption.addClass('d-none');
+                }
+            } else {
+                this.$favorite.add(this.$qualityOption).addClass('d-none');
+            }
+        });
     },
 });
 /**

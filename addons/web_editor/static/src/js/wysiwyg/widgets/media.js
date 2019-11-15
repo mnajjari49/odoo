@@ -302,7 +302,7 @@ var FileWidget = SearchableMediaWidget.extend({
      * @returns {integer}
      */
     _computeOptimizedWidth: function () {
-        return Math.min(1920, parseInt(this.options.mediaWidth * this.OPTIMIZE_SIZE_FACTOR));
+        return Math.min(1920, parseInt(this.options.mediaWidth * this.OPTIMIZE_SIZE_FACTOR) || 1920);
     },
     /**
      * Returns the domain for attachments used in media dialog.
@@ -488,10 +488,6 @@ var FileWidget = SearchableMediaWidget.extend({
 
         return Promise.resolve(prom).then(function () {
             if (img.image_src) {
-                var src = img.image_src;
-                if (!img.public && img.access_token) {
-                    src += _.str.sprintf('?access_token=%s', img.access_token);
-                }
                 if (!self.$media.is('img')) {
 
                     // Note: by default the images receive the bootstrap opt-in
@@ -499,6 +495,18 @@ var FileWidget = SearchableMediaWidget.extend({
                     // by design because of libraries and client databases img.
                     self.$media = $('<img/>', {class: 'img-fluid o_we_custom_image'});
                     self.media = self.$media[0];
+                }
+                var src = img.image_src;
+                if (img.type === 'binary') {
+                    src = `/web/image/${img.id}/${encodeURIComponent(img.name)}?width=${self._computeOptimizedWidth()}&quality=80`;
+                    self.media.dataset.optimizeOnSave = 'true';
+                    self.media.dataset.originalId = img.id;
+                } else {
+                    delete self.media.dataset.optimizeOnSave;
+                    delete self.media.dataset.originalId;
+                }
+                if (!img.public && img.access_token) {
+                    src += _.str.sprintf('?access_token=%s', img.access_token);
                 }
                 self.$media.attr('src', src);
             } else {
@@ -827,24 +835,6 @@ var ImageWidget = FileWidget.extend({
         const domain = this._super.apply(this, arguments);
         domain.push(['original_id', '=', false]);
         return domain;
-    },
-    /**
-     * Optimize before save.
-     *
-     * @override
-     */
-    _save: function () {
-        // Cache _super because we use it in a promise
-        const _super = this._super;
-        const attachment = this.selectedAttachments[0];
-        if (!this.multiImages && attachment.type === 'binary') {
-            return this._openImageOptimizeDialog(attachment, true).then((newAttachment) => {
-                this.selectedAttachments[0] = newAttachment;
-                return _super.apply(this, arguments);
-            });
-        } else {
-            return _super.apply(this, arguments);
-        }
     },
 });
 

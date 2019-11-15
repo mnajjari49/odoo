@@ -429,18 +429,18 @@ body .modal {
 }
 
 // Highlight selected image/icon
-%o-we-selected-image {
-    $o-selected-image-color: rgba(150, 150, 220, 0.3);
-    background: $o-selected-image-color;
-    outline: 3px solid $o-selected-image-color;
-}
+$o-selected-image-color: rgba(150, 150, 220, 0.3);
 
 img.o_we_selected_image {
-    @extend %o-we-selected-image;
+    outline: 3px solid $o-selected-image-color;
+    &::selection {
+        background-color: transparent;
+    }
 }
 
 .fa.o_we_selected_image::before {
-    @extend %o-we-selected-image;
+    outline: 3px solid $o-selected-image-color;
+    background: $o-selected-image-color;
 }
 
 .fa.mx-auto,
