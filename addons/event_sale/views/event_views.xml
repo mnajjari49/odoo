@@ -177,7 +177,6 @@
                             <field name="seats_available"/>
                             <field name="end_sale_date"/>
                             <field name="price"/>
-                            <field name="price_reduce" groups="base.group_no_one"/>
                         </group>
                         <group>
                             <field name="seats_max"/>

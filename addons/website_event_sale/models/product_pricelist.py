@@ -7,6 +7,7 @@ class PricelistItem(models.Model):
 
     @api.onchange('applied_on', 'product_id', 'product_tmpl_id', 'min_quantity')
     def _onchange_event_sale_warning(self):
+        # VFE TODO remove this broll and make it work
         if self.min_quantity > 0:
             msg = ''
             if self.applied_on == '3_global' or self.applied_on == '2_product_category':
