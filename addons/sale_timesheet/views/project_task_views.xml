@@ -74,6 +74,9 @@
                     <field name="sale_order_id" attrs="{'invisible': [('project_id', '!=', False)]}" groups="sales_team.group_sale_salesman"/>
                     <field name="commercial_partner_id" invisible="1" />
                 </xpath>
+                <xpath expr="//field[@name='email_cc']" position="after">
+                    <field name="analytic_account_id" groups="base.group_no_one"/>
+                </xpath>
             </field>
         </record>
 
