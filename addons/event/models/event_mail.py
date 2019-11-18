@@ -46,11 +46,30 @@ class EventTypeMail(models.Model):
         domain=[('model', '=', 'event.registration')], ondelete='restrict',
         help='This field contains the template of the mail that will be automatically sent')
 
-    @api.model
     def _get_event_mail_fields_whitelist(self):
         """ Whitelist of fields that are copied from event_type_mail_ids to event_mail_ids when
         changing the event_type_id field of event.event """
         return ['notification_type', 'template_id', 'interval_nbr', 'interval_unit', 'interval_type']
+
+    def write(self, vals):
+        if 'notification_type' in vals and vals.get('notification_type') != 'mail':
+            vals['template_id'] = False
+        res = super(EventTypeMail, self).write(vals)
+        return res
+
+    def _get_event_mail_values(self):
+        """
+        When changing the ``event.type``, we will automatically create ``event.mail``
+        This function returns the value for the ``event.mail`` that will be created
+        """
+        self.ensure_one()
+        return {
+            'notification_type': self.notification_type,
+            'template_id': self.template_id,
+            'interval_nbr': self.interval_nbr,
+            'interval_unit': self.interval_unit,
+            'interval_type': self.interval_type
+        }
 
 
 class EventMailScheduler(models.Model):
@@ -171,6 +190,12 @@ class EventMailScheduler(models.Model):
                 if autocommit:
                     self.env.cr.commit()
         return True
+
+    def write(self, vals):
+        if 'notification_type' in vals and vals.get('notification_type') != 'mail':
+            vals['template_id'] = False
+        res = super(EventMailScheduler, self).write(vals)
+        return res
 
 
 class EventMailRegistration(models.Model):

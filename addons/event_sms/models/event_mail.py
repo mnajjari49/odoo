@@ -17,6 +17,23 @@ class EventTypeMail(models.Model):
     def _get_event_mail_fields_whitelist(self):
         return super(EventTypeMail, self)._get_event_mail_fields_whitelist() + ['sms_template_id']
 
+    def write(self, vals):
+        if 'notification_type' in vals and vals.get('notification_type') != 'sms':
+            vals['sms_template_id'] = False
+        res = super(EventTypeMail, self).write(vals)
+        return res
+
+    def _get_event_mail_values(self):
+        """
+        When changing the ``event.type``, we will automatically create ``event.mail``
+        This function returns the value for the ``event.mail`` that will be created
+        """
+        self.ensure_one()
+        values = super()._get_event_mail_values()
+        if self.sms_template_id:
+            values.update({'sms_template_id': self.sms_template_id})
+        return values
+
 
 class EventMailScheduler(models.Model):
     _inherit = 'event.mail'
@@ -40,6 +57,12 @@ class EventMailScheduler(models.Model):
                     )
                     mail.write({'mail_sent': True})
         return super(EventMailScheduler, self).execute()
+
+    def write(self, vals):
+        if 'notification_type' in vals and vals.get('notification_type') != 'sms':
+            vals['sms_template_id'] = False
+        res = super(EventMailScheduler, self).write(vals)
+        return res
 
 
 class EventMailRegistration(models.Model):

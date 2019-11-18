@@ -303,10 +303,7 @@ class EventEvent(models.Model):
 
             if self.event_type_id.event_type_mail_ids:
                 self.event_mail_ids = [(5, 0, 0)] + [
-                    (0, 0, {
-                        attribute_name: line[attribute_name]
-                        for attribute_name in self.env['event.type.mail']._get_event_mail_fields_whitelist()
-                        })
+                    (0, 0, line._get_event_mail_values())
                     for line in self.event_type_id.event_type_mail_ids]
 
     @api.constrains('seats_min', 'seats_max', 'seats_availability')
