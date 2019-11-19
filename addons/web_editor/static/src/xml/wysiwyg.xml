@@ -283,7 +283,7 @@
                 <p class="o_empty_folder_image">No images found.</p>
                 <p class="o_empty_folder_subtitle">You can upload images with the button located in the top left of the screen.</p>
             </div>
-            <ol t-else="" class="d-flex flex-wrap px-0 justify-content-between" style="margin: -8px;">
+            <ol t-else="" class="d-flex flex-wrap px-0 justify-content-between" style="margin: -2px;">
                 <t t-foreach="attachments" t-as="attachment">
                     <t t-call="wysiwyg.widgets.image.existing.attachment"/>
                 </t>

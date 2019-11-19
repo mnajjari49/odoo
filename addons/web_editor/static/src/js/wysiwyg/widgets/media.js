@@ -133,7 +133,6 @@ var FileWidget = SearchableMediaWidget.extend({
      * @constructor
      */
     init: function (parent, media, options) {
-        console.log('options of media widget:', options);
         this._super.apply(this, arguments);
         this._mutex = new concurrency.Mutex();
 
@@ -445,7 +444,7 @@ var FileWidget = SearchableMediaWidget.extend({
             this._renderExisting(attachments.map(a => {
                 // Use a resizing url for binary attachments so they load faster
                 if (a.type === 'binary') {
-                    return _.extend({}, a, {thumbnail: `/web/image/${a.id}/${encodeURIComponent(a.name)}?width=256&height=192`});
+                    return _.extend({}, a, {thumbnail: `/web/image/${a.id}/${encodeURIComponent(a.name)}?width=292`});
                 }
                 return a;
             }))

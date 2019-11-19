@@ -231,8 +231,11 @@ body .modal {
                     // give enough space for the hover buttons
                     min-width: 64px;
 
-                    max-width: 256px;
-                    max-height: 192px;
+                    // on a 1080p monitor, the container is 1480px wide, these dimensions let exactly
+                    // 5 cells fit with their margins so that images are not too spaced around. 
+                    max-width: 292px;
+                    max-height: 220px;
+                    margin: 2px;
 
                     img {
                         width: 100%;
