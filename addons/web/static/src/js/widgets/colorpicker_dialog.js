@@ -15,7 +15,7 @@ var ColorpickerDialog = Dialog.extend({
         'mousedown .o_color_pick_area': '_onMouseDownPicker',
         'mousedown .o_color_slider': '_onMouseDownSlider',
         'mousedown .o_opacity_slider': '_onMouseDownOpacitySlider',
-        'change .o_color_picker_inputs' : '_onChangeInputs',
+        'change .o_color_picker_inputs': '_onChangeInputs',
     }),
 
     /**
@@ -579,6 +579,16 @@ ColorpickerDialog.normalizeCSSColor = function (cssColor) {
         return cssColor;
     }
     return ColorpickerDialog.convertRgbaToCSSColor(rgba.red, rgba.green, rgba.blue, rgba.opacity);
+};
+/**
+ * Checks if a given string is a css color.
+ *
+ * @static
+ * @param {string} cssColor
+ * @returns {boolean}
+ */
+ColorpickerDialog.isCSSColor = function (cssColor) {
+    return ColorpickerDialog.convertCSSColorToRgba(cssColor) !== false;
 };
 
 return ColorpickerDialog;
