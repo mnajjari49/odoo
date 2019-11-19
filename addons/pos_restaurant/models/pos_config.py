@@ -42,3 +42,9 @@ class PosConfig(models.Model):
         for table in self.floor_ids.table_ids.filtered(lambda t: t.active ==  True):
             result.append({'id': table.id, 'orders': self.env['pos.order'].search_count([('state', '=', 'draft'), ('table_id', '=', table.id)])})
         return result
+
+    def _get_forbidden_change_fields(self):
+        forbidden_keys = super(PosConfig, self)._get_forbidden_change_fields()
+        forbidden_keys.append('is_table_management')
+        forbidden_keys.append('floor_ids')
+        return forbidden_keys
