@@ -938,7 +938,7 @@ registry.Image = SnippetOption.extend({
     },
     // Public
     favorite: function () {
-        this.imageManager.favorite(this._rpc.bind(this)).then(() => this._updateUi());
+        this.imageManager.favorite(this._rpc.bind(this)).then(() => this._updateUi(true));
     },
     _onQualityChange: function (ev) {
         // % 100 because we want 0 when quality is set to 100.
@@ -959,17 +959,19 @@ registry.Image = SnippetOption.extend({
     _onFavoriteUpdated: function (ev, {id: attachmentId, isFavorite}) {
         if (parseInt(this.$target[0].dataset.originalId) === attachmentId) {
             this.imageManager.isFavorite = isFavorite;
-            this._updateUi();
+            this._updateUi(true);
         }
     },
-    _updateUi: function () {
+    _updateUi: function (keepCurrentQuality) {
         const attachment = this.imageManager.attachment;
         if (!attachment) {
             this.$qualityOption.addClass('d-none');
             this.$favorite.addClass('d-none');
             return;
         }
-        this.$qualityInput.val(attachment.quality || 80);
+        if (!keepCurrentQuality) {
+            this.$qualityInput.val(attachment.quality || 80);
+        }
         if (attachment.type === 'binary') {
             this.$qualityOption.removeClass('d-none');
             this.originalQuality = attachment.quality;
@@ -1019,17 +1021,19 @@ registry.background = SnippetOption.extend({
     _onFavoriteUpdated: function (ev, {id: attachmentId, isFavorite}) {
         if (parseInt(this.$img[0].dataset.originalId) === attachmentId) {
             this.imageManager.isFavorite = isFavorite;
-            this._updateUi();
+            this._updateUi(true);
         }
     },
-    _updateUi: function () {
+    _updateUi: function (keepCurrentQuality) {
         const attachment = this.imageManager.attachment;
         if (!attachment) {
             this.$qualityOption.addClass('d-none');
             this.$favorite.addClass('d-none');
             return;
         }
-        this.$qualityInput.val(attachment.quality || 80);
+        if (!keepCurrentQuality) {
+            this.$qualityInput.val(attachment.quality || 80);
+        }
         if (attachment.type === 'binary') {
             this.$qualityOption.removeClass('d-none');
             this.originalQuality = attachment.quality;
@@ -1103,10 +1107,14 @@ registry.background = SnippetOption.extend({
     },
 
     cleanForSave: function () {
-        return this.imageManager.cleanForSave(this._rpc.bind(this)).then(() => {
-            this._setCustomBackground(this.$img.attr('src'));
+        if (this.$img[0].dataset.optimizeOnSave) {
+            return this.imageManager.cleanForSave(this._rpc.bind(this)).then(() => {
+                this._setCustomBackground(this.$img.attr('src'));
+                this.$img.remove();
+            });
+        } else {
             this.$img.remove();
-        });
+        }
     },
 
     //--------------------------------------------------------------------------
@@ -1125,7 +1133,7 @@ registry.background = SnippetOption.extend({
             .on('background-color-event.background-option', this._onBackgroundColorUpdate.bind(this));
     },
     favorite: function () {
-        this.imageManager.favorite(this._rpc.bind(this)).then(() => this._updateUi());
+        this.imageManager.favorite(this._rpc.bind(this)).then(() => this._updateUi(true));
     },
     /**
      * @override
@@ -1173,12 +1181,9 @@ registry.background = SnippetOption.extend({
         if (value === undefined) {
             value = this.$target.css('background-image');
         }
-        const bgImageRegex = /background-image: url\(['"](.*)['"]\)/g;
-        const results = bgImageRegex.exec(this.$target.attr('style'));
-        if (results) {
-            return results[1];
-        }
-        return '';
+        const bgImageRegex = /url\(['"](.*)['"]\)/g;
+        const results = bgImageRegex.exec(this.$target[0].style.backgroundImage);
+        return results ? results[1] : '';
     },
     /**
      * @override
@@ -1209,7 +1214,7 @@ registry.background = SnippetOption.extend({
         this.$target.toggleClass('oe_custom_bg', !!value);
         this._setActive();
         this.$target.trigger('snippet-option-change', [this]);
-        this.imageManager.getAttachmentFromOriginalId(this._rpc.bind(this)).then(() => this._updateUi());
+        this.imageManager.getAttachmentFromOriginalId(this._rpc.bind(this)).then(() => this._updateUi(true));
     },
 
     //--------------------------------------------------------------------------
@@ -1233,6 +1238,7 @@ registry.background = SnippetOption.extend({
         }
         if (previewMode === false) {
             this.__customImageSrc = undefined;
+            delete this.$img[0].dataset.optimizeOnSave;
         }
         this.background(previewMode);
         return true;

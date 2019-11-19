@@ -12,7 +12,7 @@ widgetsMedia.ImageWidget.include({
         ['/web_unsplash/static/src/xml/unsplash_image_widget.xml']
     ),
     events: _.extend({}, widgetsMedia.ImageWidget.prototype.events, {
-        'click .unsplash_img_container [data-imgid]': '_onUnsplashImgClick',
+        'click .unsplash_img_container .o_image_controls': '_onUnsplashImgClick',
         'click button.save_unsplash': '_onSaveUnsplash',
     }),
 
@@ -121,22 +121,6 @@ widgetsMedia.ImageWidget.include({
     //--------------------------------------------------------------------------
 
     /**
-     * @override
-     */
-    _highlightSelected: function () {
-        var self = this;
-        if (!this._unsplash.isActive) {
-            return this._super.apply(this, arguments);
-        }
-
-        this.$('.o_unsplash_img_cell.o_selected').removeClass('o_selected');
-        var $select = this.$('.o_unsplash_img_cell [data-imgid]').filter(function () {
-            return $(this).data('imgid') in self._unsplash.selectedImages;
-        });
-        $select.closest('.o_unsplash_img_cell').addClass('o_selected');
-        return $select;
-    },
-    /**
      * @private
      */
     _loadMoreImages: function (forceSearch) {
@@ -218,9 +202,10 @@ widgetsMedia.ImageWidget.include({
      * @private
      */
     _onUnsplashImgClick: function (ev) {
-        var imgid = $(ev.currentTarget).data('imgid');
-        var url = $(ev.currentTarget).data('url');
-        var downloadURL = $(ev.currentTarget).data('download-url');
+        const $img = $(ev.currentTarget).siblings().find('img[data-imgid]');
+        var imgid = $img.data('imgid');
+        var url = $img.data('url');
+        var downloadURL = $img.data('download-url');
         if (!this.options.multiImages) {
             this._unsplash.selectedImages = {};
         }

@@ -22,6 +22,13 @@
         </t>
         <t t-else="">
             <li class="o_existing_attachment_cell unsplash_img_container position-relative" t-att-data-id="attachment.id">
+                <div class="o_image_controls position-absolute w-100 h-100 d-flex flex-column justify-content-between">
+                    <div class="w-100 d-flex">
+                    </div>
+                    <div class="w-100 text-center">
+                        <span class="o_we_attachment_name">Photo by <a t-att-href="attachment.user.links.html"><t t-esc="attachment.user.username"/></a> on Unsplash</span>
+                    </div>
+                </div>
                 <div t-attf-class="d-flex align-items-center h-100 w-100 bg-light">
                     <img class="img img-fluid o_we_attachment_highlight"
                         t-att-src="attachment.urls.thumbnail"
