@@ -839,15 +839,19 @@ const ImageManager = core.Class.extend({
     },
     getAttachmentFromSrc: function (rpc) {
         const url = this.img.attributes.src.value.split('?')[0];
-        return rpc({
-            model: 'ir.attachment',
-            method: 'search_read',
-            args: [],
-            kwargs: {
-                domain: [['image_src', 'like', url]],
-                fields: ['type', 'is_favorite', 'original_id', 'quality', 'name'],
-            },
-        }).then(attachments => this.updateAttachment(attachments, rpc));
+        let request = Promise.resolve([]);
+        if (url) {
+            request = rpc({
+                model: 'ir.attachment',
+                method: 'search_read',
+                args: [],
+                kwargs: {
+                    domain: [['image_src', 'like', url]],
+                    fields: ['type', 'is_favorite', 'original_id', 'quality', 'name'],
+                },
+            });
+        }
+        return request.then(attachments => this.updateAttachment(attachments, rpc));
     },
     getAttachmentFromOriginalId: function (rpc) {
         return rpc({
@@ -880,6 +884,7 @@ const ImageManager = core.Class.extend({
                 this.isFavorite = original && original.length ? original[0].is_favorite : this.attachment.is_favorite;
             });
         } else {
+            delete this.attachment;
             delete this.img.dataset.originalId;
         }
         return Promise.resolve();
@@ -908,7 +913,8 @@ registry.Image = SnippetOption.extend({
         this.$fileSize = this.$el.find('.o_we_image_file_size');
         // Only update preview when the user stops moving the input
         this._onQualityChange = _.debounce(this._onQualityChange.bind(this), 200);
-        this.$target.on('content_changed.snippet_option.image', this._onContentChanged.bind(this));
+        this.$target.on('content_changed.image-option', this._onContentChanged.bind(this));
+        this.$target.on('favorite-updated.image-option', this._onFavoriteUpdated.bind(this));
 
         this.imageManager = new ImageManager(this.$target[0]);
 
@@ -922,7 +928,7 @@ registry.Image = SnippetOption.extend({
      * @override
      */
     destroy: function () {
-        this.$target.off('.snippet_option.image');
+        this.$target.off('.image-option');
     },
     /**
      * @override
@@ -950,8 +956,19 @@ registry.Image = SnippetOption.extend({
             this.$target.one('load', () => this.trigger_up('cover_update'));
         }
     },
+    _onFavoriteUpdated: function (ev, {id: attachmentId, isFavorite}) {
+        if (parseInt(this.$target[0].dataset.originalId) === attachmentId) {
+            this.imageManager.isFavorite = isFavorite;
+            this._updateUi();
+        }
+    },
     _updateUi: function () {
         const attachment = this.imageManager.attachment;
+        if (!attachment) {
+            this.$qualityOption.addClass('d-none');
+            this.$favorite.addClass('d-none');
+            return;
+        }
         this.$qualityInput.val(attachment.quality || 80);
         if (attachment.type === 'binary') {
             this.$qualityOption.removeClass('d-none');
@@ -959,6 +976,7 @@ registry.Image = SnippetOption.extend({
         } else {
             this.$qualityOption.addClass('d-none');
         }
+        this.$favorite.removeClass('d-none');
         this.$favorite.css('background-color', this.imageManager.isFavorite ? '#FD0' : 'var(--o-we-bg-color-dark)');
         this._updateWeight();
     },
@@ -977,34 +995,64 @@ registry.background = SnippetOption.extend({
      * @override
      */
     start: function () {
-        this.bindBackgroundEvents();
-        this.__customImageSrc = this._getSrcFromCssValue();
-        this.$img = $('<img/>', {
-            class: 'd-none o_we_fake_image',
-            src: this.__customImageSrc,
-        }).appendTo(this.$target);
+        this._super.apply(this, arguments).then(() => {
+            this.bindBackgroundEvents();
+            this.__customImageSrc = this._getSrcFromCssValue();
 
-        this.$qualityOption = this.$el.find('.o_we_quality_option');
-        this.$qualityInput = this.$qualityOption.find('input');
-        this.$favorite = this.$el.find('[data-favorite]');
-        this.$fileSize = this.$el.find('.o_we_image_file_size');
+            this.$qualityOption = this.$el.find('.o_we_quality_option');
+            this.$qualityInput = this.$qualityOption.find('input');
+            this.$favorite = this.$el.find('[data-favorite]');
+            this.$fileSize = this.$el.find('.o_we_image_file_size');
 
-        this._onQualityChange = _.debounce(this._onQualityChange.bind(this), 200);
+            this._onQualityChange = _.debounce(this._onQualityChange.bind(this), 200);
 
-        this.imageManager = new ImageManager(this.$img[0]);
-        return Promise.all([
-            this.imageManager.getAttachmentFromSrc(this._rpc.bind(this)),
-            this._super.apply(this, arguments),
-        ]);
+            this.$img = $('<img/>', {
+                class: 'd-none o_we_fake_image',
+                src: this.__customImageSrc,
+            }).appendTo(this.$target);
+            this.$img.on('favorite-updated', this._onFavoriteUpdated.bind(this));
+            this.imageManager = new ImageManager(this.$img[0]);
+
+            return this.imageManager.getAttachmentFromSrc(this._rpc.bind(this)).then(() => this._updateUi());
+        });
     },
-    _onQualityChange: function (ev) {
-        // % 100 because we want 0 when quality is set to 100.
-        this.quality = parseInt(ev.target.value) % 100;
-        this.imageManager.changeImageQuality(this.quality);
+    _onFavoriteUpdated: function (ev, {id: attachmentId, isFavorite}) {
+        if (parseInt(this.$img[0].dataset.originalId) === attachmentId) {
+            this.imageManager.isFavorite = isFavorite;
+            this._updateUi();
+        }
+    },
+    _updateUi: function () {
+        const attachment = this.imageManager.attachment;
+        if (!attachment) {
+            this.$qualityOption.addClass('d-none');
+            this.$favorite.addClass('d-none');
+            return;
+        }
+        this.$qualityInput.val(attachment.quality || 80);
+        if (attachment.type === 'binary') {
+            this.$qualityOption.removeClass('d-none');
+            this.originalQuality = attachment.quality;
+        } else {
+            this.$qualityOption.addClass('d-none');
+        }
+        this.$favorite.removeClass('d-none');
+        this.$favorite.css('background-color', this.imageManager.isFavorite ? '#FD0' : 'var(--o-we-bg-color-dark)');
         this._updateWeight();
     },
     _updateWeight: function () {
         this.imageManager.getImageWeight().then(weight => this.$fileSize.text(weight));
+    },
+    _onQualityChange: function (ev) {
+        // % 100 because we want 0 when quality is set to 100 (no optimization)
+        this.quality = parseInt(ev.target.value) % 100;
+        this.imageManager.changeImageQuality(this.quality);
+        // Wait for the image to be in cache so that the background doesn't flash
+        // to a blank one before showing the adapted quality. Unfortunately this
+        // trick is not consistent accross browsers, but doesn't make it any worse
+        // when it doesn't work.
+        this.$img.one('load', () => this._setCustomBackground(this.$img.attr('src')));
+        this._updateWeight();
     },
 
     //--------------------------------------------------------------------------
@@ -1077,7 +1125,7 @@ registry.background = SnippetOption.extend({
             .on('background-color-event.background-option', this._onBackgroundColorUpdate.bind(this));
     },
     favorite: function () {
-        this.imageManager.favorite(this._rpc.bind(this));
+        this.imageManager.favorite(this._rpc.bind(this)).then(() => this._updateUi());
     },
     /**
      * @override
@@ -1087,6 +1135,8 @@ registry.background = SnippetOption.extend({
         // TODO should be automatic for all options as equal to the start method
         this.bindBackgroundEvents();
         this.__customImageSrc = this._getSrcFromCssValue();
+        this.$img.attr('src', this.__customImageSrc);
+        this.imageManager.getAttachmentFromSrc(this._rpc.bind(this)).then(() => this._updateUi());
     },
 
     //--------------------------------------------------------------------------
@@ -1159,6 +1209,7 @@ registry.background = SnippetOption.extend({
         this.$target.toggleClass('oe_custom_bg', !!value);
         this._setActive();
         this.$target.trigger('snippet-option-change', [this]);
+        this.imageManager.getAttachmentFromOriginalId(this._rpc.bind(this)).then(() => this._updateUi());
     },
 
     //--------------------------------------------------------------------------

@@ -499,11 +499,10 @@ var FileWidget = SearchableMediaWidget.extend({
                 if (img.type === 'binary') {
                     src = `/web/image/${img.id}/${encodeURIComponent(img.name)}?width=${self._computeOptimizedWidth()}&quality=80`;
                     self.media.dataset.optimizeOnSave = 'true';
-                    self.media.dataset.originalId = img.id;
                 } else {
                     delete self.media.dataset.optimizeOnSave;
-                    delete self.media.dataset.originalId;
                 }
+                self.media.dataset.originalId = img.id;
                 if (!img.public && img.access_token) {
                     src += _.str.sprintf('?access_token=%s', img.access_token);
                 }
@@ -718,9 +717,10 @@ var FileWidget = SearchableMediaWidget.extend({
             params: {
                 ids: [id],
             },
-        }).then(function () {
+        }).then(() => {
             ev.currentTarget.classList.toggle('active');
             attachment.is_favorite = !attachment.is_favorite;
+            this.$media.trigger('favorite-updated', {id: attachment.id, isFavorite: attachment.is_favorite});
         });
     },
     /**
