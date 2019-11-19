@@ -66,8 +66,8 @@ class MailComposer(models.TransientModel):
         result['composition_mode'] = result.get('composition_mode', 'comment')
         result['model'] = result.get('model', self._context.get('active_model'))
         result['res_id'] = result.get('res_id', self._context.get('active_id'))
-        if 'no_auto_thread' not in result and (result['model'] not in self.env or not hasattr(self.env[result['model']], 'message_post')):
-            result['no_auto_thread'] = True
+        if 'reply_to_target' not in result and (result['model'] not in self.env or not hasattr(self.env[result['model']], 'message_post')):
+            result['reply_to_target'] = 'another_email_address'
 
         vals = {}
         if 'active_domain' in self._context:  # not context.get() because we want to keep global [] domains
@@ -126,9 +126,11 @@ class MailComposer(models.TransientModel):
         'mail.activity.type', 'Mail Activity Type',
         index=True, ondelete='set null')
     # destination
-    reply_to = fields.Char('Reply-To', help='Reply email address. Setting the reply_to bypasses the automatic thread creation.')
-    no_auto_thread = fields.Boolean(
-        'No threading for answers',
+    reply_to = fields.Char('Reply-To-Email', help='Reply email address. Setting the reply_to bypasses the automatic thread creation.')
+    reply_to_target = fields.Selection([
+        ('original_discussion', 'Original Discussion'),
+        ('another_email_address', 'Another Email Address')],
+        string='Reply-To', default='original_discussion',
         help='Answers do not go in the original document discussion thread. This has an impact on the generated message-id.')
     is_log = fields.Boolean('Log an Internal Note',
                             help='Whether the message is an internal note (comment mode only)')
@@ -276,7 +278,7 @@ class MailComposer(models.TransientModel):
             rendered_values = self.render_message(res_ids)
         # compute alias-based reply-to in batch
         reply_to_value = dict.fromkeys(res_ids, None)
-        if mass_mail_mode and not self.no_auto_thread:
+        if mass_mail_mode and self.reply_to_target == 'original_discussion':
             records = self.env[self.model].browse(res_ids)
             reply_to_value = self.env['mail.thread']._notify_get_reply_to_on_records(default=self.email_from, records=records)
 
@@ -301,7 +303,7 @@ class MailComposer(models.TransientModel):
                 'author_id': self.author_id.id,
                 'email_from': self.email_from,
                 'record_name': self.record_name,
-                'no_auto_thread': self.no_auto_thread,
+                'no_auto_thread': self.reply_to_target == 'another_email_address',
                 'mail_server_id': self.mail_server_id.id,
                 'mail_activity_type_id': self.mail_activity_type_id.id,
             }
@@ -319,11 +321,11 @@ class MailComposer(models.TransientModel):
                 email_dict = rendered_values[res_id]
                 mail_values['partner_ids'] += email_dict.pop('partner_ids', [])
                 mail_values.update(email_dict)
-                if not self.no_auto_thread:
+                if self.reply_to_target == 'original_discussion':
                     mail_values.pop('reply_to')
                     if reply_to_value.get(res_id):
                         mail_values['reply_to'] = reply_to_value[res_id]
-                if self.no_auto_thread and not mail_values.get('reply_to'):
+                if self.reply_to_target == 'another_email_address' and not mail_values.get('reply_to'):
                     mail_values['reply_to'] = mail_values['email_from']
                 # mail_mail values: body -> body_html, partner_ids -> recipient_ids
                 mail_values['body_html'] = mail_values.get('body', '')

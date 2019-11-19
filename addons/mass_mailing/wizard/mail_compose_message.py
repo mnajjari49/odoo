@@ -25,8 +25,8 @@ class MailComposeMessage(models.TransientModel):
                 self.env['ir.model'].sudo().search([('model', '=', self.model), ('is_mail_thread', '=', True)], limit=1):
             mass_mailing = self.mass_mailing_id
             if not mass_mailing:
-                reply_to_mode = 'email' if self.no_auto_thread else 'thread'
-                reply_to = self.reply_to if self.no_auto_thread else False
+                reply_to_mode = 'email' if self.reply_to_target == 'another_email_address' else 'thread'
+                reply_to = self.reply_to if self.reply_to_target == 'another_email_address' else False
                 mass_mailing = self.env['mailing.mailing'].create({
                         'campaign_id': self.campaign_id.id,
                         'name': self.mass_mailing_name,

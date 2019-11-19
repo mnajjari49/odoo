@@ -117,7 +117,7 @@ class MailTemplate(models.Model):
     partner_to = fields.Char('To (Partners)',
                              help="Comma-separated ids of recipient partners (placeholders may be used here)")
     email_cc = fields.Char('Cc', help="Carbon copy recipients (placeholders may be used here)")
-    reply_to = fields.Char('Reply-To', help="Preferred response address (placeholders may be used here)")
+    reply_to = fields.Char('Reply-To', help="Preferred email address when sending via mass mailing options.\nOnly used when the answer is not added into the original discussion")
     mail_server_id = fields.Many2one('ir.mail_server', 'Outgoing Mail Server', readonly=False,
                                      help="Optional preferred server for outgoing mails. If not set, the highest "
                                           "priority one will be used.")
