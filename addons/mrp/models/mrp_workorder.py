@@ -172,7 +172,12 @@ class MrpWorkorder(models.Model):
         if self.previous_work_order_ids:
             line = self.previous_work_order_ids.finished_workorder_line_ids.filtered(lambda line: line.product_id == self.product_id and line.lot_id == self.finished_lot_id)
             if line:
-                self.qty_producing = line.qty_done
+                finished_line = self.finished_workorder_line_ids.filtered(
+                    lambda line: line.product_id == self.product_id and
+                    line.lot_id == self.finished_lot_id
+                )
+                suggested_qty = min(line.qty_done - finished_line.qty_done, self.qty_remaining)
+                self.qty_producing = max(0.0, suggested_qty)
 
     @api.onchange('date_planned_finished')
     def _onchange_date_planned_finished(self):
