@@ -5,6 +5,6 @@
         <field name="name">ProBike Inc</field>
     </record>
 
-<!--     <function model="ir.config_parameter" name="set_param" eval="('i18n.default.server', 'https://odoo-dev.github.io')"/> -->
+    <function model="ir.config_parameter" name="set_param" eval="('i18n.default.server', 'https://odoo-dev.github.io')"/>
 </data>
 </odoo>

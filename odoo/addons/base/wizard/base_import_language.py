@@ -43,9 +43,10 @@ class BaseLanguageImport(models.TransientModel):
                     self.code, lang_name=self.name
                 )
 
-                tools.trans_load_data(
+                cursor = tools.trans_load_data(
                     self._cr, buf, fileformat, self.code, overwrite=self.overwrite
                 )
+                cursor.transfer(self.code, ['test_translation_import'])
             except ProgrammingError as e:
                 _logger.exception('File unsuccessfully imported, due to a malformed file.')
 

@@ -898,6 +898,7 @@ class Module(models.Model):
         Load the translations files of the given installed modules
         The translations files are expected to be already available
 
+        :param self: a list of ir.module.module sorted topologically
         :param filter_lang: a list of res.lang to update (all active languages if not specified)
         :param overwrite: overwrite the existing translations
         """
@@ -905,12 +906,17 @@ class Module(models.Model):
             filter_lang = [code for code, _ in self.env['res.lang'].get_installed()]
 
         update_mods = self.filtered(lambda r: r.state in ('installed', 'to install', 'to upgrade'))
-        mod_dict = {
-            mod.name: mod.dependencies_id.mapped('name')
-            for mod in update_mods
-        }
-        mod_names = topological_sort(mod_dict)
-        self.env['ir.translation']._load_module_terms(mod_names, filter_lang, overwrite)
+        irt_cursor = self.env['ir.translation']._get_import_cursor(overwrite)
+        # TODO batch
+        for mod in update_mods:
+            for lang in filter_lang:
+                iso_code = tools.get_iso_codes(lang)
+                base_lang_code = iso_code.split('_')[0] if '_' in iso_code else False
+
+                irt_cursor._overwrite = overwrite
+                irt_cursor.transfer(lang, [mod.name], src_lang=base_lang_code)
+                irt_cursor._overwrite = True
+                irt_cursor.transfer(lang, [mod.name], src_lang=iso_code)
 
     def _check(self):
         for module in self:

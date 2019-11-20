@@ -19,7 +19,7 @@ import requests
 
 from odoo import api, fields, models, http, tools, release, _
 from odoo.modules import get_module_path, get_resource_path
-from odoo.tools.misc import file_open
+from odoo.tools.misc import file_open, topological_sort
 from odoo.tools.safe_eval import safe_eval
 from odoo.exceptions import UserError, ValidationError
 
@@ -184,57 +184,6 @@ class Lang(models.Model):
         return url_join(base, "i18n/{}/{}.tar.xz".format(version, lang))
 
     @api.model
-    def _read_po_from_attachment(self, addons, lang):
-        module = self.env['ir.module.module'].search([('name', '=', addons)])
-        if not module:
-            return None
-
-        attachment_name = "{}/i18n/{}.po".format(addons, lang)
-        for po_file in self.env['ir.attachment'].search([
-                ('res_model', '=', 'ir.module.module'),
-                ('res_id', '=', module.id),
-                ('name', '=', attachment_name)
-            ], order="id asc"):
-
-            with tempfile.NamedTemporaryFile('wb+', delete=False) as buf:
-                buf.write(base64.b64decode(po_file.datas))
-
-                # now we determine the file format
-                buf.seek(0)
-                yield buf
-
-    @api.model
-    def _extract_po_to_attachment(self, addons, tmp, extracted_file):
-        """ Extraction method if the po are stored in db, inside ir.attachments """
-        module = self.env['ir.module.module'].search([('name', '=', addons)], limit=1)
-        if not module:
-            _logger.info("Skip translations extraction for unexpected module %s", addons)
-            return
-
-        src_file = os.path.join(tmp, extracted_file)
-        with open(src_file, 'r') as po_file:
-            po_content = base64.b64encode(po_file.read().encode()).decode()
-
-        # sudo to be able to search and write, even if no rights on ir.module.module
-        Attachment = self.env['ir.attachment'].sudo()
-
-        attached_po = Attachment.search([
-            ('res_model', '=', 'ir.module.module'),
-            ('res_id', '=', module.id),
-            ('name', '=', extracted_file),
-        ], limit=1)
-        if attached_po:
-            attached_po.write({'datas': po_content})
-        else:
-            attached_po = Attachment.create({
-                'datas': po_content,
-                'res_model': 'ir.module.module',
-                'res_id': module.id,
-                'name': extracted_file,
-            })
-        return attached_po
-
-    @api.model
     def _extract_i18n_file_content(self, fileobj, lang, module_list):
         """ Extract the translations from the given archive
 
@@ -245,9 +194,13 @@ class Lang(models.Model):
         fr_BE files)
 
         :param fileobj: a file object containing the compressed translation files
-        :param lang: the simplified language code to load (e.g. 'fr')
+        :param lang: the language code to load (e.g. 'fr_FR')
         :param module_list: the list of modules to update from this archive
         """
+        downloaded_addons = defaultdict(set)
+        iso_code = tools.get_iso_codes(lang)
+        base_lang_code = iso_code.split('_')[0] if '_' in iso_code else False
+
         with tarfile.open(mode='r:xz', fileobj=fileobj) as tar_content:
             with tempfile.TemporaryDirectory() as tmp:
                 for filename in tar_content.getnames():
@@ -258,19 +211,32 @@ class Lang(models.Model):
                     # TODO different separators for windows in tar?
                     addons = filename.split('/')[0]
                     if addons not in module_list:
+                        # ensure a pack does not inject translations from another module
                         _logger.debug("Skip translations for unexpected module %s", addons)
                         continue
 
                     po_lang = filename.split('/')[-1][:-3]
-                    if po_lang.split('_')[0] != lang:
+                    if base_lang_code and po_lang == base_lang_code:
+                        _logger.debug("Extracting base translation file %s to %s", filename, tmp)
+                        downloaded_addons[base_lang_code].add(addons)
+                        tar_content.extract(filename, path=tmp)
+                        src_file = os.path.join(tmp, filename)
+                        with open(src_file, 'rb') as po_file:
+                            tools.trans_load_data(self._cr, po_file, 'po', base_lang_code, module_name=addons, verbose=False)
+
+                    elif po_lang == iso_code:
+                        _logger.debug("Extracting translation file %s to %s", filename, tmp)
+                        downloaded_addons[iso_code].add(addons)
+                        tar_content.extract(filename, path=tmp)
+                        src_file = os.path.join(tmp, filename)
+                        with open(src_file, 'rb') as po_file:
+                            tools.trans_load_data(self._cr, po_file, 'po', iso_code, module_name=addons, verbose=False)
+                    else:
                         _logger.debug("Skip translations for unexpected language %s", po_lang)
                         continue
 
-                    _logger.debug("Extracting translation file %s to %s", filename, tmp)
-                    tar_content.extract(filename, path=tmp)
-                    self._extract_po_to_attachment(addons, tmp, filename)
 
-        return True
+        return downloaded_addons
 
     def _download_translation_files(self):
         """ Download the translation files of all modules from the i18n servers """
@@ -282,12 +248,14 @@ class Lang(models.Model):
             urls[module_info['i18n_location']].append(module_info['name'])
 
         # ['fr_BE', 'fr', 'nl_BE'] -> {'fr', 'nl'}
-        langs = {lang.split('_')[0] for lang in self.mapped('code')}
+        langs = {lang.split('_')[0]: lang for lang in self.mapped('code')}
+
+        processed = defaultdict(set)
 
         # TODO download once and process twice for self = [fr, fr_BE]
-        for lang in langs:
+        for short_code, lang in langs.items():
             for url in urls:
-                full_url = self._get_i18n_url(url, lang)
+                full_url = self._get_i18n_url(url, short_code)
                 try:
                     stream = requests.get(full_url, timeout=5)
                     if stream.status_code != 200:
@@ -302,25 +270,74 @@ class Lang(models.Model):
                     bio = BytesIO()
                     bio.write(stream.content)
                     bio.seek(0)
-                    self._extract_i18n_file_content(bio, lang, urls[url])
+                    for extracted_lang, modules in self._extract_i18n_file_content(bio, lang, urls[url]).items():
+                        processed[extracted_lang] |= modules
                 except requests.exceptions.RequestException as err:
                     _logger.error("Could not fetch translations from %s, error: %s", full_url, err)
+        return processed
+
+    def _read_missing_from_fs(self, modules, to_skip):
+        """ Read the filesystem for the languages and modules not yet processed
+
+        :param self: list of res.lang records to process
+        :param modules: list of module names to process
+        :param to_skip: dict {lang: [modules]} containing the language code and modules
+                        to skip as the translations were already retrieved
+        """
+        # TODO ensure no regression odoo/odoo#19824
+        mod_dict = {
+            mod.name: mod.dependencies_id.mapped('name')
+            for mod in modules
+        }
+        mod_names = topological_sort(mod_dict)
+
+        for lang in self:
+            iso_code = tools.get_iso_codes(lang.code)
+            base_lang_code = iso_code.split('_')[0] if '_' in iso_code else False
+
+            for module in mod_names:
+
+                path = get_module_path(module, display_warning=False)
+                if not path:
+                    # skip unknow modules, e.g. to_buy modules in community
+                    continue
+
+                # Step 1: for sub-languages, load base language first (e.g. es_CL.po is loaded over es.po)
+                if base_lang_code and module not in to_skip.get(base_lang_code, []):
+                    full_path = get_resource_path(path, 'i18n', base_lang_code + '.po')
+                    if full_path:
+                        with file_open(full_path, 'rb') as po_file:
+                            _logger.info('module %s: loading base translation file (%s) for language %s', module, base_lang_code, lang.name)
+                            tools.trans_load_data(self._cr, po_file, 'po', base_lang_code, module_name=module, verbose=False)
+
+                if module in to_skip.get(iso_code, []):
+                    continue
+
+                # Step 2: then load the main translation file, possibly overriding the terms coming from the base language
+                full_path = get_resource_path(path, 'i18n', iso_code + '.po')
+                if full_path:
+                    _logger.info('module %s: loading base translation file (%s) for language %s', module, iso_code, lang.name)
+                    with file_open(full_path, 'rb') as po_file:
+                        tools.trans_load_data(self._cr, po_file, 'po', lang.code, module_name=module, verbose=False)
 
     def _install_language(self, overwrite=False, remote=True):
         """
         Install/update a lang
-        1. download language pack (if needed)
-        2. load translations
+        1. download language pack for all modules
+        2. look into i18n/ folder for missing lang/module
+        3. generate ir.translation on installed modules
         """
         for lang in self:
             self._activate_lang(lang.code)
 
+        processed = {}
         if remote:
-            self._download_translation_files()
+            processed = self._download_translation_files()
 
-        # appropriate module filtering is done in _update_translations
         mods = self.env['ir.module.module'].search([])
-        return mods._update_translations(filter_lang=self.mapped('code'), overwrite=overwrite)
+        self._read_missing_from_fs(mods, processed)
+
+        mods._update_translations(filter_lang=self.mapped('code'), overwrite=overwrite)
 
     @api.model
     def install_lang(self):

@@ -25,7 +25,7 @@ class IrTranslationImport(object):
     Open it (attached to a sql cursor), feed it with translation data and
     finish() it in order to insert multiple translations in a batch.
     """
-    _table = 'tmp_ir_translation_import'
+    _table = 'ir_translation_reference'
 
     def __init__(self, cr, overwrite=False):
         """ Store some values, and also create a temporary SQL table to accept
@@ -39,36 +39,51 @@ class IrTranslationImport(object):
         self._debug = False
         self._rows = []
 
-        # Note that Postgres will NOT inherit the constraints or indexes
-        # of ir_translation, so this copy will be much faster.
-        query = """ CREATE TEMP TABLE %s (
-                        imd_model VARCHAR(64),
-                        imd_name VARCHAR(128),
-                        noupdate BOOLEAN
-                    ) INHERITS (%s) """ % (self._table, self._model_table)
-        self._cr.execute(query)
+    def cleanup(self, modules, lang):
+        self._cr.execute("""
+            DELETE FROM ir_translation_reference
+            WHERE lang = %s
+            AND module IN %s
+        """, (lang, tuple(modules)))
 
     def push(self, trans_dict):
         """ Feed a translation, as a dictionary, into the cursor """
-        params = dict(trans_dict, state="translated")
+        params = dict(trans_dict)
 
         self._rows.append((params['name'], params['lang'], params['res_id'],
                            params['src'], params['type'], params['imd_model'],
                            params['module'], params['imd_name'], params['value'],
-                           params['state'], params['comments']))
+                           params['comments']))
 
     def finish(self):
         """ Transfer the data from the temp table to ir.translation """
-        cr = self._cr
-
         # Step 0: insert rows in batch
         query = """ INSERT INTO %s (name, lang, res_id, src, type, imd_model,
-                                    module, imd_name, value, state, comments)
+                                    module, imd_name, value, comments)
                     VALUES """ % self._table
-        for rows in cr.split_for_in_conditions(self._rows):
-            cr.execute(query + ", ".join(["%s"] * len(rows)), rows)
+        for rows in self._cr.split_for_in_conditions(self._rows):
+            self._cr.execute(query + ", ".join(["%s"] * len(rows)), rows)
 
-        _logger.debug("ir.translation.cursor: We have %d entries to process", len(self._rows))
+        self._rows.clear()
+        return True
+
+    def transfer(self, lang, modules, src_lang=False):
+        """ Transfer translatiosn from ir_translation_reference to ir_translation
+
+        Resolve external ids
+        :param lang: target language that will be used in ir.translation, must be an
+                     activated language (e.g. fr_FR)
+        :param src_lang: iso code of source language that will be used to fetch
+                         ir_translation_reference entries (e.g. fr)
+        :param modules: list of modules to use to retrieve ir_translation_reference
+        """
+        if not modules:
+            raise UserError(_("Missing module list for transfer of translations."))
+        if not src_lang:
+            src_lang = lang.split('_')[0]
+
+        modules = tuple(modules)
+        cr = self._cr
 
         # Step 1: resolve ir.model.data references to res_ids
         cr.execute(""" UPDATE %s AS ti
@@ -76,19 +91,27 @@ class IrTranslationImport(object):
                               noupdate = imd.noupdate
                        FROM ir_model_data AS imd
                        WHERE ti.res_id IS NULL
-                       AND ti.module IS NOT NULL AND ti.imd_name IS NOT NULL
+                       AND ti.module IN %%s AND ti.imd_name IS NOT NULL
                        AND ti.module = imd.module AND ti.imd_name = imd.name
-                       AND ti.imd_model = imd.model; """ % self._table)
+                       AND ti.imd_model = imd.model; """ % self._table, (modules,))
 
         if self._debug:
-            cr.execute(""" SELECT module, imd_name, imd_model FROM %s
-                           WHERE res_id IS NULL AND module IS NOT NULL """ % self._table)
+            cr.execute(""" SELECT module, imd_name, imd_model
+                           FROM ir_translation_reference
+                           WHERE res_id IS NULL
+                           AND module IN %s
+                           AND lang = %s""", (modules, src_lang))
             for row in cr.fetchall():
                 _logger.info("ir.translation.cursor: missing res_id for %s.%s <%s> ", *row)
 
         # Records w/o res_id must _not_ be inserted into our db, because they are
         # referencing non-existent data.
-        cr.execute("DELETE FROM %s WHERE res_id IS NULL AND module IS NOT NULL" % self._table)
+        cr.execute("""
+            DELETE FROM ir_translation_reference
+            WHERE res_id IS NULL
+            AND module in %s
+            AND lang = %s
+            """, (modules, src_lang))
 
         # detect the xml_translate fields, where the src must be the same
         env = api.Environment(cr, SUPERUSER_ID, {})
@@ -101,43 +124,52 @@ class IrTranslationImport(object):
         count = 0
         # Step 2: insert new or upsert non-noupdate translations
         if self._overwrite:
-            cr.execute(""" INSERT INTO %s(name, lang, res_id, src, type, value, module, state, comments)
-                           SELECT name, lang, res_id, src, type, value, module, state, comments
-                           FROM %s
+            cr.execute(""" INSERT INTO ir_translation(name, lang, res_id, src, type, value, module, state, comments)
+                           SELECT name, %s, res_id, src, type, value, module, 'translated', comments
+                           FROM ir_translation_reference
                            WHERE type = 'code'
                            AND noupdate IS NOT TRUE
+                           AND module IN %s
+                           AND lang = %s
                            ON CONFLICT (type, lang, md5(src)) WHERE type = 'code'
-                            DO UPDATE SET (name, lang, res_id, src, type, value, module, state, comments) = (EXCLUDED.name, EXCLUDED.lang, EXCLUDED.res_id, EXCLUDED.src, EXCLUDED.type, EXCLUDED.value, EXCLUDED.module, EXCLUDED.state, EXCLUDED.comments)
+                            DO UPDATE SET (name, lang, res_id, src, type, value, module, state, comments) = (EXCLUDED.name, %s, EXCLUDED.res_id, EXCLUDED.src, EXCLUDED.type, EXCLUDED.value, EXCLUDED.module, 'translated', EXCLUDED.comments)
                             WHERE EXCLUDED.value IS NOT NULL AND EXCLUDED.value != '';
-                       """ % (self._model_table, self._table))
+                       """, (lang, modules, src_lang, lang))
             count += cr.rowcount
-            cr.execute(""" INSERT INTO %s(name, lang, res_id, src, type, value, module, state, comments)
-                           SELECT name, lang, res_id, src, type, value, module, state, comments
-                           FROM %s
+            cr.execute(""" INSERT INTO ir_translation(name, lang, res_id, src, type, value, module, state, comments)
+                           SELECT name, %s, res_id, src, type, value, module, 'translated', comments
+                           FROM ir_translation_reference
                            WHERE type = 'model'
                            AND noupdate IS NOT TRUE
+                           AND module IN %s
+                           AND lang = %s
                            ON CONFLICT (type, lang, name, res_id) WHERE type = 'model'
-                            DO UPDATE SET (name, lang, res_id, src, type, value, module, state, comments) = (EXCLUDED.name, EXCLUDED.lang, EXCLUDED.res_id, EXCLUDED.src, EXCLUDED.type, EXCLUDED.value, EXCLUDED.module, EXCLUDED.state, EXCLUDED.comments)
+                            DO UPDATE SET (name, lang, res_id, src, type, value, module, state, comments) = (EXCLUDED.name, %s, EXCLUDED.res_id, EXCLUDED.src, EXCLUDED.type, EXCLUDED.value, EXCLUDED.module, 'translated', EXCLUDED.comments)
                             WHERE EXCLUDED.value IS NOT NULL AND EXCLUDED.value != '';
-                       """ % (self._model_table, self._table))
+                       """, (lang, modules, src_lang, lang))
             count += cr.rowcount
 
-            cr.execute(""" INSERT INTO %s(name, lang, res_id, src, type, value, module, state, comments)
-                           SELECT name, lang, res_id, src, type, value, module, state, comments
-                           FROM %s
+            cr.execute(""" INSERT INTO ir_translation(name, lang, res_id, src, type, value, module, state, comments)
+                           SELECT name, %s, res_id, src, type, value, module, 'translated', comments
+                           FROM ir_translation_reference
                            WHERE type = 'model_terms'
                            AND noupdate IS NOT TRUE
+                           AND module IN %s
+                           AND lang = %s
                            ON CONFLICT (type, name, lang, res_id, md5(src))
-                            DO UPDATE SET (name, lang, res_id, src, type, value, module, state, comments) = (EXCLUDED.name, EXCLUDED.lang, EXCLUDED.res_id, EXCLUDED.src, EXCLUDED.type, EXCLUDED.value, EXCLUDED.module, EXCLUDED.state, EXCLUDED.comments)
+                            DO UPDATE SET (name, lang, res_id, src, type, value, module, state, comments) = (EXCLUDED.name, %s, EXCLUDED.res_id, EXCLUDED.src, EXCLUDED.type, EXCLUDED.value, EXCLUDED.module, 'translated', EXCLUDED.comments)
                             WHERE EXCLUDED.value IS NOT NULL AND EXCLUDED.value != '';
-                       """ % (self._model_table, self._table))
+                       """, (lang, modules, src_lang, lang))
             count += cr.rowcount
         cr.execute(""" INSERT INTO %s(name, lang, res_id, src, type, value, module, state, comments)
-                       SELECT name, lang, res_id, src, type, value, module, state, comments
+                       SELECT name, %%s, res_id, src, type, value, module, 'translated', comments
                        FROM %s
-                       WHERE %s
+                       WHERE module IN %%s
+                       AND lang = %%s
+                       AND %s
                        ON CONFLICT DO NOTHING;
-                   """ % (self._model_table, self._table, 'noupdate IS TRUE' if self._overwrite else 'TRUE'))
+                   """ % (self._model_table, self._table, 'noupdate IS TRUE' if self._overwrite else 'TRUE'),
+                          (lang, modules, src_lang))
         count += cr.rowcount
 
         if self._debug:
@@ -145,9 +177,6 @@ class IrTranslationImport(object):
             total = cr.fetchone()[0]
             _logger.debug("ir.translation.cursor: %d entries now in ir.translation, %d common entries with tmp", total, count)
 
-        # Step 3: cleanup
-        cr.execute("DROP TABLE %s" % self._table)
-        self._rows.clear()
         return True
 
 
@@ -195,6 +224,25 @@ class IrTranslation(models.Model):
         if not tools.index_exists(self._cr, 'ir_translation_model_unique'):
             self._cr.execute("CREATE UNIQUE INDEX ir_translation_model_unique ON ir_translation (type, lang, name, res_id) WHERE type = 'model'")
 
+        # Replicate the ir_translation table with the addition of the fields imd_model
+        # and imd_name. This table has less indexes and no constraint for fast imports
+        # without taking as much space as the indexes of ir.translation
+        query = """ CREATE TABLE IF NOT EXISTS ir_translation_reference (
+                        noupdate BOOLEAN,
+                        name VARCHAR,
+                        res_id INTEGER,
+                        lang VARCHAR,
+                        type VARCHAR,
+                        src TEXT,
+                        value TEXT,
+                        module VARCHAR,
+                        comments TEXT,
+                        imd_model VARCHAR(64),
+                        imd_name VARCHAR(128)
+                    ) """
+        self._cr.execute(query)
+        if not tools.index_exists(self._cr, 'ir_translation_reference_index'):
+            self._cr.execute("CREATE INDEX ir_translation_reference_index ON ir_translation_reference (lang, module, type)")
         return res
 
     @api.model
@@ -780,34 +828,6 @@ class IrTranslation(models.Model):
     def _get_import_cursor(self, overwrite):
         """ Return a cursor-like object for fast inserting translations """
         return IrTranslationImport(self._cr, overwrite)
-
-    def _load_module_terms(self, modules, langs, overwrite=False):
-        """ Load PO files of the given modules for the given languages. """
-        # load i18n files
-        for module_name in modules:
-            modpath = get_module_path(module_name)
-            if not modpath:
-                continue
-            for lang_code in langs:
-                iso_code = tools.get_iso_codes(lang_code)
-                base_lang_code = None
-                if '_' in iso_code:
-                    base_lang_code = iso_code.split('_')[0]
-
-                # Step 1: for sub-languages, load base language first (e.g. es_CL.po is loaded over es.po)
-                if base_lang_code:
-                    for po_file in self.env['res.lang']._read_po_from_attachment(module_name, base_lang_code):
-                        _logger.info('module %s: loading base translation file %s for language %s', module_name, base_lang_code, lang_code)
-                        tools.trans_load_data(self._cr, po_file, 'po', lang_code, verbose=False, module_name=module_name, overwrite=overwrite)
-                        overwrite = True  # make sure the requested translation will override the base terms later
-
-                # Step 2: then load the main translation file, possibly overriding the terms coming from the base language
-                for po_file in self.env['res.lang']._read_po_from_attachment(module_name, iso_code):
-                    _logger.info('module %s: loading base translation file %s for language %s', module_name, iso_code, lang_code)
-                    tools.trans_load_data(self._cr, po_file, 'po', lang_code, verbose=False, module_name=module_name, overwrite=overwrite)
-                    overwrite = True  # make sure the requested translation will override the base terms later
-
-        return True
 
     @api.model
     def get_technical_translations(self, model_name):
