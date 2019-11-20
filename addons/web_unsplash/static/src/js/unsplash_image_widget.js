@@ -204,15 +204,17 @@ widgetsMedia.ImageWidget.include({
     _onUnsplashImgClick: function (ev) {
         const $img = $(ev.currentTarget).siblings().find('img[data-imgid]');
         var imgid = $img.data('imgid');
-        var url = $img.data('url');
-        var downloadURL = $img.data('download-url');
         if (!this.options.multiImages) {
             this._unsplash.selectedImages = {};
         }
         if (imgid in this._unsplash.selectedImages) {
             delete this._unsplash.selectedImages[imgid];
         } else {
-            this._unsplash.selectedImages[imgid] = {url: url, download_url: downloadURL};
+            this._unsplash.selectedImages[imgid] = {
+                alt: $img.attr('alt'),
+                url: $img.data('url'),
+                download_url: $img.data('download-url'),
+            };
         }
         this._highlightSelected();
     },

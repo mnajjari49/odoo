@@ -121,14 +121,6 @@ var FileWidget = SearchableMediaWidget.extend({
     IMAGE_MIMETYPES: ['image/gif', 'image/jpe', 'image/jpeg', 'image/jpg', 'image/gif', 'image/png', 'image/svg+xml'],
     NUMBER_OF_ATTACHMENTS_TO_DISPLAY: 30,
 
-    // This factor is used to take into account that an image displayed in a BS
-    // column might get bigger when displayed on a smaller breakpoint if that
-    // breakpoint leads to have less columns.
-    // Eg. col-lg-6 -> 480px per column -> col-md-12 -> 720px per column -> 1.5
-    // However this will not be enough if going from 3 or more columns to 1, but
-    // in that case, we consider it a snippet issue.
-    OPTIMIZE_SIZE_FACTOR: 1.5,
-
     /**
      * @constructor
      */
@@ -240,7 +232,7 @@ var FileWidget = SearchableMediaWidget.extend({
             args: [],
             kwargs: {
                 domain: this._getAttachmentsDomain(needle),
-                fields: ['name', 'mimetype', 'checksum', 'url', 'type', 'res_id', 'res_model', 'public', 'access_token', 'image_src', 'image_width', 'image_height', 'is_favorite'],
+                fields: ['name', 'description', 'mimetype', 'checksum', 'url', 'type', 'res_id', 'res_model', 'public', 'access_token', 'image_src', 'image_width', 'image_height', 'is_favorite'],
                 order: [{name: 'create_date', asc: false}],
                 context: this.options.context,
             },
@@ -295,13 +287,26 @@ var FileWidget = SearchableMediaWidget.extend({
      * Only relevant for images.
      *
      * @see options.mediaWidth
-     * @see OPTIMIZE_SIZE_FACTOR
      *
      * @private
      * @returns {integer}
      */
     _computeOptimizedWidth: function () {
-        return Math.min(1920, parseInt(this.options.mediaWidth * this.OPTIMIZE_SIZE_FACTOR) || 1920);
+        if (this.options.mediaWidth) {
+            return this.options.mediaWidth;
+        }
+        // If the media is in a column, it might get bigger on smaller screens.
+        // We use col-lg for this in most (all?) snippets.
+        if (this.$media.closest('[class*="col-lg"]').length) {
+            // A container's maximum inner width is 690px on the md breakpoint
+            if (this.$media.closest('.container').length) {
+                return Math.min(1920, Math.max(this.$media.width(), 690));
+            }
+            // A container-fluid's max inner width is 962px on the md breakpoint
+            return Math.min(1920, Math.max(this.$media.width(), 962));
+        }
+        // If it's not in a col-lg, it's probably not going to change size depending on breakpoints
+        return this.$media.width();
     },
     /**
      * Returns the domain for attachments used in media dialog.
@@ -521,8 +526,8 @@ var FileWidget = SearchableMediaWidget.extend({
                 self.$media.attr('href', href);
                 self.$media.addClass('o_image').attr('title', img.name).attr('data-mimetype', img.mimetype);
             }
-
-            self.$media.attr('alt', img.alt);
+            console.log(img);
+            self.$media.attr('alt', img.alt || img.description);
             var style = self.style;
             if (style) {
                 self.$media.css(style);

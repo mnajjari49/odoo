@@ -6,6 +6,7 @@ var Dialog = require('web.Dialog');
 var Widget = require('web.Widget');
 var weWidgets = require('wysiwyg.widgets');
 var summernoteCustomColors = require('web_editor.rte.summernote_custom_colors');
+const ImageManager = require('web_editor.ImageManager');
 
 var qweb = core.qweb;
 var _t = core._t;
@@ -798,108 +799,13 @@ registry.colorpicker = SnippetOption.extend({
     },
 });
 
-const ImageManager = core.Class.extend({
-    init: function (img) {
-        this.img = img;
-        this.quality = 80;
-        this.width = 1920;
-    },
-    cleanForSave: function (rpc) {
-        if (this.img.dataset.optimizeOnSave === 'true' && this.quality !== this.originalQuality) {
-            return rpc({
-                route: `/web_editor/attachment/${this.img.dataset.originalId}/update`,
-                params: {
-                    copy: true,
-                    quality: this.quality,
-                    width: this.width,
-                },
-            }).then((optimizedImage) => {
-                this.img.src = optimizedImage.image_src;
-                delete this.img.dataset.optimizeOnSave;
-                delete this.img.dataset.originalId;
-            });
-        }
-        return Promise.resolve();
-    },
-    favorite: function (rpc) {
-        return rpc({
-           route: '/web_editor/attachment/toggle_favorite',
-           params: {
-               ids: [parseInt(this.img.dataset.originalId)],
-           }
-       }).then(() => {
-           this.isFavorite = !this.isFavorite;
-           return this.isFavorite;
-       });
-    },
-    changeImageQuality: function (quality) {
-        this.quality = quality;
-        this.img.dataset.optimizeOnSave = 'true';
-        this.img.src = `/web/image/${this.img.dataset.originalId}/?quality=${quality}`;
-    },
-    getAttachmentFromSrc: function (rpc) {
-        const url = this.img.attributes.src.value.split('?')[0];
-        let request = Promise.resolve([]);
-        if (url) {
-            request = rpc({
-                model: 'ir.attachment',
-                method: 'search_read',
-                args: [],
-                kwargs: {
-                    domain: [['image_src', 'like', url]],
-                    fields: ['type', 'is_favorite', 'original_id', 'quality', 'name'],
-                },
-            });
-        }
-        return request.then(attachments => this.updateAttachment(attachments, rpc));
-    },
-    getAttachmentFromOriginalId: function (rpc) {
-        return rpc({
-            model: 'ir.attachment',
-            method: 'read',
-            args: [parseInt(this.img.dataset.originalId)],
-            kwargs: {
-                fields: ['type', 'is_favorite', 'original_id', 'quality', 'name'],
-            },
-        }).then(attachments => this.updateAttachment(attachments, rpc));
-    },
-    updateAttachment: function (attachments, rpc) {
-        if (attachments.length) {
-            this.attachment = attachments[0];
-            this.img.dataset.originalId = this.attachment.original_id[0] || this.attachment.id;
-            this.originalId = this.img.dataset.originalId;
-
-            let favoritePromise;
-            if (this.attachment.original_id) {
-                favoritePromise = rpc({
-                    model: 'ir.attachment',
-                    method: 'read',
-                    args: [parseInt(this.img.dataset.originalId)],
-                    kwargs: {
-                        fields: ['type', 'is_favorite', 'original_id', 'quality', 'name'],
-                    },
-                });
-            }
-            return Promise.resolve(favoritePromise).then((original) => {
-                this.isFavorite = original && original.length ? original[0].is_favorite : this.attachment.is_favorite;
-            });
-        } else {
-            delete this.attachment;
-            delete this.img.dataset.originalId;
-        }
-        return Promise.resolve();
-    },
-    getImageWeight: function () {
-        return window.fetch(this.img.src, {method: 'HEAD'}).then(resp => `${(resp.headers.get('Content-Length') / 1000).toFixed(2)}kb`);
-    },
-});
-
 /**
  * Handles the edition of images (inline and background)
  */
 registry.Image = SnippetOption.extend({
     events: _.extend({}, SnippetOption.prototype.events || {}, {
         'input .custom-range': '_onQualityChange',
+        'change select': '_onWidthChange',
     }),
 
     /**
@@ -918,11 +824,22 @@ registry.Image = SnippetOption.extend({
 
         this.imageManager = new ImageManager(this.$target[0]);
 
+        this.$widthSelect = $('<select>').appendTo(this.$qualityOption);
+
         const _super = this._super;
         return Promise.all([
             this.imageManager.getAttachmentFromSrc(this._rpc.bind(this)).then(() => this._updateUi()),
             _super.apply(this, arguments),
         ]);
+    },
+    _updateWidthSelection: function () {
+        const availableWidths = this.imageManager.computeAvailableWidths();
+        this.$widthSelect.empty().append(_.map(availableWidths, (labels, width) => $(`<option value="${width}">${labels.join(', ')}</option>`)));
+        this.$widthSelect.val(this.$target[0].naturalWidth);
+    },
+    _onWidthChange: function (ev) {
+        this.imageManager.changeImageWidth(parseInt(ev.target.value));
+        this._updateWeight();
     },
     /**
      * @override
@@ -953,7 +870,10 @@ registry.Image = SnippetOption.extend({
             } else {
                 this.imageManager.getAttachmentFromSrc(this._rpc.bind(this)).then(() => this._updateUi());
             }
-            this.$target.one('load', () => this.trigger_up('cover_update'));
+            this.$target.one('load', () => {
+                this._updateWidthSelection();
+                this.trigger_up('cover_update');
+            });
         }
     },
     _onFavoriteUpdated: function (ev, {id: attachmentId, isFavorite}) {
@@ -980,6 +900,7 @@ registry.Image = SnippetOption.extend({
         }
         this.$favorite.removeClass('d-none');
         this.$favorite.css('background-color', this.imageManager.isFavorite ? '#FD0' : 'var(--o-we-bg-color-dark)');
+        this._updateWidthSelection();
         this._updateWeight();
     },
     _updateWeight: function () {
@@ -1054,7 +975,7 @@ registry.background = SnippetOption.extend({
         // Wait for the image to be in cache so that the background doesn't flash
         // to a blank one before showing the adapted quality. Unfortunately this
         // trick is not consistent accross browsers, but doesn't make it any worse
-        // when it doesn't work.
+        // when it doesn't work. Doesn't work with cache disabled (dev tools).
         this.$img.one('load', () => this._setCustomBackground(this.$img.attr('src')));
         this._updateWeight();
     },
@@ -1208,13 +1129,13 @@ registry.background = SnippetOption.extend({
      * @private
      * @param {string} value
      */
-    _setCustomBackground: function (value) {
+    _setCustomBackground: function (value, resetQuality) {
         this.__customImageSrc = value;
         this.background(false, this.__customImageSrc);
         this.$target.toggleClass('oe_custom_bg', !!value);
         this._setActive();
         this.$target.trigger('snippet-option-change', [this]);
-        this.imageManager.getAttachmentFromOriginalId(this._rpc.bind(this)).then(() => this._updateUi(true));
+        this.imageManager.getAttachmentFromOriginalId(this._rpc.bind(this)).then(() => this._updateUi(!resetQuality));
     },
 
     //--------------------------------------------------------------------------
@@ -1251,7 +1172,7 @@ registry.background = SnippetOption.extend({
      * @param {Object} data
      */
     _onSaveMediaDialog: function (data) {
-        this._setCustomBackground(data.attributes['src'].value);
+        this._setCustomBackground(data.attributes['src'].value, true);
     },
 });
 
