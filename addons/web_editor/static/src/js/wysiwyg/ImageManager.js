@@ -3,13 +3,23 @@ odoo.define('web_editor.ImageManager', function (require) {
 
 var core = require('web.core');
 
+/**
+ * Manages an image optimization (quality and resizing), and its favorite status.
+ */
 const ImageManager = core.Class.extend({
+    /**
+     * Constructor
+     */
     init: function (img, rpc) {
         this.img = img;
         this.rpc = rpc;
         this.quality = 80;
         this.width = img.naturalWidth;
     },
+    /**
+     * Saves an optimized copy of the original image, sets the <img/> element's
+     * src to the public url of the copy and removes its data attributes.
+     */
     cleanForSave: function (rpc) {
         if (this.img.dataset.optimizeOnSave === 'true' && this.quality !== this.originalQuality) {
             return this.rpc({
@@ -27,6 +37,9 @@ const ImageManager = core.Class.extend({
         }
         return Promise.resolve();
     },
+    /**
+     * Changes the image's favorite status.
+     */
     favorite: function () {
         return this.rpc({
            route: '/web_editor/attachment/toggle_favorite',
@@ -38,11 +51,17 @@ const ImageManager = core.Class.extend({
            return this.isFavorite;
        });
     },
+    /**
+     * Changes the image's quality and updates the image's src to the preview.
+     */
     changeImageQuality: function (quality) {
         this.quality = quality;
         this.img.dataset.optimizeOnSave = 'true';
         this.img.src = `/web/image/${this.img.dataset.originalId}/?width=${this.width}&quality=${quality}`;
     },
+    /**
+     * Gets the attachment that corresponds the the image's src tag.
+     */
     getAttachmentFromSrc: function () {
         const url = this.img.attributes.src.value.split('?')[0];
         let request = Promise.resolve([]);
@@ -59,6 +78,9 @@ const ImageManager = core.Class.extend({
         }
         return request.then(attachments => this.updateAttachment(attachments));
     },
+    /**
+     * Gets the attachment that corresponds the the image original-id data attribute.
+     */
     getAttachmentFromOriginalId: function () {
         return this.rpc({
             model: 'ir.attachment',
@@ -69,6 +91,10 @@ const ImageManager = core.Class.extend({
             },
         }).then(attachments => this.updateAttachment(attachments));
     },
+    /**
+     * Updates the internal state to that of the attachment, if it's not an original,
+     * queries the database for the original to get its favorite status and id.
+     */
     updateAttachment: function (attachments) {
         $(this.img).one('load', () => {
             this.width = this.img.naturalWidth;
@@ -103,13 +129,22 @@ const ImageManager = core.Class.extend({
         }
         return Promise.resolve();
     },
+    /**
+     * Returns a string representing the image's weight in kilobytes.
+     */
     getImageWeight: function () {
         return window.fetch(this.img.src, {method: 'HEAD'}).then(resp => `${(resp.headers.get('Content-Length') / 1024).toFixed(2)}kb`);
     },
+    /**
+     * Changes the image's width and updates the preview.
+     */
     changeImageWidth: function (width) {
         this.width = width;
         this.changeImageQuality(this.quality);
     },
+    /**
+     * Computes the image's maximum display width.
+     */
     computeOptimizedWidth: function () {
         const displayWidth = this.img.clientWidth;
         const $img = $(this.img);
@@ -126,6 +161,10 @@ const ImageManager = core.Class.extend({
         // If it's not in a col-lg, it's *probably* not going to change size depending on breakpoints
         return displayWidth;
     },
+    /**
+     * Returns an object containing the available widths for the image, where
+     * the keys are the widths themselves, and values are an array of labels.
+     */
     computeAvailableWidths: function () {
         const widths = [
             [128, "icon"],

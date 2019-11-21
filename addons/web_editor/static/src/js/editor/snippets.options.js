@@ -1233,7 +1233,7 @@ registry.background = SnippetOption.extend({
         }
     },
     /**
-     * Hides options that are unavailable, highlights favorite if needed.
+     * Handles changes to the quality range input.
      *
      * @private
      */
