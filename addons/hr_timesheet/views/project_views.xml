@@ -39,7 +39,7 @@
             <field name="priority">24</field>
             <field name="arch" type="xml">
                 <div name="button_box" position="inside">
-                    <button class="oe_stat_button" name="%(act_hr_timesheet_line_by_project)d" type="action" icon="fa-calendar" string="Timesheets" attrs="{'invisible': [('allow_timesheets', '=', False)]}" groups="hr_timesheet.group_hr_timesheet_user"/>
+                    <button class="oe_stat_button" name="%(act_hr_timesheet_line_by_project)d" type="action" icon="fa-calendar" string="Timesheets" attrs="{'invisible': ['|', ('allow_timesheets', '=', False), ('is_template', '=', True)]}" groups="hr_timesheet.group_hr_timesheet_user"/>
                 </div>
                 <xpath expr="//div[@id='rating_settings']/.." position="before">
                     <div class="row mt16 o_settings_container">
@@ -119,7 +119,7 @@
                                 You can not log timesheets on this project since is linked to an inactive analytic account. Please change it, or reactivate the current one to timesheet on the project.
                             </div>
                         </group>
-                    <field name="timesheet_ids" mode="tree,kanban" attrs="{'invisible': [('analytic_account_active', '=', False)]}" context="{'default_project_id': project_id, 'default_name':''}">
+                    <field name="timesheet_ids" mode="tree,kanban" attrs="{'invisible': ['|', ('is_template', '=', True), ('analytic_account_active', '=', False)]}" context="{'default_project_id': project_id, 'default_name':''}">
                         <tree editable="bottom" string="Timesheet Activities" default_order="date">
                             <field name="date"/>
                             <field name="user_id" invisible="1"/>
@@ -175,7 +175,7 @@
                             </sheet>
                         </form>
                     </field>
-                    <group attrs="{'invisible': [('analytic_account_active', '=', False)]}">
+                    <group attrs="{'invisible': ['|', ('is_template', '=', True), ('analytic_account_active', '=', False)]}">
                         <group class="oe_subtotal_footer oe_right" name="project_hours">
                             <field name="effective_hours" widget="float_time" />
                             <field name="subtask_effective_hours" widget="float_time" attrs="{'invisible' : [('subtask_effective_hours', '=', 0.0)]}" />

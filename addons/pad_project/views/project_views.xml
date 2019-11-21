@@ -20,9 +20,19 @@
         <field name="model">project.project</field>
         <field name="inherit_id" ref="project.edit_project"/>
         <field name="arch" type="xml">
-            <field name="partner_id" position="after">
-                <field name="use_pads"/>
-            </field>
+            <div id="template_settings" position="after">
+                <div class="col-lg-6 o_setting_box"  id="pads_settings">
+                    <div class="o_setting_left_pane">
+                        <field name="use_pads"/>
+                    </div>
+                    <div class="o_setting_right_pane">
+                        <label for="use_pads" string="Use collaborative pads?"/>
+                        <div class="text-muted">
+                            Allow the use of collaborative pads on task for a better collaboration between the members of your team.
+                        </div>
+                    </div>
+                </div>
+            </div>
         </field>
     </record>
 

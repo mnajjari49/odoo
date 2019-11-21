@@ -7,19 +7,19 @@
         <field name="inherit_id" ref="project.edit_project"/>
         <field name="arch" type="xml">
             <xpath expr="//header" position="inside">
-                <button name="action_make_billable" string="Create Sales Order" type="object" attrs="{'invisible': ['|', ('sale_order_id', '!=', False), ('billable_type', '!=', 'no')]}" groups="sales_team.group_sale_salesman"/>
+                <button name="action_make_billable" string="Create Sales Order" type="object" attrs="{'invisible': ['|', '|', ('sale_order_id', '!=', False), ('billable_type', '!=', 'no'), ('is_template', '=', True)]}" group="sale.group_sale_salesman"/> [IMP] project: introduce the possibility to create a project template
             </xpath>
             <xpath expr="//page[@name='emails']" position="after">
                 <page name="billing_employee_rate" string="Invoicing" attrs="{'invisible': [('billable_type', '=', 'no')]}">
                     <group>
                         <field name="billable_type" invisible="1"/>
-                        <field name="sale_order_id" attrs="{'invisible': [('billable_type', '=', 'no')]}"/>
-                        <field name="sale_line_id" attrs="{'invisible': [('billable_type', '=', 'no')]}" context="{'create': False, 'edit': False, 'delete': False}"/>
+                        <field name="sale_order_id" attrs="{'invisible': ['|', ('billable_type', '=', 'no'), ('is_template', '=', True)]}"/>
+                        <field name="sale_line_id" attrs="{'invisible': ['|', ('billable_type', '=', 'no'), ('is_template', '=', True)]}" context="{'create': False, 'edit': False, 'delete': False}"/>
                     </group>
                     <field name="sale_line_employee_ids">
                         <tree editable="top">
                             <field name="employee_id" options="{'no_create': True}"/>
-                            <field name="sale_line_id" options="{'no_create': True}" domain="[('order_id','=',parent.sale_order_id), ('is_service', '=', True)]"/>
+                            <field name="sale_line_id" options="{'no_create': True}" domain="[('order_id','=',parent.sale_order_id), ('is_service', '=', True), ('is_template', '=', True)]"/>
                             <field name="price_unit"/>
                         </tree>
                     </field>

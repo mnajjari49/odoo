@@ -87,18 +87,18 @@
             <field name="arch" type="xml">
                 <form string="Project">
                     <header>
-                        <button name="%(portal.portal_share_action)d" string="Share" type="action" class="oe_highlight oe_read_only"/>
+                        <button name="%(portal.portal_share_action)d" string="Share" type="action" class="oe_highlight oe_read_only" attrs="{'invisible': [('is_template', '=', True)]}"/>
                     </header>
                 <sheet string="Project">
                     <div class="oe_button_box" name="button_box" groups="base.group_user">
-                        <button  class="oe_stat_button" name="attachment_tree_view" type="object" icon="fa-file-text-o">
+                        <button  class="oe_stat_button" name="attachment_tree_view" type="object" icon="fa-file-text-o" attrs="{'invisible': [('is_template', '=', True)]}">
                             <field string="Documents" name="doc_count" widget="statinfo"/>
                         </button>
                         <button class="oe_stat_button" type="action"
                             name="%(act_project_project_2_project_task_all)d" icon="fa-tasks">
                             <field string="Tasks" name="task_count" widget="statinfo" options="{'label_field': 'label_tasks'}"/>
                         </button>
-                        <button name="action_view_all_rating" type="object" attrs="{'invisible': ['|', '|', ('rating_status', '=', 'no'), ('rating_percentage_satisfaction', '=', -1)]}" class="oe_stat_button oe_percent" icon="fa-smile-o" groups="project.group_project_rating">
+                        <button name="action_view_all_rating" type="object" attrs="{'invisible': ['|', '|', '|', ('rating_status', '=', 'no'), ('rating_percentage_satisfaction', '=', -1), ('is_template', '=', True)]}" class="oe_stat_button oe_percent" icon="fa-smile-o" groups="project.group_project_rating">
                             <div class="o_field_widget o_stat_info">
                                 <span class="o_stat_value">
                                     <field name="rating_percentage_satisfaction" nolabel="1"/>
@@ -128,6 +128,7 @@
                                     <field name="active" invisible="1"/>
                                     <field name="user_id" string="Project Manager" attrs="{'readonly':[('active','=',False)]}"/>
                                     <field name="partner_id" string="Customer"/>
+                                    <field name="project_template" string="Template" attrs="{'invisible': [('is_template', '=', True)], 'readonly':[('id', '!=', False)]}"/>
                                 </group>
                                 <group>
                                     <field name="analytic_account_id" domain="['|', ('company_id', '=', company_id), ('company_id', '=', False)]" context="{'default_partner_id': partner_id}" groups="analytic.group_analytic_accounting"/>
@@ -140,6 +141,17 @@
                                 </group>
                             </group>
                             <div class="row mt16 o_settings_container">
+                                <div class="col-lg-6 o_setting_box"  id="template_settings" groups="base.group_no_one">
+                                    <div class="o_setting_left_pane">
+                                        <field name="is_template"/>
+                                    </div>
+                                    <div class="o_setting_right_pane">
+                                        <label for="is_template" string="Is a template?"/>
+                                        <div class="text-muted">
+                                            This project will be used as a template for other projects.
+                                        </div>
+                                    </div>
+                                </div>
                                 <div id="rating_settings" class="col-lg-6 o_setting_box" groups="project.group_project_rating">
                                     <div class="o_setting_right_pane">
                                         <label for="rating_status"/>
@@ -274,6 +286,7 @@
                         <group>
                             <field name="name" class="o_project_name oe_inline"
                                 string="Project Name" placeholder="e.g. Office Party"/>
+                            <field name="project_template" string="template"/>
                             <field name="user_id" invisible="1"/>
                             <label for="alias_name" string="Choose a Project Email" attrs="{'invisible': [('alias_domain', '=', False)]}"/>
                             <div name="alias_def" attrs="{'invisible': [('alias_domain', '=', False)]}">
@@ -404,7 +417,7 @@
         <record id="open_view_project_all" model="ir.actions.act_window">
             <field name="name">Projects</field>
             <field name="res_model">project.project</field>
-            <field name="domain">[]</field>
+            <field name="domain">[('is_template', '=', False)]</field>
             <field name="view_mode">kanban,form</field>
             <field name="view_id" ref="view_project_kanban"/>
             <field name="search_view_id" ref="view_project_project_filter"/>
@@ -421,13 +434,13 @@
         <record id="open_view_project_all_config" model="ir.actions.act_window">
             <field name="name">Projects</field>
             <field name="res_model">project.project</field>
-            <field name="domain">[]</field>
+            <field name="domain">[('is_template', '=', False)]</field>
             <field name="view_mode">tree,kanban,form</field>
             <field name="view_ids" eval="[(5, 0, 0),
                 (0, 0, {'view_mode': 'tree', 'view_id': ref('view_project')}),
                 (0, 0, {'view_mode': 'kanban', 'view_id': ref('project_view_kanban')})]"/>
             <field name="search_view_id" ref="view_project_project_filter"/>
-            <field name="context">{}</field>
+            <field name="context">{'default_is_template': False}</field>
             <field name="help" type="html">
                 <p class="o_view_nocontent_empty_folder">
                     Create a new project
@@ -436,6 +449,26 @@
                 </p>
             </field>
         </record>
+
+        <record id="open_view_project_template_all_config" model="ir.actions.act_window">
+            <field name="name">Project Templates</field>
+            <field name="res_model">project.project</field>
+            <field name="domain">[('is_template', '=', True)]</field>
+            <field name="view_mode">tree,kanban,form</field>
+            <field name="view_ids" eval="[(5, 0, 0),
+                (0, 0, {'view_mode': 'tree', 'view_id': ref('view_project')}),
+                (0, 0, {'view_mode': 'kanban', 'view_id': ref('project_view_kanban')})]"/>
+            <field name="search_view_id" ref="view_project_project_filter"/>
+            <field name="context">{'default_is_template': True}</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_empty_folder">
+                    Create a new project
+                </p><p>
+                    Organize your activities (plan tasks, track issues, invoice timesheets) for internal, personal or customer projects.
+                </p>
+            </field>
+        </record>
+
 
         <!-- Task -->
         <record id="view_task_form2" model="ir.ui.view">
@@ -446,7 +479,7 @@
                 <form string="Task" class="o_form_project_tasks">
                     <header>
                         <button name="action_assign_to_me" string="Assign to Me" type="object" class="oe_highlight"
-                            attrs="{'invisible' : [('user_id', '!=', False)]}"/>
+                            attrs="{'invisible' : ['|', ('is_template', '=', True), ('user_id', '!=', False)]}"/>
                         <field name="stage_id" widget="statusbar" options="{'clickable': '1', 'fold_field': 'fold'}" attrs="{'invisible': [('project_id', '=', False)]}"/>
                     </header>
                     <sheet string="Task">
@@ -476,12 +509,14 @@
                             <field name="legend_blocked" invisible="1"/>
                             <field name="legend_normal" invisible="1"/>
                             <field name="legend_done" invisible="1"/>
+                            <field name="is_template" invisible="1"/>
                         </group>
                         <group>
                             <field name="project_id" domain="[('active', '=', True), ('company_id', '=', company_id)]"/>
                             <field name="user_id"
                                 class="o_task_user_field"
-                                options='{"no_open": True}'/>
+                                options='{"no_open": True}'
+                                attrs="{'invisible': [('is_template', '=', True)]}"/>
                             <field
                                 name="parent_id"
                                 domain="[('parent_id', '=', False)]"
@@ -489,9 +524,12 @@
                             />
                         </group>
                         <!-- YTI FIXME: Clean these fake groups -->
-                        <group name="sales_order_group"/>
-                        <group name="dates">
-                            <field name="date_deadline"/>
+                        <group name="sales_order_group">
+                        </group>
+                        <group>
+                            <group name="dates">
+                                <field name="date_deadline" attrs="{'invisible': [('is_template', '=', True)]}"/>
+                            </group>
                             <field name="tag_ids" widget="many2many_tags" options="{'color_field': 'color', 'no_create_edit': True}"/>
                         </group>
                     </group>
@@ -511,15 +549,15 @@
                                     <field name="company_id" groups="base.group_multi_company" options="{'no_create': True}"/>
                                     <field name="displayed_image_id" groups="base.group_no_one"/>
                                 </group>
-                                <group>
+                                <group attrs="{'invisible': [('is_template', '=', True)]}">
                                     <field name="date_assign" groups="base.group_no_one"/>
                                     <field name="date_last_stage_update" groups="base.group_no_one"/>
                                 </group>
-                                <group string="Working Time to Assign" attrs="{'invisible': [('working_hours_open', '=', 0.0)]}">
+                                <group string="Working Time to Assign" attrs="{'invisible': ['|', ('is_template', '=', True), ('working_hours_open', '=', 0.0)]}">
                                     <field name="working_hours_open" string="Hours"/>
                                     <field name="working_days_open" string="Days"/>
                                 </group>
-                                <group string="Working Time to Close" attrs="{'invisible': [('working_hours_close', '=', 0.0)]}">
+                                <group string="Working Time to Close" attrs="{'invisible': ['|', ('is_template', '=', True), ('working_hours_close', '=', 0.0)]}">
                                     <field name="working_hours_close" string="Hours"/>
                                     <field name="working_days_close" string="Days"/>
                                 </group>
@@ -766,6 +804,7 @@
             <field name="res_model">project.task</field>
             <field name="view_mode">kanban,tree,form,calendar,pivot,graph,activity</field>
             <field name="context">{'search_default_my_tasks': 1}</field>
+            <field name="domain">[('project_id.is_template', '=', False)]</field>
             <field name="search_view_id" ref="view_task_search_form"/>
             <field name="help" type="html">
                 <p class="o_view_nocontent_smiling_face">
@@ -950,10 +989,11 @@
 
         <menuitem id="menu_tasks_config" name="GTD" parent="menu_project_config" sequence="2"/>
 
-        <menuitem action="open_task_type_form" id="menu_project_config_project" name="Stages" parent="menu_project_config" sequence="3" groups="base.group_no_one"/>
+        <menuitem action="open_task_type_form" id="menu_project_config_project" name="Stages" parent="menu_project_config" sequence="20" groups="base.group_no_one"/>
 
         <menuitem action="open_view_project_all" id="menu_projects" name="Projects" parent="menu_main_pm" sequence="1"/>
-        <menuitem action="open_view_project_all_config" id="menu_projects_config" name="Projects" parent="menu_project_config" sequence="10"/>
+        <menuitem action="open_view_project_all_config" id="menu_projects_config" name="Projects" parent="menu_project_config" sequence="30"/>
+        <menuitem action="open_view_project_template_all_config" id="menu_template_projects_config" name="Project Templates" parent="menu_project_config" sequence="40"/>
 
         <!-- User Form -->
         <act_window context="{'search_default_user_id': [active_id], 'default_user_id': active_id}"
@@ -1005,7 +1045,7 @@
               </p>
             </field>
         </record>
-        <menuitem action="project_tags_action" id="menu_project_tags_act" parent="menu_project_config"/>
+        <menuitem action="project_tags_action" id="menu_project_tags_act" parent="menu_project_config" sequence="60"/>
 
         <!-- Reporting menus -->
         <menuitem id="menu_project_report" name="Reporting"

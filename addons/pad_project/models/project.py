@@ -25,3 +25,9 @@ class ProjectProject(models.Model):
     _inherit = "project.project"
 
     use_pads = fields.Boolean("Use collaborative pads", help="Use collaborative pad for the tasks on this project.")
+
+
+    @api.onchange('project_template_id')
+    def copy_template(self):
+        super(ProjectProject, self).copy_template()
+        setattr(self, 'use_pads', getattr(self.project_template_id, 'use_pads'))

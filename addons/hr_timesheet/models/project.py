@@ -77,6 +77,11 @@ class Project(models.Model):
             })
         return result
 
+    @api.onchange('project_template_id')
+    def copy_template(self):
+        super(Project, self).copy_template()
+        setattr(self, 'allow_timesheets', getattr(self.project_template_id, 'allow_timesheets'))
+
     @api.model
     def _init_data_analytic_account(self):
         self.search([('analytic_account_id', '=', False), ('allow_timesheets', '=', True)])._create_analytic_account()
