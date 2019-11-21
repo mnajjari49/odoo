@@ -26,7 +26,6 @@ widgetsMedia.ImageWidget.include({
         this.maxDbImages = this.MAX_DB_IMAGES;
 
         this._unsplash = {
-            isActive: false,
             records: [],
             selectedImages: {},
             isMaxed: false,
@@ -156,13 +155,6 @@ widgetsMedia.ImageWidget.include({
 
         this.$('.o_load_more').toggleClass('d-none', !!this._unsplash.error || this._unsplash.isMaxed);
         this.$('.o_load_done_msg').toggleClass('d-none', !!this._unsplash.error || !this._unsplash.isMaxed);
-    },
-    /**
-     * @private
-     * @param {boolean} show
-     */
-    _toggleUnsplashContainer: function (show) {
-        this._unsplash.isActive = show;
     },
 
     //--------------------------------------------------------------------------

@@ -482,7 +482,6 @@ var FileWidget = SearchableMediaWidget.extend({
                 self.$media.attr('href', href);
                 self.$media.addClass('o_image').attr('title', img.name).attr('data-mimetype', img.mimetype);
             }
-            console.log(img);
             self.$media.attr('alt', img.alt || img.description);
             var style = self.style;
             if (style) {
@@ -658,15 +657,15 @@ var FileWidget = SearchableMediaWidget.extend({
     _onFavoriteClick: function (ev) {
         ev.stopPropagation();
         const $cell = $(ev.currentTarget).closest('.o_existing_attachment_cell');
-        const id = parseInt($cell.data('id'), 10);
-        const attachment = _.findWhere(this.attachments, {id: id});
-         return this._rpc({
+        const id = parseInt($cell.data('id'));
+        return this._rpc({
             route: '/web_editor/attachment/toggle_favorite',
             params: {
                 ids: [id],
             },
         }).then(() => {
             ev.currentTarget.classList.toggle('active');
+            const attachment = _.findWhere(this.attachments, {id: id});
             attachment.is_favorite = !attachment.is_favorite;
             this.$media.trigger('favorite-updated', {id: attachment.id, isFavorite: attachment.is_favorite});
         });
