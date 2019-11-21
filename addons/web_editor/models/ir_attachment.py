@@ -50,4 +50,4 @@ class IrAttachment(models.Model):
     def _get_media_info(self):
         """Return a dict with the values that we need on the media dialog."""
         self.ensure_one()
-        return self.read(['id', 'name', 'mimetype', 'checksum', 'url', 'type', 'res_id', 'res_model', 'public', 'access_token', 'image_src', 'image_width', 'image_height'])[0]
+        return self.read(['id', 'description', 'name', 'mimetype', 'checksum', 'url', 'type', 'res_id', 'res_model', 'public', 'access_token', 'image_src', 'image_width', 'image_height'])[0]
