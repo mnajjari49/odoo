@@ -1,7 +1,8 @@
 odoo.define('web_editor.ImageManager', function (require) {
 'use strict';
 
-var core = require('web.core');
+const core = require('web.core');
+const _t = core._t;
 
 /**
  * Manages an image optimization (quality and resizing), and its favorite status.
@@ -167,14 +168,14 @@ const ImageManager = core.Class.extend({
      */
     computeAvailableWidths: function () {
         const widths = [
-            [128, "icon"],
-            [256, "small"],
-            [512, "medium"],
-            [1024, "large"],
-            [1920, "background"],
-            [this.computeOptimizedWidth(), "recommended"],
-            [this.originalWidth, "original"],
-            [this.width, "current"]
+            [128, _t("icon")],
+            [256, _t("small")],
+            [512, _t("medium")],
+            [1024, _t("large")],
+            [1920, _t("background")],
+            [this.computeOptimizedWidth(), _t("recommended")],
+            [this.originalWidth, _t("original")],
+            [this.width, _t("current")]
         ];
         this.availableWidths = widths.sort((a, b) => a[0] - b[0]).reduce((acc, v) => {
             acc[v[0]] = (acc[v[0]] || []).concat([v[1]]);
