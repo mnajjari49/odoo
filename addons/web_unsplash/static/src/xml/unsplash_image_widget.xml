@@ -1,44 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
 <templates id="template" xml:space="preserve">
 
+<t t-name="web_unsplash.unsplash.attachment" t-extend="wysiwyg.widgets.image.database.attachment">
+    <t t-jquery=".o_existing_attachment_cell" t-operation="attributes">
+        <attribute name="class">o_existing_attachment_cell unsplash_img_container position-relative</attribute>
+    </t>
+    <!-- empty top controls-->
+    <t t-jquery=".o_image_controls .w-100.d-flex" t-operation="inner"/>
+    <t t-jquery=".o_image_controls .w-100.text-center" t-operation="inner">
+        <span class="o_we_attachment_name">Photo by <a t-att-href="attachment.user.links.html"><t t-esc="attachment.user.username"/></a> on Unsplash</span>
+    </t>
+
+    <t t-jquery=".img.img-fluid" t-operation="replace">
+        <img class="img img-fluid o_we_attachment_highlight"
+            t-att-src="attachment.urls.thumbnail"
+            t-att-alt="attachment.alt_description"
+            t-att-title="attachment.alt_description"
+            t-att-data-imgid="attachment.id"
+            t-att-data-url="attachment.urls.hd"
+            t-att-data-download-url="attachment.links.download_location"/>
+    </t>
+</t>
+
 <t t-extend="wysiwyg.widgets.image.existing.attachment">
-    <t t-jquery=".o_existing_attachment_cell" t-operation="replace">
+    <t t-jquery="t" t-operation="replace">
         <t t-if="!attachment.isUnsplash">
-            <li class="o_existing_attachment_cell position-relative" t-att-data-id="attachment.id">
-                <div class="o_image_controls position-absolute w-100 h-100 d-flex flex-column justify-content-between">
-                    <div class="w-100 d-flex">
-                        <i t-attf-class="fa fa-star fa-lg o_existing_attachment_favorite p-2 #{attachment.is_favorite ? 'active' : ''}" title="Favorite"/>
-                        <t t-call="wysiwyg.widgets.file.existing.remove"/>
-                    </div>
-                    <div class="w-100 text-center">
-                        <span class="o_we_attachment_name"><t t-esc="attachment.name"/></span>
-                    </div>
-                </div>
-                <div t-attf-class="d-flex align-items-center h-100 w-100 bg-light">
-                    <img class="img img-fluid o_we_attachment_highlight" t-attf-src="#{attachment.thumbnail ? attachment.thumbnail : attachment.url}" t-att-alt="attachment.name" t-att-title="attachment.name"/>
-                </div>
-            </li>
+            <t t-call="wysiwyg.widgets.image.database.attachment"/>
         </t>
         <t t-else="">
-            <li class="o_existing_attachment_cell unsplash_img_container position-relative" t-att-data-id="attachment.id">
-                <div class="o_image_controls position-absolute w-100 h-100 d-flex flex-column justify-content-between">
-                    <div class="w-100 d-flex">
-                    </div>
-                    <div class="w-100 text-center">
-                        <span class="o_we_attachment_name">Photo by <a t-att-href="attachment.user.links.html"><t t-esc="attachment.user.username"/></a> on Unsplash</span>
-                    </div>
-                </div>
-                <div t-attf-class="d-flex align-items-center h-100 w-100 bg-light">
-                    <img class="img img-fluid o_we_attachment_highlight"
-                        t-att-src="attachment.urls.thumbnail"
-                        t-att-alt="attachment.alt_description"
-                        t-att-title="attachment.alt_description"
-                        t-att-data-imgid="attachment.id"
-                        t-att-data-url="attachment.urls.hd"
-                        t-att-data-download-url="attachment.links.download_location"/>
-                    <div class="author_name d-none"><a t-att-href="attachment.user.links.html" target="_blank"><t t-esc="attachment.user.name"/></a></div>
-                </div>
-            </li>
+            <t t-call="web_unsplash.unsplash.attachment"/>
         </t>
     </t>
 </t>

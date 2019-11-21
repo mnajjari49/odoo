@@ -195,22 +195,25 @@
         </div>
     </t>
 
-    <t t-name="wysiwyg.widgets.image.existing.attachment">
-        <li class="o_existing_attachment_cell m-2 position-relative" t-att-data-id="attachment.id">
+    <t t-name="wysiwyg.widgets.image.database.attachment">
+        <li class="o_existing_attachment_cell position-relative" t-att-data-id="attachment.id">
             <div class="o_image_controls position-absolute w-100 h-100 d-flex flex-column justify-content-between">
                 <div class="w-100 d-flex">
                     <i t-attf-class="fa fa-star fa-lg o_existing_attachment_favorite p-2 #{attachment.is_favorite ? 'active' : ''}" title="Favorite"/>
-                    <i t-if="attachment.type === 'binary'" class="fa fa-cog o_existing_attachment_optimize p-2" title="Optimize" role="img" aria-label="Optimize"/>
                     <t t-call="wysiwyg.widgets.file.existing.remove"/>
                 </div>
                 <div class="w-100 text-center">
-                    <span>image_name.png</span>
+                    <span class="o_we_attachment_name"><t t-esc="attachment.name"/></span>
                 </div>
             </div>
-            <div t-attf-class="d-flex align-items-center h-100 w-100 bg-light">
-                <img class="img img-fluid o_we_attachment_highlight" t-att-src="attachment.thumbnail" t-att-alt="attachment.name" t-att-title="attachment.name"/>
+            <div class="d-flex align-items-center h-100 w-100 bg-light">
+                <img class="img img-fluid o_we_attachment_highlight" t-attf-src="#{attachment.thumbnail ? attachment.thumbnail : attachment.url}" t-att-alt="attachment.name" t-att-title="attachment.name"/>
             </div>
         </li>
+    </t>
+
+    <t t-name="wysiwyg.widgets.image.existing.attachment">
+        <t t-call="wysiwyg.widgets.image.database.attachment"/>
     </t>
 
     <t t-name="wysiwyg.widgets.document.existing.attachments">

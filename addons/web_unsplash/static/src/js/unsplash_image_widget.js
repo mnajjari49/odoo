@@ -70,7 +70,7 @@ widgetsMedia.ImageWidget.include({
      * @override
      */
     _save: function () {
-        if (!this._unsplash.query) {
+        if (!this._unsplash.query || !this.selectedAttachments[0].isUnsplash) {
             return this._super.apply(this, arguments);
         }
         var self = this;
