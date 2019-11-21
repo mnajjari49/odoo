@@ -482,7 +482,12 @@ var FileWidget = SearchableMediaWidget.extend({
                 self.$media.attr('href', href);
                 self.$media.addClass('o_image').attr('title', img.name).attr('data-mimetype', img.mimetype);
             }
-            self.$media.attr('alt', img.alt || img.description);
+            const alt = img.alt || img.description;
+            if (alt) {
+                self.$media.attr('alt', alt);
+            } else {
+                self.$media.removeAttr('alt');
+            }
             var style = self.style;
             if (style) {
                 self.$media.css(style);

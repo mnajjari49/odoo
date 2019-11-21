@@ -800,7 +800,7 @@ registry.colorpicker = SnippetOption.extend({
 });
 
 /**
- * Handles the edition of inline images.
+ * Handles the edition of non-background images.
  */
 registry.Image = SnippetOption.extend({
     events: _.extend({}, SnippetOption.prototype.events || {}, {
