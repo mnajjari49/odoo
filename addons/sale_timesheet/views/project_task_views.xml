@@ -7,7 +7,7 @@
         <field name="inherit_id" ref="project.edit_project"/>
         <field name="arch" type="xml">
             <xpath expr="//header" position="inside">
-                <button name="action_make_billable" string="Create Sales Order" type="object" attrs="{'invisible': ['|', '|', ('sale_order_id', '!=', False), ('billable_type', '!=', 'no'), ('is_template', '=', True)]}" group="sale.group_sale_salesman"/> [IMP] project: introduce the possibility to create a project template
+                <button name="action_make_billable" string="Create Sales Order" type="object" attrs="{'invisible': ['|', '|', ('sale_order_id', '!=', False), ('billable_type', '!=', 'no'), ('is_template', '=', True)]}" groups="sales_team.group_sale_salesman"/>
             </xpath>
             <xpath expr="//page[@name='emails']" position="after">
                 <page name="billing_employee_rate" string="Invoicing" attrs="{'invisible': [('billable_type', '=', 'no')]}">
@@ -19,7 +19,7 @@
                     <field name="sale_line_employee_ids">
                         <tree editable="top">
                             <field name="employee_id" options="{'no_create': True}"/>
-                            <field name="sale_line_id" options="{'no_create': True}" domain="[('order_id','=',parent.sale_order_id), ('is_service', '=', True), ('is_template', '=', True)]"/>
+                            <field name="sale_line_id" options="{'no_create': True}" domain="[('order_id','=',parent.sale_order_id), ('is_service', '=', True)]"/>
                             <field name="price_unit"/>
                         </tree>
                     </field>
@@ -66,39 +66,23 @@
         </field>
     </record>
 
-        <record id="view_sale_service_inherit_form2" model="ir.ui.view">
-            <field name="name">sale.service.form.view.inherit</field>
-            <field name="model">project.task</field>
-            <field name="groups_id" eval="[(4, ref('base.group_user'))]"/>
-            <field name="inherit_id" ref="project.view_task_form2"/>
-            <field name="arch" type="xml">
-                <xpath expr="//header" position='inside'>
-                    <field name="allow_billable" invisible="1"/>
-                    <button name="action_make_billable" string="Create Sales Order" type="object" attrs="{'invisible': ['|', '|', '|', '|', '|', ('allow_billable', '=', False), ('allow_timesheets', '=', False), ('billable_type', '=', 'employee_rate'), ('partner_id', '=', False), ('sale_order_id', '!=', False), '&amp;', ('display_timesheet_timer', '=', True), ('timer_start', '!=', False)]}" groups="sales_team.group_sale_salesman"/>
-                </xpath>
-                <xpath expr="//group[@name='sales_order_group']" position="inside">
-                    <field name="billable_type" invisible="1"/>
-                </xpath>
-            </field>
-        </record>
-
-        <record id="project_task_view_form_inherit_sale_timesheet" model="ir.ui.view">
-            <field name="name">project.task.form.inherit.timesheet</field>
-            <field name="model">project.task</field>
-            <field name="inherit_id" ref="hr_timesheet.view_task_form2_inherited"/>
-            <field name="arch" type="xml">
-                <xpath expr="//field[@name='timesheet_ids']/tree" position="attributes">
-                    <attribute name="decoration-muted">timesheet_invoice_id != False</attribute>
-                </xpath>
-                <xpath expr="//field[@name='user_id']" position="after">
-                    <field name="is_project_map_empty" invisible="1"/>
-                </xpath>
-                <xpath expr="//field[@name='timesheet_ids']/tree" position="inside">
-                    <field name="timesheet_invoice_id" invisible="1"/>
-                    <field name="so_line" readonly="1" attrs="{'column_invisible': ['|', ('parent.is_project_map_empty', '=', True), ('parent.billable_type', '!=', 'employee_rate')]}"/>
-                </xpath>
-            </field>
-        </record>
+    <record id="project_task_view_form_inherit_sale_timesheet" model="ir.ui.view">
+        <field name="name">project.task.form.inherit.timesheet</field>
+        <field name="model">project.task</field>
+        <field name="inherit_id" ref="hr_timesheet.view_task_form2_inherited"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='timesheet_ids']/tree" position="attributes">
+                <attribute name="decoration-muted">timesheet_invoice_id != False</attribute>
+            </xpath>
+            <xpath expr="//field[@name='user_id']" position="after">
+                <field name="is_project_map_empty" invisible="1"/>
+            </xpath>
+            <xpath expr="//field[@name='timesheet_ids']/tree" position="inside">
+                <field name="timesheet_invoice_id" invisible="1"/>
+                <field name="so_line" readonly="1" attrs="{'column_invisible': ['|', ('parent.is_project_map_empty', '=', True), ('parent.billable_type', '!=', 'employee_rate')]}"/>
+            </xpath>
+        </field>
+    </record>
 
     <record id="project_timesheet_action_client_timesheet_plan" model="ir.actions.act_window">
         <field name="name">Overview</field>
