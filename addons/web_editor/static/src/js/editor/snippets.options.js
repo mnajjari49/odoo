@@ -869,7 +869,7 @@ registry.Image = SnippetOption.extend({
      */
     _updateWidthSelection: function () {
         const availableWidths = this.imageManager.computeAvailableWidths();
-        this.$widthSelect.empty().append(_.map(availableWidths, (labels, width) => $(`<option value="${width}">${labels.join(', ')}</option>`)));
+        this.$widthSelect.empty().append(_.map(availableWidths, (labels, width) => $(`<option value="${width}">${width} (${labels.join(', ')})</option>`)));
         this.$widthSelect.val(this.$target[0].naturalWidth);
     },
     /**

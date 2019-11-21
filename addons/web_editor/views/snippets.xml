@@ -44,6 +44,7 @@
         <div class="o_we_quality_option">
             <div class="d-flex justify-content-between px-2 pb-0 mb-0"><span>Quality</span><span class="o_we_image_file_size"></span></div>
             <input class="custom-range px-2 pt-0 mt-0" type="range" data-optimize="true" min="1" max="100" value="80"/>
+            <label>Width:</label>
         </div>
     </div>
 </template>
