@@ -4,14 +4,15 @@ odoo.define('web_editor.ImageManager', function (require) {
 var core = require('web.core');
 
 const ImageManager = core.Class.extend({
-    init: function (img) {
+    init: function (img, rpc) {
         this.img = img;
+        this.rpc = rpc;
         this.quality = 80;
         this.width = img.naturalWidth;
     },
     cleanForSave: function (rpc) {
         if (this.img.dataset.optimizeOnSave === 'true' && this.quality !== this.originalQuality) {
-            return rpc({
+            return this.rpc({
                 route: `/web_editor/attachment/${this.img.dataset.originalId}/update`,
                 params: {
                     copy: true,
@@ -26,8 +27,8 @@ const ImageManager = core.Class.extend({
         }
         return Promise.resolve();
     },
-    favorite: function (rpc) {
-        return rpc({
+    favorite: function () {
+        return this.rpc({
            route: '/web_editor/attachment/toggle_favorite',
            params: {
                ids: [parseInt(this.img.dataset.originalId)],
@@ -42,11 +43,11 @@ const ImageManager = core.Class.extend({
         this.img.dataset.optimizeOnSave = 'true';
         this.img.src = `/web/image/${this.img.dataset.originalId}/?width=${this.width}&quality=${quality}`;
     },
-    getAttachmentFromSrc: function (rpc) {
+    getAttachmentFromSrc: function () {
         const url = this.img.attributes.src.value.split('?')[0];
         let request = Promise.resolve([]);
         if (url) {
-            request = rpc({
+            request = this.rpc({
                 model: 'ir.attachment',
                 method: 'search_read',
                 args: [],
@@ -56,19 +57,19 @@ const ImageManager = core.Class.extend({
                 },
             });
         }
-        return request.then(attachments => this.updateAttachment(attachments, rpc));
+        return request.then(attachments => this.updateAttachment(attachments));
     },
-    getAttachmentFromOriginalId: function (rpc) {
-        return rpc({
+    getAttachmentFromOriginalId: function () {
+        return this.rpc({
             model: 'ir.attachment',
             method: 'read',
             args: [parseInt(this.img.dataset.originalId)],
             kwargs: {
                 fields: ['type', 'is_favorite', 'original_id', 'quality', 'name'],
             },
-        }).then(attachments => this.updateAttachment(attachments, rpc));
+        }).then(attachments => this.updateAttachment(attachments));
     },
-    updateAttachment: function (attachments, rpc) {
+    updateAttachment: function (attachments) {
         $(this.img).one('load', () => {
             this.width = this.img.naturalWidth;
         });
@@ -79,7 +80,7 @@ const ImageManager = core.Class.extend({
 
             let originalPromise = [];
             if (this.attachment.original_id) {
-                originalPromise = rpc({
+                originalPromise = this.rpc({
                     model: 'ir.attachment',
                     method: 'read',
                     args: [parseInt(this.img.dataset.originalId)],

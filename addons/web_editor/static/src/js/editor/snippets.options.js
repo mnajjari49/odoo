@@ -822,13 +822,13 @@ registry.Image = SnippetOption.extend({
         this.$target.on('content_changed.image-option', this._onContentChanged.bind(this));
         this.$target.on('favorite-updated.image-option', this._onFavoriteUpdated.bind(this));
 
-        this.imageManager = new ImageManager(this.$target[0]);
+        this.imageManager = new ImageManager(this.$target[0], this._rpc.bind(this));
 
         this.$widthSelect = $('<select>').appendTo(this.$qualityOption);
 
         const _super = this._super;
         return Promise.all([
-            this.imageManager.getAttachmentFromSrc(this._rpc.bind(this)).then(() => this._updateUi()),
+            this.imageManager.getAttachmentFromSrc().then(() => this._updateUi()),
             _super.apply(this, arguments),
         ]);
     },
@@ -842,7 +842,7 @@ registry.Image = SnippetOption.extend({
      * @override
      */
     cleanForSave: function () {
-        return this.imageManager.cleanForSave(this._rpc.bind(this));
+        return this.imageManager.cleanForSave();
     },
 
     //--------------------------------------------------------------------------
@@ -855,7 +855,7 @@ registry.Image = SnippetOption.extend({
      * @see this.selectClass for parameters
      */
     favorite: function () {
-        this.imageManager.favorite(this._rpc.bind(this)).then(() => this._updateUi(true));
+        this.imageManager.favorite().then(() => this._updateUi(true));
     },
 
     //--------------------------------------------------------------------------
@@ -934,9 +934,9 @@ registry.Image = SnippetOption.extend({
     _onContentChanged: function (ev) {
         if (this.imageManager.originalId !== this.$target[0].dataset.originalId) {
             if (this.$target[0].dataset.originalId) {
-                this.imageManager.getAttachmentFromOriginalId(this._rpc.bind(this)).then(() => this._updateUi());
+                this.imageManager.getAttachmentFromOriginalId().then(() => this._updateUi());
             } else {
-                this.imageManager.getAttachmentFromSrc(this._rpc.bind(this)).then(() => this._updateUi());
+                this.imageManager.getAttachmentFromSrc().then(() => this._updateUi());
             }
             this.$target.one('load', () => {
                 this._updateWidthSelection();
@@ -983,9 +983,9 @@ registry.background = SnippetOption.extend({
                 src: this.__customImageSrc,
             }).appendTo(this.$target);
             this.$img.on('favorite-updated', this._onFavoriteUpdated.bind(this));
-            this.imageManager = new ImageManager(this.$img[0]);
+            this.imageManager = new ImageManager(this.$img[0], this._rpc.bind(this));
 
-            return this.imageManager.getAttachmentFromSrc(this._rpc.bind(this)).then(() => this._updateUi());
+            return this.imageManager.getAttachmentFromSrc().then(() => this._updateUi());
         });
     },
     /**
@@ -993,7 +993,7 @@ registry.background = SnippetOption.extend({
      */
     cleanForSave: function () {
         if (this.$img[0].dataset.optimizeOnSave) {
-            return this.imageManager.cleanForSave(this._rpc.bind(this)).then(() => {
+            return this.imageManager.cleanForSave().then(() => {
                 this._setCustomBackground(this.$img.attr('src'));
                 this.$img.remove();
             });
@@ -1054,7 +1054,7 @@ registry.background = SnippetOption.extend({
      * @see this.selectClass for parameters
      */
     favorite: function (previewMode, value, $opt) {
-        this.imageManager.favorite(this._rpc.bind(this)).then(() => this._updateUi(true));
+        this.imageManager.favorite().then(() => this._updateUi(true));
     },
 
     //--------------------------------------------------------------------------
@@ -1070,7 +1070,7 @@ registry.background = SnippetOption.extend({
         this._bindBackgroundEvents();
         this.__customImageSrc = this._getSrcFromCssValue();
         this.$img.attr('src', this.__customImageSrc);
-        this.imageManager.getAttachmentFromSrc(this._rpc.bind(this)).then(() => this._updateUi());
+        this.imageManager.getAttachmentFromSrc().then(() => this._updateUi());
     },
 
     //--------------------------------------------------------------------------
@@ -1182,7 +1182,7 @@ registry.background = SnippetOption.extend({
         this.$target.toggleClass('oe_custom_bg', !!value);
         this._setActive();
         this.$target.trigger('snippet-option-change', [this]);
-        this.imageManager.getAttachmentFromOriginalId(this._rpc.bind(this)).then(() => this._updateUi(!resetQuality));
+        this.imageManager.getAttachmentFromOriginalId().then(() => this._updateUi(!resetQuality));
     },
 
     //--------------------------------------------------------------------------
