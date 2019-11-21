@@ -2,12 +2,10 @@ odoo.define('wysiwyg.widgets.media', function (require) {
 'use strict';
 
 var concurrency = require('web.concurrency');
-var config = require('web.config');
 var core = require('web.core');
 var Dialog = require('web.Dialog');
 var dom = require('web.dom');
 var fonts = require('wysiwyg.fonts');
-var ImageOptimizeDialog = require('wysiwyg.widgets.image_optimize_dialog').ImageOptimizeDialog;
 var utils = require('web.utils');
 var Widget = require('web.Widget');
 var session = require('web.session');
@@ -112,7 +110,6 @@ var FileWidget = SearchableMediaWidget.extend({
         'click .o_existing_attachment_cell': '_onAttachmentClick',
         'dblclick .o_existing_attachment_cell': '_onAttachmentDblClick',
         'click .o_existing_attachment_remove': '_onRemoveClick',
-        'click .o_existing_attachment_optimize': '_onExistingOptimizeClick',
         'click .o_existing_attachment_favorite': '_onFavoriteClick',
         'click .o_load_more': '_onLoadMoreClick',
     }),
@@ -386,47 +383,6 @@ var FileWidget = SearchableMediaWidget.extend({
         }
     },
     /**
-     * Opens the image optimize dialog for the given attachment.
-     *
-     * Hides the media dialog while the optimize dialog is open to avoid an
-     * overlap of modals.
-     *
-     * @private
-     * @param {object} attachment
-     * @param {boolean} isExisting: whether this is a new attachment that was
-     *  just uploaded, or an existing attachment
-     * @returns {Promise} resolved with the updated attachment object when the
-     *  optimize dialog is saved. Rejected if the dialog is otherwise closed.
-     */
-    _openImageOptimizeDialog: function (attachment, isExisting) {
-        var self = this;
-        var promise = new Promise(function (resolve, reject) {
-            self.trigger_up('hide_parent_dialog_request');
-            var optimizeDialog = new ImageOptimizeDialog(self, {
-                attachment: attachment,
-                isExisting: isExisting,
-                optimizedWidth: self._computeOptimizedWidth(),
-            }).open();
-            optimizeDialog.on('attachment_updated', self, function (ev) {
-                optimizeDialog.off('closed');
-                resolve(ev.data);
-            });
-            optimizeDialog.on('closed', self, function () {
-                self.noSave = true;
-                if (isExisting) {
-                    reject();
-                } else {
-                    resolve(attachment);
-                }
-            });
-        });
-        var always = function () {
-            self.trigger_up('show_parent_dialog_request');
-        };
-        promise.then(always).guardedCatch(always);
-        return promise;
-    },
-    /**
      * Renders the existing attachments and returns the result as a string.
      *
      * @param {Object[]} attachments
@@ -605,19 +561,6 @@ var FileWidget = SearchableMediaWidget.extend({
      */
     _onAttachmentDblClick: function (ev) {
         this._onAttachmentClick(ev, true);
-    },
-    /**
-     * @private
-     */
-    _onExistingOptimizeClick: function (ev) {
-        var self = this;
-        var $a = $(ev.currentTarget).closest('.o_existing_attachment_cell');
-        var id = parseInt($a.data('id'), 10);
-        var attachment = _.findWhere(this.attachments, {id: id});
-        ev.stopPropagation();
-        return this._openImageOptimizeDialog(attachment, true).then(function (newAttachment) {
-            self._handleNewAttachment(newAttachment);
-        });
     },
     /**
      * Handles change of the file input: create attachments with the new files
