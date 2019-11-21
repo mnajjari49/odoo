@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="account_cash_rounding_form_view_inherit" model="ir.ui.view">
+            <field name="name">account_cash_rounding.cash.rounding.form</field>
+            <field name="model">account.cash.rounding</field>
+            <field name="inherit_id" ref='account.rounding_form_view'/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='account_id']" position="after">
+                    <field name="loss_account_id" options="{'no_create': True}" attrs="{'invisible': [('strategy', '!=', 'add_invoice_line')], 'required': [('strategy', '=', 'add_invoice_line')]}"/>
+                </xpath>
+                <xpath expr="//field[@name='account_id']" position="attributes">
+                      <attribute name="string">Profit Account</attribute>
+                      <attribute name="groups"></attribute>
+                </xpath>
+            </field>
+        </record>
+    </data>
+</odoo>
