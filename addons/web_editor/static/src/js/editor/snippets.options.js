@@ -933,11 +933,7 @@ registry.Image = SnippetOption.extend({
      */
     _onContentChanged: function (ev) {
         if (this.imageManager.originalId !== this.$target[0].dataset.originalId) {
-            if (this.$target[0].dataset.originalId) {
-                this.imageManager.getAttachmentFromOriginalId().then(() => this._updateUi());
-            } else {
-                this.imageManager.getAttachmentFromSrc().then(() => this._updateUi());
-            }
+            this.imageManager.getAttachmentFromOriginalId().then(() => this._updateUi());
             this.$target.one('load', () => {
                 this._updateWidthSelection();
                 this.trigger_up('cover_update');
@@ -969,7 +965,7 @@ registry.background = SnippetOption.extend({
     start: function () {
         this._super.apply(this, arguments).then(() => {
             this._bindBackgroundEvents();
-            this.__customImageSrc = this._getSrcFromCssValue();
+            this.customBg = this.$target.is('oe_custom_bg');
 
             this.$qualityOption = this.$el.find('.o_we_quality_option');
             this.$qualityInput = this.$qualityOption.find('input');
@@ -980,10 +976,24 @@ registry.background = SnippetOption.extend({
 
             this.$img = $('<img/>', {
                 class: 'd-none o_we_fake_image',
-                src: this.__customImageSrc,
+                src: this._getSrcFromCssValue(),
             }).appendTo(this.$target);
             this.$img.on('favorite-updated', this._onFavoriteUpdated.bind(this));
             this.imageManager = new ImageManager(this.$img[0], this._rpc.bind(this));
+
+            // Change the source of the background to match the image.
+            new MutationObserver(mutations => mutations.forEach(mutation => {
+                    // Wait for the image to be in cache so that the background doesn't flash
+                    // to a blank one before showing the adapted quality. Unfortunately this
+                    // trick is not consistent accross browsers, in some browsers the flashing
+                    // will only be reduced. Doesn't work with cache disabled (dev tools).
+                    this.$img.one('load', () => this.background(false, this.$img.attr('src')));
+                })
+            ).observe(this.$img[0], {
+                attributes: true,
+                attributeFilter: ['src'],
+                attributeOldValue: true,
+            });
 
             return this.imageManager.getAttachmentFromSrc().then(() => this._updateUi());
         });
@@ -992,9 +1002,9 @@ registry.background = SnippetOption.extend({
      * @override
      */
     cleanForSave: function () {
-        if (this.$img[0].dataset.optimizeOnSave) {
+        if (this.customBg) {
             return this.imageManager.cleanForSave().then(() => {
-                this._setCustomBackground(this.$img.attr('src'));
+                this.background(false, this.$img.attr('src'));
                 this.$img.remove();
             });
         } else {
@@ -1015,7 +1025,7 @@ registry.background = SnippetOption.extend({
         if (previewMode === 'reset' && value === undefined) {
             // No background has been selected and we want to reset back to the
             // original custom image
-            this._setCustomBackground(this.__customImageSrc);
+            this._setCustomBackground(this.$img.attr('src'));
             return;
         }
 
@@ -1068,8 +1078,7 @@ registry.background = SnippetOption.extend({
         this._super.apply(this, arguments);
         // TODO should be automatic for all options as equal to the start method
         this._bindBackgroundEvents();
-        this.__customImageSrc = this._getSrcFromCssValue();
-        this.$img.attr('src', this.__customImageSrc);
+        this.$img.attr('src', this._getSrcFromCssValue());
         this.imageManager.getAttachmentFromSrc().then(() => this._updateUi());
     },
 
@@ -1164,6 +1173,7 @@ registry.background = SnippetOption.extend({
             .removeClass('active')
             .filter(function () {
                 var bgOption = $(this).data('background');
+                console.log(bgOption);
                 return (bgOption === '' && src === '' || bgOption !== '' && src.indexOf(bgOption) >= 0);
             })
             .addClass('active');
@@ -1176,13 +1186,14 @@ registry.background = SnippetOption.extend({
      * @private
      * @param {string} value
      */
-    _setCustomBackground: function (value, resetQuality) {
-        this.__customImageSrc = value;
-        this.background(false, this.__customImageSrc);
+    _setCustomBackground: function (value, reloadImage) {
+        this.$img.attr('src', value);
         this.$target.toggleClass('oe_custom_bg', !!value);
         this._setActive();
         this.$target.trigger('snippet-option-change', [this]);
-        this.imageManager.getAttachmentFromOriginalId().then(() => this._updateUi(!resetQuality));
+        if (reloadImage) {
+            this.imageManager.getAttachmentFromOriginalId().then(() => this._updateUi());
+        }
     },
 
     //--------------------------------------------------------------------------
@@ -1205,8 +1216,7 @@ registry.background = SnippetOption.extend({
             return false;
         }
         if (previewMode === false) {
-            this.__customImageSrc = undefined;
-            delete this.$img[0].dataset.optimizeOnSave;
+            this.customBg = false;
         }
         this.background(previewMode);
         return true;
@@ -1219,6 +1229,7 @@ registry.background = SnippetOption.extend({
      * @param {Object} data
      */
     _onSaveMediaDialog: function (data) {
+        this.customBg = true;
         this._setCustomBackground(data.attributes['src'].value, true);
     },
     /**
@@ -1241,11 +1252,6 @@ registry.background = SnippetOption.extend({
         // % 100 because we want 0 when quality is set to 100 (no optimization)
         this.quality = parseInt(ev.target.value) % 100;
         this.imageManager.changeImageQuality(this.quality);
-        // Wait for the image to be in cache so that the background doesn't flash
-        // to a blank one before showing the adapted quality. Unfortunately this
-        // trick is not consistent accross browsers, but doesn't make it any worse
-        // when it doesn't work. Doesn't work with cache disabled (dev tools).
-        this.$img.one('load', () => this._setCustomBackground(this.$img.attr('src')));
         this._updateWeight();
     },
 });

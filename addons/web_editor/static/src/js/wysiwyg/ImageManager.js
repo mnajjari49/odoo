@@ -18,27 +18,6 @@ const ImageManager = core.Class.extend({
         this.width = img.naturalWidth;
     },
     /**
-     * Saves an optimized copy of the original image, sets the <img/> element's
-     * src to the public url of the copy and removes its data attributes.
-     */
-    cleanForSave: function (rpc) {
-        if (this.img.dataset.optimizeOnSave === 'true' && this.quality !== this.originalQuality) {
-            return this.rpc({
-                route: `/web_editor/attachment/${this.img.dataset.originalId}/update`,
-                params: {
-                    copy: true,
-                    quality: this.quality,
-                    width: this.width,
-                },
-            }).then((optimizedImage) => {
-                this.img.src = optimizedImage.image_src;
-                delete this.img.dataset.optimizeOnSave;
-                delete this.img.dataset.originalId;
-            });
-        }
-        return Promise.resolve();
-    },
-    /**
      * Changes the image's favorite status.
      */
     favorite: function () {
@@ -53,18 +32,20 @@ const ImageManager = core.Class.extend({
        });
     },
     /**
-     * Changes the image's quality and updates the image's src to the preview.
+     * Changes the image's quality.
      */
     changeImageQuality: function (quality) {
         this.quality = quality;
-        this.img.dataset.optimizeOnSave = 'true';
-        this.img.src = `/web/image/${this.img.dataset.originalId}/?width=${this.width}&quality=${quality}`;
+        this.optimizeOnSave = 'true';
+        this.updatePreview();
     },
     /**
      * Gets the attachment that corresponds the the image's src tag.
      */
     getAttachmentFromSrc: function () {
-        const url = this.img.attributes.src.value.split('?')[0];
+        this.originalSrc = this.img.attributes.src.value;
+        this.optimizeOnSave = false;
+        const url = this.originalSrc.split('?')[0];
         let request = Promise.resolve([]);
         if (url) {
             request = this.rpc({
@@ -75,6 +56,11 @@ const ImageManager = core.Class.extend({
                     domain: [['image_src', 'like', url]],
                     fields: ['type', 'is_favorite', 'original_id', 'quality', 'name'],
                 },
+            }).then((attachments) => {
+                if (attachments.length) {
+                    this.initialAttachment = attachments[0];
+                }
+                return attachments;
             });
         }
         return request.then(attachments => this.updateAttachment(attachments));
@@ -83,14 +69,19 @@ const ImageManager = core.Class.extend({
      * Gets the attachment that corresponds the the image original-id data attribute.
      */
     getAttachmentFromOriginalId: function () {
-        return this.rpc({
-            model: 'ir.attachment',
-            method: 'read',
-            args: [parseInt(this.img.dataset.originalId)],
-            kwargs: {
-                fields: ['type', 'is_favorite', 'original_id', 'quality', 'name'],
-            },
-        }).then(attachments => this.updateAttachment(attachments));
+        let request = Promise.resolve([]);
+        if (this.img.dataset.originalId) {
+            request = this.rpc({
+                model: 'ir.attachment',
+                method: 'read',
+                args: [parseInt(this.img.dataset.originalId)],
+                kwargs: {
+                    fields: ['type', 'is_favorite', 'original_id', 'quality', 'name'],
+                },
+            });
+        }
+        this.optimizeOnSave = true;
+        return request.then(attachments => this.updateAttachment(attachments));
     },
     /**
      * Updates the internal state to that of the attachment, if it's not an original,
@@ -104,6 +95,9 @@ const ImageManager = core.Class.extend({
             this.attachment = attachments[0];
             this.img.dataset.originalId = this.attachment.original_id[0] || this.attachment.id;
             this.originalId = this.img.dataset.originalId;
+            this.width = this.computeOptimizedWidth();
+            this.quality = 80;
+            this.updatePreview();
 
             let originalPromise = [];
             if (this.attachment.original_id) {
@@ -137,11 +131,18 @@ const ImageManager = core.Class.extend({
         return window.fetch(this.img.src, {method: 'HEAD'}).then(resp => `${(resp.headers.get('Content-Length') / 1024).toFixed(2)}kb`);
     },
     /**
-     * Changes the image's width and updates the preview.
+     * Changes the image's width.
      */
     changeImageWidth: function (width) {
         this.width = width;
-        this.changeImageQuality(this.quality);
+        this.optimizeOnSave = true;
+        this.updatePreview();
+    },
+    /**
+     * Updates the image preview.
+     */
+    updatePreview: function () {
+        this.img.src = `/web/image/${this.img.dataset.originalId}/?width=${this.width}&quality=${this.quality}`;
     },
     /**
      * Computes the image's maximum display width.
@@ -182,6 +183,43 @@ const ImageManager = core.Class.extend({
             return acc;
         }, {});
         return this.availableWidths;
+    },
+    /**
+     * Saves an optimized copy of the original image, sets the <img/> element's
+     * src to the public url of the copy and removes its data attributes.
+     */
+    cleanForSave: function (rpc) {
+        if (this.isClean) {
+            return Promise.resolve();
+        }
+        this.isClean = true;
+        console.log('cleanForSave', this);
+        const proms = [];
+        if (this.initialAttachment && this.initialAttachment.original_id) {
+            proms.push(this.rpc({
+                model: 'ir.attachment',
+                method: 'unlink',
+                args: [this.attachmentToRemove],
+            }));
+            delete this.attachmentToRemove;
+        }
+        if (this.optimizeOnSave) {
+            proms.push(this.rpc({
+                route: `/web_editor/attachment/${this.img.dataset.originalId}/update`,
+                params: {
+                    copy: true,
+                    quality: this.quality,
+                    width: this.width,
+                },
+            }).then((optimizedImage) => {
+                this.img.src = optimizedImage.image_src;
+                delete this.optimizeOnSave;
+                delete this.img.dataset.originalId;
+            }));
+        } else {
+            this.img.src = this.originalSrc;
+        }
+        return Promise.all(proms);
     },
 });
 

@@ -457,12 +457,6 @@ var FileWidget = SearchableMediaWidget.extend({
                     self.media = self.$media[0];
                 }
                 var src = img.image_src;
-                if (img.type === 'binary') {
-                    src = `/web/image/${img.id}/${encodeURIComponent(img.name)}?width=${self._computeOptimizedWidth()}&quality=80`;
-                    self.media.dataset.optimizeOnSave = 'true';
-                } else {
-                    delete self.media.dataset.optimizeOnSave;
-                }
                 self.media.dataset.originalId = img.id;
                 if (!img.public && img.access_token) {
                     src += _.str.sprintf('?access_token=%s', img.access_token);
