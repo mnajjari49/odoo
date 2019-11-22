@@ -8,7 +8,7 @@ options.registry.SnippetPopup = options.Class.extend({
      * @override
      */
     start: function () {
-        this.$target.find('.s_popup_close').on('click', () => {
+        this.$target.find('.js_close_popup').on('click', () => {
             this.onTargetHide();
             this.trigger_up('snippet_option_visibility_update', {show: false});
         });
