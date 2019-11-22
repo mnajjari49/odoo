@@ -30,11 +30,6 @@
         <value eval="{'company_ids': [(4, ref('l10n_ar.company_exento'))]}"/>
     </function>
 
-    <function model="account.chart.template" name="try_loading">
-        <value eval="[ref('l10n_ar.l10nar_ex_chart_template')]"/>
-        <value model="res.company" eval="obj().env.ref('l10n_ar.company_exento')"/>
-    </function>
-
     <data noupdate="1">
 
         <record id="sale_journal_exento" model="account.journal">
