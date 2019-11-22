@@ -59,6 +59,19 @@
     </Portal>
 </t>
 
+<t t-name="CustomFileInput" owl="1">
+    <span class="o_file_input" aria-atomic="true">
+        <span class="o_file_input_trigger" t-on-click.stop.prevent="_onTriggerClicked">
+            <t t-slot="default"/>
+        </span>
+        <input type="file" name="ufile" class="o_input_file d-none"
+            t-att="{multiple: props.multi_upload, accept: props.accepted_file_extensions}"
+            t-ref="file-input"
+            t-on-change="_onFileInputChange"
+        />
+    </span>
+</t>
+
 <t t-name="WidgetLabel.tooltip">
     <div class="oe_tooltip_string" t-if="widget.string" role="tooltip">
         <t t-esc="widget.string"/> <t t-if="debug and widget.nolabel">(nolabel)</t>
