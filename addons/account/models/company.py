@@ -305,10 +305,9 @@ class ResCompany(models.Model):
             module_ids.sudo().with_context({'allowed_company_ids': [self.id]}).button_immediate_install()
         else:
             chart_template_xml_ids = self.env['ir.model.data'].search([('module', 'in', module_list), ('model', '=', 'account.chart.template')], limit=1)
-            chart_template = self.env['account.chart.template'].browse(chart_template_xml_ids.res_id)
-            chart_template.try_loading(company=self)
-
-
+            if chart_template_xml_ids:
+                chart_template = self.env['account.chart.template'].browse(chart_template_xml_ids.res_id)
+                chart_template.try_loading(company=self)
 
     @api.model
     def create(self, vals):
@@ -334,7 +333,9 @@ class ResCompany(models.Model):
             if 'currency_id' in values and values['currency_id'] != company.currency_id.id:
                 if self.env['account.move.line'].search([('company_id', '=', company.id)]):
                     raise UserError(_('You cannot change the currency of the company since some journal items already exist'))
-            if not company.country_id and not AccountChartTemplate.existing_accounting(company):
+            #if user create accounts manually then we not install and load localization automatically.
+            created_accounts = self.env['account.account'].search([('company_id','=',company.id)])
+            if not company.country_id and not AccountChartTemplate.existing_accounting(company) and not created_accounts:
                 company_without_country_and_existing_accounting += company
         res = super().write(values)
         #do it after super because country_id need to be updated.
