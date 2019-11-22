@@ -4,6 +4,7 @@ odoo.define('web.Dialog', function (require) {
 var core = require('web.core');
 var dom = require('web.dom');
 var Widget = require('web.Widget');
+const OwlDialog = require('web.OwlDialog');
 
 var QWeb = core.qweb;
 var _t = core._t;
@@ -187,6 +188,8 @@ var Dialog = Widget.extend({
      * the first button primary when the dialog opens
      */
     open: function (options) {
+        // Notifies OwlDialog to adjust focus/active properties on owl dialogs
+        OwlDialog.display(this);
         $('.tooltip').remove(); // remove open tooltip if any to prevent them staying when modal is opened
 
         var self = this;
@@ -235,6 +238,9 @@ var Dialog = Widget.extend({
         if (this.isDestroyed()) {
             return;
         }
+
+        // Notifies OwlDialog to adjust focus/active properties on owl dialogs
+        OwlDialog.hide(this);
 
         // Triggers the onForceClose event if the callback is defined
         if (this.onForceClose) {

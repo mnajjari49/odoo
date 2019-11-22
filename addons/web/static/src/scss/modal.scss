@@ -54,10 +54,9 @@
             footer {
                 > :not(:first-child) { margin-left: .25rem; }
                 > :not(:last-child) { margin-right: .25rem; }
-            }
-
-            button {
-                margin-bottom: .5rem;
+                button {
+                    margin-bottom: .5rem;
+                }
             }
         }
     }
@@ -107,9 +106,29 @@
     }
 }
 
+.o_dialog > .modal {
+    display: block;
+    pointer-events: none;
+
+    &:not(.active) {
+        z-index: 1030;
+    }
+
+    .modal-content {
+        pointer-events: auto;
+    }
+}
+
+.o_dialog_placeholder {
+    display: none;
+}
+
 body.modal-open {
     // Allow vertical scrolling in modals on iOS
     -webkit-overflow-scrolling: touch;
+    .modal {
+        @include o-scrollbar-overlay;
+    }
 }
 
 // Temporary fix for modals which are not instantiated thanks to the Dialog
