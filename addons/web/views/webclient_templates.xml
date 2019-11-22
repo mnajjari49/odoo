@@ -242,6 +242,7 @@
         <script type="text/javascript" src="/web/static/src/js/core/mvc.js"></script>
         <script type="text/javascript" src="/web/static/src/js/core/py_utils.js"></script>
         <script type="text/javascript" src="/web/static/src/js/chrome/abstract_action.js"></script>
+        <script type="text/javascript" src="/web/static/src/js/chrome/action_adapter.js"></script>
         <script type="text/javascript" src="/web/static/src/js/chrome/action_manager.js"></script>
         <script type="text/javascript" src="/web/static/src/js/chrome/action_manager_act_window.js"></script>
         <script type="text/javascript" src="/web/static/src/js/chrome/action_manager_report.js"/>
