@@ -1,0 +1,30 @@
+<odoo>
+    <record id="crm_lead_pls_description_view_form" model="ir.ui.view">
+        <field name="name">crm.lead.pls.description.wizard.form</field>
+        <field name="model">crm.lead.pls.description</field>
+        <field name="arch" type="xml">
+            <form string="PLS Description">
+                <div class="o_crm_lead_pls_description_tree w-100 text-left">
+                    <field name="lead_fields">
+                        <tree default_order="won_score">
+                            <field name="name"/>
+                            <field name="value"/>
+                            <field name="won_score" widget="progressbar" option="{'max_value': 100}" width="0.1"/>
+                        </tree>
+                    </field>
+                </div>
+                <footer>
+                    <button string="Close" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="crm_lead_pls_description_action" model="ir.actions.act_window">
+        <field name="name">Probability computation details</field>
+        <field name="res_model">crm.lead.pls.description</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="crm_lead_pls_description_view_form"/>
+        <field name="target">new</field>
+    </record>
+</odoo>

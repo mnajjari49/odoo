@@ -10,3 +10,22 @@
 .o_pls_probability small {
     font-size: 1rem;
 }
+
+.o_crm_lead_pls_description_tree table {
+    width: 95%;
+    margin: auto;
+    text-align: left;
+}
+.o_crm_lead_pls_description_tree th {
+    text-align: left!important;
+}
+.o_crm_lead_pls_description_tree tbody {
+    pointer-events: none;
+}
+.o_crm_lead_pls_description_tree td:last-child {
+    width: 15%;
+}
+.o_crm_lead_pls_description_tree .o_progressbar_value {
+    color: transparent;
+    user-select: none;
+}
