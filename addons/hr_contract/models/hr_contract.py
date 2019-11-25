@@ -58,6 +58,15 @@ class Contract(models.Model):
     hr_responsible_id = fields.Many2one('res.users', 'HR Responsible', tracking=True,
         help='Person responsible for validating the employee\'s contracts.')
     calendar_mismatch = fields.Boolean(compute='_compute_calendar_mismatch')
+    first_contract_date = fields.Date(compute='_compute_first_contract_date')
+
+    @api.depends('employee_id.first_contract_date')
+    def _compute_first_contract_date(self):
+        for contract in self:
+            if contract.employee_id.first_contract_date and contract.date_start > contract.employee_id.first_contract_date:
+                contract.first_contract_date = contract.employee_id.first_contract_date
+            else:
+                contract.first_contract_date = False
 
     @api.depends('employee_id.resource_calendar_id', 'resource_calendar_id')
     def _compute_calendar_mismatch(self):
@@ -108,8 +117,8 @@ class Contract(models.Model):
 
     @api.model
     def update_state(self):
-        self.search([
-            ('state', '=', 'open'),
+        contracts = self.search([
+            ('state', '=', 'open'), ('kanban_state', '!=', 'blocked'),
             '|',
             '&',
             ('date_end', '<=', fields.Date.to_string(date.today() + relativedelta(days=7))),
@@ -117,9 +126,15 @@ class Contract(models.Model):
             '&',
             ('visa_expire', '<=', fields.Date.to_string(date.today() + relativedelta(days=60))),
             ('visa_expire', '>=', fields.Date.to_string(date.today() + relativedelta(days=1))),
-        ]).write({
-            'kanban_state': 'blocked'
-        })
+        ])
+
+        for contract in contracts:
+            contract.activity_schedule(
+                'mail.mail_activity_data_todo', contract.date_end,
+                _("The contract of %s is about to expire.") % contract.employee_id.name,
+                user_id=contract.hr_responsible_id.id or self.env.uid)
+
+        contracts.write({'kanban_state': 'blocked'})
 
         self.search([
             ('state', '=', 'open'),
@@ -137,7 +152,10 @@ class Contract(models.Model):
 
     def _assign_open_contract(self):
         for contract in self:
-            contract.employee_id.sudo().write({'contract_id': contract.id})
+            vals = {'contract_id': contract.id}
+            if not contract.employee_id.first_contract_date:
+                vals.update({'first_contract_date': contract.date_start})
+            contract.employee_id.sudo().write(vals)
 
     def write(self, vals):
         res = super(Contract, self).write(vals)
