@@ -800,6 +800,12 @@ odoo.define('web.CalendarRenderer', function (require) {
 
     const AbstractRendererOwl = require('web.AbstractRendererOwl');
     const CalendarPopover = require('web.CalendarPopover');
+    const scales = {
+        day: 'agendaDay',
+        week: 'agendaWeek',
+        month: 'month'
+    }
+
 
     class OwlCalendarRenderer extends AbstractRendererOwl {
 
@@ -812,6 +818,352 @@ odoo.define('web.CalendarRenderer', function (require) {
             this.hideDate = props.hideDate;
             this.hideTime = props.hideTime;
         }
+
+        mounted() {
+            this._initCalendar()
+        }
+        /**
+            * Initialize the main calendar
+            *
+            * @private
+        */
+        _initCalendar() {
+            var self = this;
+            debugger;
+
+            this.$calendar = $(this.el).find('.o_calendar_widget');
+
+            // This seems like a workaround but apparently passing the locale
+            // in the options is not enough. We should initialize it beforehand
+            var locale = moment.locale();
+            $.fullCalendar.locale(locale);
+
+
+            //Documentation here : http://arshaw.com/fullcalendar/docs/
+            var fc_options = Object.assign({}, this.props.fc_options, {
+                // eventDrop(event) {
+                //     self.trigger_up('dropRecord', event);
+                // },
+                // eventResize(event) {
+                //     self._unselectEvent();
+                //     self.trigger_up('updateRecord', event);
+                // },
+                // eventClick(eventData, ev) {
+                //     self._unselectEvent();
+                //     self.$calendar.find(_.str.sprintf('[data-event-id=%s]', eventData.id)).addClass('o_cw_custom_highlight');
+                //     self._renderEventPopover(eventData, ev.currentTarget);
+                // },
+                // select(startDate, endDate) {
+                //     self.isSwipeEnabled = false;
+                //     // Clicking on the view, dispose any visible popover. Otherwise create a new event.
+                //     if (self.el.querySelector('.o_cw_popover').length) {
+                //         self._unselectEvent();
+                //     } else {
+                //         var data = {start: startDate, end: endDate};
+                //         if (self.props.context.default_name) {
+                //             data.title = self.props.context.default_name;
+                //         }
+                //         self.trigger_up('openCreate', data);
+                //     }
+                //     self.$calendar.fullCalendar('unselect');
+                // },
+                // eventRender(event, element, view) {
+                //     self.isSwipeEnabled = false;
+                //     var render = self._eventRender(event);
+                //     element.querySelector('.fc-content').innerhtml = render.innerhtml;
+                //     element.classList.add(render.getAttribute('class'));
+                //     element.setAttribute('data-event-id', event.id);
+
+                //     // Add background if doesn't exist
+                //     if (!element.querySelector('.fc-bg').length) {
+                //         // element.find('.fc-content').after($('<div/>', {class: 'fc-bg'}));
+                //         element.querySelector('.fc-content').className += "fc-bg";
+                //     }
+
+                //     // For month view: Show background for all-day/multidate events only
+                //     if (view.name === 'month' && event.record) {
+                //         var start = event.r_start || event.start;
+                //         var end = event.r_end || event.end;
+                //         // Detect if the event occurs in just one day
+                //         // note: add & remove 1 min to avoid issues with 00:00
+                //         var isSameDayEvent = start.clone().add(1, 'minute').isSame(end.clone().subtract(1, 'minute'), 'day');
+                //         if (!event.record.allday && isSameDayEvent) {
+                //             element.classList.add('o_cw_nobg');
+                //         }
+                //     }
+
+                //     // On double click, edit the event
+                //     element.addEventListener('dblclick', function () {
+                //         self.trigger_up('edit_event', {id: event.id});
+                //     });
+                // },
+                // eventAfterAllRender() {
+                //     self.isSwipeEnabled = true;
+                // },
+                // viewRender(view) {
+                //     // compute mode from view.name which is either 'month', 'agendaWeek' or 'agendaDay'
+                //     var mode = view.name === 'month' ? 'month' : (view.name === 'agendaWeek' ? 'week' : 'day');
+                //     self.trigger('viewUpdated', {
+                //         mode: mode,
+                //         title: view.title,
+                //     });
+                // },
+                // // Add/Remove a class on hover to style multiple days events.
+                // // The css ":hover" selector can't be used because these events
+                // // are rendered using multiple elements.
+                // eventMouseover(eventData) {
+                //     self.$calendar.find(_.str.sprintf('[data-event-id=%s]', eventData.id)).addClass('o_cw_custom_hover');
+                // },
+                // eventMouseout(eventData) {
+                //     self.$calendar.find(_.str.sprintf('[data-event-id=%s]', eventData.id)).removeClass('o_cw_custom_hover');
+                // },
+                // eventDragStart(eventData) {
+                //     self.$calendar.find(_.str.sprintf('[data-event-id=%s]', eventData.id)).addClass('o_cw_custom_hover');
+                //     self._unselectEvent();
+                // },
+                // eventResizeStart(eventData) {
+                //     self.$calendar.find(_.str.sprintf('[data-event-id=%s]', eventData.id)).addClass('o_cw_custom_hover');
+                //     self._unselectEvent();
+                // },
+                // eventLimitClick() {
+                //     self._unselectEvent();
+                //     return 'popover';
+                // },
+                // windowResize() {
+                //     self._render();
+                // },
+                // views: {
+                //     day: {
+                //         columnFormat: 'LL'
+                //     },
+                //     week: {
+                //         columnFormat: 'ddd D'
+                //     },
+                //     // month: {
+                //     //     columnFormat: config.device.isMobile ? 'ddd' : 'dddd'
+                //     // }
+                //     month: {
+                //         columnFormat: 'dddd'
+                //     }
+                // },
+                // height: 'parent',
+                // unselectAuto: false,
+                // //isRTL: _t.database.parameters.direction === "rtl",
+                // locale: locale, // reset locale when fullcalendar has already been instanciated before now
+            });
+
+            this.$calendar.fullCalendar(fc_options);
+        }
+
+        // /**
+        //  * Remove highlight classes and dispose of popovers
+        //  *
+        //  * @private
+        // */
+        // _unselectEvent() {
+        //     this.el.querySelector('.fc-event').classList.remove('o_cw_custom_highlight');
+        //     this.el.querySelector('.o_cw_popover').popover('dispose');
+        // }
+
+        // /**
+        //  * Render event popover
+        //  *
+        //  * @private
+        //  * @param {Object} eventData
+        //  * @param {jQueryElement} $eventElement
+        //  */
+        // _renderEventPopover(eventData, eventElement) {
+        //     var self = this;
+
+        //     // Initialize popover widget
+        //     var calendarPopover = new self.config.CalendarPopover(self, self._getPopoverContext(eventData));
+        //     var div = document.createElement("div");
+        //     calendarPopover.appendChild(div).then(() => {
+        //         eventElement.popover(
+        //             self._getPopoverParams(eventData)
+        //         ).addEventListener('shown.bs.popover', function () {
+        //             self._onPopoverShown(this, calendarPopover);
+        //         }).popover('show');
+        //     });
+        // }
+
+        // /**
+        //  * Prepare the parameters for the popover.
+        //  * This allow the parameters to be extensible.
+        //  *
+        //  * @private
+        //  * @param {Object} eventData
+        //  */
+        // _getPopoverParams(eventData) {
+        //     return {
+        //         animation: false,
+        //         delay: {
+        //             show: 50,
+        //             hide: 100
+        //         },
+        //         trigger: 'manual',
+        //         html: true,
+        //         title: eventData.record.display_name,
+        //         template: qweb.render('CalendarView.event.popover.placeholder', {color: this.getColor(eventData.color_index)}),
+        //         container: eventData.allDay ? '.fc-view' : '.fc-scroller',
+        //     }
+        // }
+
+        // /**
+        //  * Note: this is not dead code, it is called by two template
+        //  *
+        //  * @param {any} key
+        //  * @returns {integer}
+        //  */
+        // getColor(key) {
+        //     if (!key) {
+        //         return;
+        //     }
+        //     if (this.color_map[key]) {
+        //         return this.color_map[key];
+        //     }
+        //     // check if the key is a css color
+        //     if (typeof key === 'string' && key.match(/^((#[A-F0-9]{3})|(#[A-F0-9]{6})|((hsl|rgb)a?\(\s*(?:(\s*\d{1,3}%?\s*),?){3}(\s*,[0-9.]{1,4})?\))|)$/i)) {
+        //         return this.color_map[key] = key;
+        //     }
+        //     var index = (((_.keys(this.color_map).length + 1) * 5) % 24) + 1;
+        //     this.color_map[key] = index;
+        //     return index;
+        // }
+        // /**
+        //  * Prepare context to display in the popover.
+        //  *
+        //  * @private
+        //  * @param {Object} eventData
+        //  * @returns {Object} context
+        //  */
+        // _getPopoverContext(eventData) {
+        //     var context = {
+        //         hideDate: this.hideDate,
+        //         hideTime: this.hideTime,
+        //         eventTime: {},
+        //         eventDate: {},
+        //         fields: this.state.fields,
+        //         displayFields: this.displayFields,
+        //         event: eventData,
+        //         modelName: this.model,
+        //     };
+
+        //     var start = moment(eventData.r_start || eventData.start);
+        //     var end = moment(eventData.r_end || eventData.end);
+        //     var isSameDayEvent = start.clone().add(1, 'minute').isSame(end.clone().subtract(1, 'minute'), 'day');
+
+        //     // Do not display timing if the event occur across multiple days. Otherwise use user's timing preferences
+        //     if (!this.hideTime && !eventData.record.allday && isSameDayEvent) {
+        //         // Fetch user's preferences
+        //         var dbTimeFormat = _t.database.parameters.time_format.search('%H') != -1 ? 'HH:mm': 'hh:mm a';
+
+        //         context.eventTime.time = start.clone().format(dbTimeFormat) + ' - ' + end.clone().format(dbTimeFormat);
+
+        //         // Calculate duration and format text
+        //         var durationHours = moment.duration(end.diff(start)).hours();
+        //         var durationHoursKey = (durationHours === 1) ? 'h' : 'hh';
+        //         var durationMinutes = moment.duration(end.diff(start)).minutes();
+        //         var durationMinutesKey = (durationMinutes === 1) ? 'm' : 'mm';
+
+        //         var localeData = moment.localeData(); // i18n for 'hours' and "minutes" strings
+        //         context.eventTime.duration = (durationHours > 0 ? localeData.relativeTime(durationHours, true, durationHoursKey) : '')
+        //                 + (durationHours > 0 && durationMinutes > 0 ? ', ' : '')
+        //                 + (durationMinutes > 0 ? localeData.relativeTime(durationMinutes, true, durationMinutesKey) : '');
+        //     }
+
+        //     if (!this.hideDate) {
+        //         if (!isSameDayEvent && start.isSame(end, 'month')) {
+        //             // Simplify date-range if an event occurs into the same month (eg. '4-5 August 2019')
+        //             context.eventDate.date = start.clone().format('MMMM D') + '-' + end.clone().format('D, YYYY');
+        //         } else {
+        //             context.eventDate.date = isSameDayEvent ? start.clone().format('dddd, LL') : start.clone().format('LL') + ' - ' + end.clone().format('LL');
+        //         }
+
+        //         if (eventData.record.allday && isSameDayEvent) {
+        //             context.eventDate.duration = _t("All day");
+        //         } else if (eventData.record.allday && !isSameDayEvent) {
+        //             var daysLocaleData = moment.localeData();
+        //             var days = moment.duration(end.diff(start)).days();
+        //             context.eventDate.duration = daysLocaleData.relativeTime(days, true, 'dd');
+        //         }
+        //     }
+
+        //     return context;
+        // }
+
+        // _onPopoverShown(popoverElement, calendarPopover) {
+        //     var popover = popoverElement.setAttribute('bs.popover').tip;
+        //     popover.querySelector('.o_cw_popover_close').addEventListener('click', this._unselectEvent.bind(this));
+        //     popover.querySelector('.o_cw_body').replaceWith(calendarPopover.el);
+        // }
+
+        // /**
+        //  * @param {any} event
+        //  * @returns {string} the html for the rendered event
+        //  */
+        // _eventRender(event) {
+        //     var qweb_context = {
+        //         event: event,
+        //         record: event.record,
+        //         color: this.getColor(event.color_index),
+        //     };
+        //     this.qweb_context = qweb_context;
+        //     if (_.isEmpty(qweb_context.record)) {
+        //         return '';
+        //     } else {
+        //         return qweb.render("calendar-box", qweb_context);
+        //     }
+        // }
+
+        // /**
+        //  * Render the calendar view, this is the main entry point.
+        //  *
+        //  * @override method from AbstractRenderer
+        //  * @private
+        //  * @returns {Promise}
+        //  */
+        // _render() {
+        //     var $calendar = this.$calendar;
+        //     var $fc_view = $calendar.find('.fc-view');
+        //     var scrollPosition = $fc_view.scrollLeft();
+
+        //     $fc_view.scrollLeft(0);
+        //     $calendar.fullCalendar('unselect');
+
+        //     if (scales[this.props.scale] !== $calendar.data('fullCalendar').getView().type) {
+        //         $calendar.fullCalendar('changeView', scales[this.props.scale]);
+        //     }
+
+        //     if (this.target_date !== this.props.target_date.toString()) {
+        //         $calendar.fullCalendar('gotoDate', moment(this.props.target_date));
+        //         this.target_date = this.props.target_date.toString();
+        //     }
+
+        //     this.$small_calendar.datepicker("setDate", this.props.highlight_date.toDate())
+        //                         .find('.o_selected_range')
+        //                         .removeClass('o_color o_selected_range');
+        //     var $a;
+        //     switch (this.porps.scale) {
+        //         case 'month': $a = this.$small_calendar.find('td'); break;
+        //         case 'week': $a = this.$small_calendar.find('tr:has(.ui-state-active)'); break;
+        //         case 'day': $a = this.$small_calendar.find('a.ui-state-active'); break;
+        //     }
+        //     $a.addClass('o_selected_range');
+        //     setTimeout(function () {
+        //         $a.not('.ui-state-active').addClass('o_color');
+        //     });
+
+        //     $fc_view.scrollLeft(scrollPosition);
+
+        //     this._unselectEvent();
+        //     var filterProm = this._renderFilters();
+        //     this._renderEvents();
+        //     this.$calendar.prependTo(this.$('.o_calendar_view'));
+
+        //     return Promise.all([filterProm, this._super.apply(this, arguments)]);
+        // }
+    
     }
 
     OwlCalendarRenderer.config = {
