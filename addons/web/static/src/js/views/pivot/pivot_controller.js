@@ -120,23 +120,23 @@ var PivotController = AbstractController.extend({
     //--------------------------------------------------------------------------
 
     /**
-     * Export the current pivot table data in a xls file. For this, we have to
-     * serialize the current state, then call the server /web/pivot/export_xls.
+     * Export the current pivot table data in a xlsx file. For this, we have to
+     * serialize the current state, then call the server /web/pivot/export_xlsx.
      * Force a reload before exporting to ensure to export up-to-date data.
      *
      * @private
      */
     _downloadTable: function () {
         var self = this;
-        if (self.model.getTableWidth() > 256) {
-            this.call('crash_manager', 'show_message', _t("For Excel compatibility, data cannot be exported if there are more than 256 columns.\n\nTip: try to flip axis, filter further or reduce the number of measures."));
+        if (self.model.getTableWidth() > 16384) {
+            this.call('crash_manager', 'show_message', _t("For Excel compatibility, data cannot be exported if there are more than 16384 columns.\n\nTip: try to flip axis, filter further or reduce the number of measures."));
             framework.unblockUI();
             return;
         }
         var table = self.model.exportData();
         table.title = self.title;
         session.get_file({
-            url: '/web/pivot/export_xls',
+            url: '/web/pivot/export_xlsx',
             data: {data: JSON.stringify(table)},
             complete: framework.unblockUI,
             error: (error) => this.call('crash_manager', 'rpc_error', error),

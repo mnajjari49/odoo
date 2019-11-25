@@ -1051,7 +1051,7 @@ QUnit.module('Views', {
                 '</pivot>',
             session: {
                 get_file: function (args) {
-                    assert.strictEqual(args.url, '/web/pivot/export_xls',
+                    assert.strictEqual(args.url, '/web/pivot/export_xlsx',
                         "should call get_file with correct parameters");
                     args.complete();
                 },
@@ -2060,7 +2060,7 @@ QUnit.module('Views', {
                         return o.values.length;
                     });
                     assert.step(JSON.stringify(valuesLength));
-                    assert.strictEqual(args.url, '/web/pivot/export_xls',
+                    assert.strictEqual(args.url, '/web/pivot/export_xlsx',
                         "should call get_file with correct parameters");
                     args.complete();
                 },
