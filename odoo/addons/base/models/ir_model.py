@@ -369,6 +369,7 @@ class IrModelFields(models.Model):
                                             "specified as a Python expression defining a list of triplets. "
                                             "For example: [('color','=','red')]")
     groups = fields.Many2many('res.groups', 'ir_model_fields_group_rel', 'field_id', 'group_id') # CLEANME unimplemented field (empty table)
+    group_expand = fields.Boolean(string="Include Empty Groups")
     selectable = fields.Boolean(default=True)
     modules = fields.Char(compute='_in_modules', string='In Apps', help='List of modules in which the field is defined')
     relation_table = fields.Char(help="Used for custom many2many fields to define a custom relation table name")
@@ -966,6 +967,7 @@ class IrModelFields(models.Model):
             attrs['comodel_name'] = field_data['relation']
             attrs['ondelete'] = field_data['on_delete']
             attrs['domain'] = safe_eval(field_data['domain'] or '[]')
+            attrs['group_expand'] = field_data['group_expand']
         elif field_data['ttype'] == 'one2many':
             if not self.pool.loaded and not (
                 field_data['relation'] in self.env and (
