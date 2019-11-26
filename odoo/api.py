@@ -27,7 +27,7 @@ from werkzeug.local import Local, release_local
 
 import odoo
 from .tools.translate import _
-from odoo.tools import frozendict, classproperty, lazy_property, StackMap
+from odoo.tools import frozendict, classproperty, lazy_property, StackMap, AggCallbacks
 from odoo.exceptions import CacheMiss
 
 _logger = logging.getLogger(__name__)
@@ -453,6 +453,7 @@ class Environment(Mapping):
         self.registry = Registry(cr.dbname)
         self.cache = envs.cache
         self._protected = envs.protected        # proxy to shared data structure
+        self.toflush = envs.toflush
         self.all = envs
         envs.add(self)
         return self
@@ -613,6 +614,7 @@ class Environment(Mapping):
         self.cache.invalidate()
         self.all.tocompute.clear()
         self.all.towrite.clear()
+        self.toflush.clear()
 
     @contextmanager
     def clear_upon_failure(self):
@@ -719,6 +721,7 @@ class Environments(object):
         self.tocompute = defaultdict(set)       # recomputations {field: ids}
         # updates {model: {id: {field: value}}}
         self.towrite = defaultdict(lambda: defaultdict(dict))
+        self.toflush = AggCallbacks()
 
     def add(self, env):
         """ Add the environment ``env``. """

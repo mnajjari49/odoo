@@ -1088,6 +1088,59 @@ class LastOrderedSet(OrderedSet):
         OrderedSet.add(self, elem)
 
 
+class AggCallbacks:
+    """ A collection of callbacks with support for aggregated arguments. When
+    processing callbacks, a given function is always called once with positional
+    arguments.  When registering the function, its current positional arguments
+    are returned, so that the caller can modify them in place (or the list of
+    arguments itself).  This allows to accumulate some data to process once::
+
+        callbacks = AggCallbacks()
+
+        # call print (by default with a list)
+        args = callbacks.add(print, list)
+        args[0].append(42)
+
+        # add an element to the list to print
+        args = callbacks.add(print, list)
+        args[0].append(43)
+
+        # add an extra argument to print
+        args = callbacks.add(print, list)
+        args.append("extra")
+
+        # print "[42, 43] extra"
+        callbacks()
+    """
+    def __init__(self):
+        self._callbacks = {}
+
+    def __call__(self):
+        """ Call all the registered functions (in first addition order) with
+        their respective arguments.
+        """
+        callbacks = self._callbacks
+        while callbacks:
+            func = next(iter(callbacks))
+            args = callbacks.pop(func)
+            func(*args)
+
+    def add(self, func, *types):
+        """ Register the given function, and return the list of positional
+        arguments to call the function with.  If the function is not registered
+        yet, the list of arguments is made up by invoking the given types.
+        """
+        try:
+            return self._callbacks[func]
+        except KeyError:
+            args = self._callbacks[func] = [type_() for type_ in types]
+            return args
+
+    def clear(self):
+        """ Empty the collection. """
+        self._callbacks.clear()
+
+
 class IterableGenerator:
     """ An iterable object based on a generator function, which is called each
         time the object is iterated over.
