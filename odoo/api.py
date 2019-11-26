@@ -613,6 +613,7 @@ class Environment(Mapping):
         self.cache.invalidate()
         self.all.tocompute.clear()
         self.all.towrite.clear()
+        self.all.toflush.clear()
 
     @contextmanager
     def clear_upon_failure(self):
@@ -709,6 +710,18 @@ class Environment(Mapping):
         """ Delay recomputations (deprecated: this is not the default behavior). """
         yield
 
+    def toflush(self, func, *makers):
+        """ Return the list of positional arguments of a function to call upon ``flush``.
+        The optional callable parameters ``makers`` are used to bootstrap the
+        list of arguments when the function has not been registered yet.
+        """
+        callbacks = self.all.toflush
+        try:
+            args = callbacks[func]
+        except KeyError:
+            args = callbacks[func] = [maker() for maker in makers]
+        return args
+
 
 class Environments(object):
     """ A common object for all environments in a request. """
@@ -719,6 +732,7 @@ class Environments(object):
         self.tocompute = defaultdict(set)       # recomputations {field: ids}
         # updates {model: {id: {field: value}}}
         self.towrite = defaultdict(lambda: defaultdict(dict))
+        self.toflush = {}                       # {func: args}
 
     def add(self, env):
         """ Add the environment ``env``. """
