@@ -85,7 +85,7 @@ class TestMailPerformance(BaseMailPerformance):
         records = self.env['test_performance.mail'].search([])
         self.assertEqual(len(records), 5)
 
-        with self.assertQueryCount(__system__=3, demo=3):
+        with self.assertQueryCount(__system__=2, demo=2):
             # without cache
             for record in records:
                 record.partner_id.country_id.name
@@ -299,7 +299,7 @@ class TestMailAPIPerformance(BaseMailPerformance):
     def test_message_assignation_email(self):
         self.user_test.write({'notification_type': 'email'})
         record = self.env['mail.test.track'].create({'name': 'Test'})
-        with self.assertQueryCount(__system__=40, emp=41):
+        with self.assertQueryCount(__system__=35, emp=36):
             record.write({
                 'user_id': self.user_test.id,
             })
@@ -560,7 +560,7 @@ class TestMailComplexPerformance(BaseMailPerformance):
         })
         rec1 = rec.with_context(active_test=False)      # to see inactive records
         self.assertEqual(rec1.message_partner_ids, self.partners | self.env.user.partner_id)
-        with self.assertQueryCount(__system__=39, emp=40):
+        with self.assertQueryCount(__system__=36, emp=37):
             rec.write({'user_id': self.user_portal.id})
         self.assertEqual(rec1.message_partner_ids, self.partners | self.env.user.partner_id | self.user_portal.partner_id)
         # write tracking message
@@ -580,7 +580,7 @@ class TestMailComplexPerformance(BaseMailPerformance):
         customer_id = self.customer.id
         user_id = self.user_portal.id
 
-        with self.assertQueryCount(__system__=123, emp=124):
+        with self.assertQueryCount(__system__=121, emp=122):
             rec = self.env['mail.test.full'].create({
                 'name': 'Test',
                 'umbrella_id': umbrella_id,
@@ -609,7 +609,7 @@ class TestMailComplexPerformance(BaseMailPerformance):
         rec1 = rec.with_context(active_test=False)      # to see inactive records
         self.assertEqual(rec1.message_partner_ids, self.user_portal.partner_id | self.env.user.partner_id)
         self.assertEqual(len(rec1.message_ids), 1)
-        with self.assertQueryCount(__system__=87, emp=88):
+        with self.assertQueryCount(__system__=87, emp=87):
             rec.write({
                 'name': 'Test2',
                 'umbrella_id': self.umbrella.id,
@@ -646,13 +646,12 @@ class TestMailComplexPerformance(BaseMailPerformance):
         rec1 = rec.with_context(active_test=False)      # to see inactive records
         self.assertEqual(rec1.message_partner_ids, self.user_portal.partner_id | self.env.user.partner_id)
 
-        with self.assertQueryCount(__system__=95, emp=96):
+        with self.assertQueryCount(__system__=96, emp=96):
             rec.write({
                 'name': 'Test2',
                 'umbrella_id': umbrella_id,
                 'customer_id': customer_id,
                 })
-
 
         self.assertEqual(rec1.message_partner_ids, self.partners | self.env.user.partner_id | self.user_portal.partner_id)
         # write tracking message
@@ -680,7 +679,7 @@ class TestMailComplexPerformance(BaseMailPerformance):
         rec1 = rec.with_context(active_test=False)      # to see inactive records
         self.assertEqual(rec1.message_partner_ids, self.partners | self.env.user.partner_id | self.user_portal.partner_id)
 
-        with self.assertQueryCount(__system__=34, emp=37):
+        with self.assertQueryCount(__system__=35, emp=36):
             rec.write({
                 'name': 'Test2',
                 'customer_id': customer_id,
@@ -817,7 +816,7 @@ class TestMailHeavyPerformancePost(BaseMailPerformance):
         ]
         self.attachements = self.env['ir.attachment'].with_user(self.env.user).create(self.vals)
         attachement_ids = self.attachements.ids
-        with self.assertQueryCount(emp=105):  # test_mail only: 94
+        with self.assertQueryCount(emp=92):  # test_mail only: 94
             self.cr.sql_log = self.warm and self.cr.sql_log_count
             record.with_context({}).message_post(
                 body='<p>Test body <img src="cid:cid1"> <img src="cid:cid2"></p>',
