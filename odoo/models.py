@@ -1756,6 +1756,11 @@ class BaseModel(MetaModel('DummyModel', (object,), {'_register': False})):
         cls.pool._clear_cache()
 
     @api.model
+    def _read_group_expand_full(self, groups, domain, order):
+        """Extend the group to include all targer records by default."""
+        return groups.search([], order=order)
+
+    @api.model
     def _read_group_fill_results(self, domain, groupby, remaining_groupbys,
                                  aggregated_fields, count_field,
                                  read_group_result, read_group_order=None):
@@ -1765,12 +1770,6 @@ class BaseModel(MetaModel('DummyModel', (object,), {'_register': False})):
         if not field.group_expand:
             return read_group_result
 
-        if field.group_expand and not callable(field.group_expand):
-            # group_expand has been set on a custom field (as a boolean)
-            # this means we should include all results in the group_expand
-            group_expand = lambda s, d, o: self.env[field.comodel_name].search([])
-        else:
-            group_expand = getattr(self, field.group_expand)
         # field.group_expand is the name of a method that returns the groups
         # that we want to display for this field, in the form of a recordset or
         # a list of values (depending on the type of the field). This is useful
@@ -1786,14 +1785,14 @@ class BaseModel(MetaModel('DummyModel', (object,), {'_register': False})):
             order = groups._order
             if read_group_order == groupby + ' desc':
                 order = tools.reverse_order(order)
-            groups = group_expand(groups, domain, order)
+            groups = getattr(self, field.group_expand)(groups, domain, order)
             groups = groups.sudo()
             values = lazy_name_get(groups)
             value2key = lambda value: value and value[0]
 
         else:
             # groups is a list of values
-            values = group_expand(values, domain, None)
+            values = getattr(self, field.group_expand)(values, domain, None)
             if read_group_order == groupby + ' desc':
                 values.reverse()
             value2key = lambda value: value
