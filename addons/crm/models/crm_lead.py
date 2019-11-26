@@ -1471,6 +1471,7 @@ class Lead(models.Model):
     # -----------------------------
     def _pls_update_frequency_table(self, values_to_create, stage_ids, stage_sequences, team_id=None):
         """ Create / update the frequency table in a cross company way, per team_id"""
+        zero_frequency_constant = 0.000001
         pls_start_date = self._pls_get_safe_start_date()
         if not pls_start_date:
             return values_to_create
@@ -1492,8 +1493,8 @@ class Lead(models.Model):
                     values_to_create.append({
                         'variable': field,
                         'value': param,
-                        'won_count': result['won'] + 0.1,
-                        'lost_count': result['lost'] + 0.1,
+                        'won_count': result['won'] if result['won'] else zero_frequency_constant,
+                        'lost_count': result['lost'] if result['lost'] else zero_frequency_constant,
                         'team_id': team_id
                     })
         return values_to_create
