@@ -15,8 +15,8 @@ var InventoryValidationController = ListController.extend({
      * @override
      */
     init: function (parent, model, renderer, params) {
-        this.context = renderer.state.getContext();
-        this.inventory_id = this.context.default_inventory_id || this.context.active_id;
+        var context = renderer.state.getContext();
+        this.inventory_id = context.default_inventory_id || context.active_id;
         return this._super.apply(this, arguments);
     },
 

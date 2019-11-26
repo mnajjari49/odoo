@@ -584,8 +584,5 @@ class StockMoveLine(models.Model):
         for ml in self:
             remaining_qties[ml.product_id] -= ml.product_uom_id._compute_quantity(ml.qty_done, ml.product_id.uom_po_id)
 
-        total = sum(remaining_qties.values())
-
-        if float_is_zero(total, precision_digits=self.env['decimal.precision'].precision_get('Product Unit of Measure')):
-            return True
-        return False
+        precision = self.env['decimal.precision'].precision_get('Product Unit of Measure')
+        return all([float_is_zero(value, precision_digits=precision) for value in remaining_qties.values()])

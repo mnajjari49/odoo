@@ -838,13 +838,13 @@ class Picking(models.Model):
             pickings_to_backorder = self._check_backorder()
             if pickings_to_backorder:
                 return pickings_to_backorder._action_generate_backorder_wizard()
-        
+
         # Zero Quantity Count Wizard
         if self.env.user.has_group('stock.group_stock_zero_quantity_count') and not self.env.context.get('skip_zqc'):
             empty_locations = self._check_zqc()
             if empty_locations:
                 return self._action_generate_zqc_wizard(empty_locations)
-        
+
         return True
 
     def _action_generate_backorder_wizard(self):
@@ -931,13 +931,13 @@ class Picking(models.Model):
 
     def _check_zqc(self):
         """ Return the locations that will be emptied out when `self` is processed. """
-        locations = self.mapped('move_line_ids.location_id')
         empty_locations = self.env['stock.location']
 
         # Group move lines per locations
         ml_per_loc = defaultdict(lambda: self.env['stock.move.line'])
         for ml in self.move_line_ids:
-            ml_per_loc[ml.location_id] |= ml
+            if ml.location_id.usage in ('internal', 'transit'):
+                ml_per_loc[ml.location_id] |= ml
 
         # Check if locations would be emptied by those movelines
         for loc, move_line_ids in ml_per_loc.items():
