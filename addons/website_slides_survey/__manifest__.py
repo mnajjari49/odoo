@@ -25,6 +25,7 @@
         'data/mail_template_data.xml',
         'data/gamification_data.xml',
         'security/ir.model.access.csv',
+        'security/website_slides_survey_security.xml',
     ],
     'demo': [
         'data/survey_demo.xml',

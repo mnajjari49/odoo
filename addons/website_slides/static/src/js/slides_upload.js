@@ -603,15 +603,20 @@ var SlideUploadDialog = Dialog.extend({
                 route: '/slides/add_slide',
                 params: values,
             }).then(function (data) {
-                if (data.error) {
-                    self.set('state', oldType);
-                    self._alertDisplay(data.error);
-                } else {
-                    window.location = data.url;
-                }
+                self._onFormSubmitDone(data, oldType);
             });
         }
     },
+
+    _onFormSubmitDone: function (data, oldType) {
+        if (data.error) {
+            this.set('state', oldType);
+            this._alertDisplay(data.error);
+        } else {
+            window.location = data.url;
+        }
+    },
+
     _onClickSlideTypeIcon: function (ev) {
         var $elem = this.$(ev.currentTarget);
         var slideType = $elem.data('slideType');

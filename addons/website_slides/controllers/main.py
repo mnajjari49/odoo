@@ -894,20 +894,11 @@ class WebsiteSlides(WebsiteProfile):
 
     @http.route(['/slides/add_slide'], type='json', auth='user', methods=['POST'], website=True)
     def create_slide(self, *args, **post):
-        # check the size only when we upload a file.
-        if post.get('datas'):
-            file_size = len(post['datas']) * 3 / 4  # base64
-            if (file_size / 1024.0 / 1024.0) > 25:
-                return {'error': _('File is too big. File size cannot exceed 25MB')}
-
-        values = dict((fname, post[fname]) for fname in self._get_valid_slide_post_values() if post.get(fname))
-
         # handle exception during creation of slide and sent error notification to the client
         # otherwise client slide create dialog box continue processing even server fail to create a slide
         try:
-            channel = request.env['slide.channel'].browse(values['channel_id'])
+            channel = request.env['slide.channel'].browse(post['channel_id'])
             can_upload = channel.can_upload
-            can_publish = channel.can_publish
         except (UserError, AccessError) as e:
             _logger.error(e)
             return {'error': e.name}
@@ -915,29 +906,18 @@ class WebsiteSlides(WebsiteProfile):
             if not can_upload:
                 return {'error': _('You cannot upload on this channel.')}
 
-        if post.get('duration'):
-            # minutes to hours conversion
-            values['completion_time'] = int(post['duration']) / 60
+        # check the size only when we upload a file.
+        if post.get('datas'):
+            file_size = len(post['datas']) * 3 / 4  # base64
+            if (file_size / 1024.0 / 1024.0) > 25:
+                return {'error': _('File is too big. File size cannot exceed 25MB')}
 
-        # handle creation of new categories on the fly
-        if post.get('category_id'):
-            if post['category_id'][0] == 0:
-                category = request.env['slide.slide'].create(self._get_new_slide_category_values(channel, post['category_id'][1]['name']))
-                values['category_id'] = category.id
-                values['sequence'] = category.sequence + 1
-            else:
-                values.update({
-                    'category_id': post['category_id'][0],
-                    'sequence': request.env['slide.slide'].browse(post['category_id'][0]).sequence + 1
-                })
-        else:
-            values['sequence'] = -1
+        slide_values = self._prepare_add_slide_values(channel, **post)
+        if 'error' in slide_values:
+            return {'error': slide_values['error']}
 
-        # create slide itself
         try:
-            values['user_id'] = request.env.uid
-            values['is_published'] = values.get('is_published', False) and can_publish
-            slide = request.env['slide.slide'].sudo().create(values)
+            slide = request.env['slide.slide'].sudo().create(slide_values)
         except (UserError, AccessError) as e:
             _logger.error(e)
             return {'error': e.name}
@@ -953,12 +933,41 @@ class WebsiteSlides(WebsiteProfile):
             redirect_url = "/slides/%s" % (slug(channel))
         if slide.slide_type == 'webpage':
             redirect_url += "?enable_editor=1"
+
         return {
             'url': redirect_url,
             'channel_type': channel.channel_type,
             'slide_id': slide.id,
             'category_id': slide.category_id
         }
+
+    def _prepare_add_slide_values(self, channel, **post):
+        values = dict((fname, post[fname]) for fname in self._get_valid_slide_post_values() if post.get(fname))
+        values.update({
+            'user_id': request.env.uid,
+            'is_published': values.get('is_published', False) and channel.can_publish
+        })
+
+        if post.get('duration'):
+            # minutes to hours conversion
+            values['completion_time'] = int(post['duration']) / 60
+
+        # handle creation of new categories on the fly
+        if post.get('category_id'):
+            if post['category_id'][0] == 0:
+                category = request.env['slide.slide'].create(
+                    self._get_new_slide_category_values(channel, post['category_id'][1]['name']))
+                values['category_id'] = category.id
+                values['sequence'] = category.sequence + 1
+            else:
+                values.update({
+                    'category_id': post['category_id'][0],
+                    'sequence': request.env['slide.slide'].browse(post['category_id'][0]).sequence + 1
+                })
+        else:
+            values['sequence'] = -1
+
+        return values
 
     def _get_valid_slide_post_values(self):
         return ['name', 'url', 'tag_ids', 'slide_type', 'channel_id', 'is_preview',
