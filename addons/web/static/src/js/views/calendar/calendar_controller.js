@@ -33,9 +33,12 @@ odoo.define('web.CalendarController', function (require) {
             openCreate: '_onOpenCreate',
             openEvent: '_onOpenEvent',
             prev: '_onPrev',
-            quickCreate: '_onQuickCreate',
+            // quickCreate: '_onQuickCreate',
             updateRecord: '_onUpdateRecord',
             viewUpdated: '_onViewUpdated',
+        }),
+        custom_events: Object.assign({}, ControllerAdapter.prototype.custom_events,{
+            quickCreate: '_onQuickCreate',
         }),
         /**
          * @override
@@ -404,6 +407,7 @@ odoo.define('web.CalendarController', function (require) {
          * @param {OdooEvent} event
          */
         _onQuickCreate: function (event) {
+            debugger;
             var self = this;
             if (this.quickCreating) {
                 return;

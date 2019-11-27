@@ -1,5 +1,5 @@
 odoo.define('web.CalendarQuickCreate', function (require) {
-"use strict";
+    "use strict";
 
 var core = require('web.core');
 var Dialog = require('web.Dialog');
@@ -84,7 +84,13 @@ var QuickCreate = Dialog.extend({
             this.do_warn(_t("The following field is invalid:"), warnings);
         }
         dataCalendar.title = val;
-        return (val)? this.trigger_up('quickCreate', {data: dataCalendar, options: this.options}) : false;
+        if (val) {
+            debugger;
+            this.trigger_up('quickCreate', {data: dataCalendar, options: this.options});
+        } else {
+            return false;
+        }
+        // return (val)? this.trigger_up('quickCreate', {data: dataCalendar, options: this.options}) : false;
     },
 
     //--------------------------------------------------------------------------
@@ -111,5 +117,4 @@ var QuickCreate = Dialog.extend({
 });
 
 return QuickCreate;
-
 });
