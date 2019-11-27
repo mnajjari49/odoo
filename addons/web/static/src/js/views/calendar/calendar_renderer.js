@@ -853,20 +853,21 @@ odoo.define('web.CalendarRenderer', function (require) {
                 //     self.$calendar.find(_.str.sprintf('[data-event-id=%s]', eventData.id)).addClass('o_cw_custom_highlight');
                 //     self._renderEventPopover(eventData, ev.currentTarget);
                 // },
-                // select(startDate, endDate) {
-                //     self.isSwipeEnabled = false;
-                //     // Clicking on the view, dispose any visible popover. Otherwise create a new event.
-                //     if (self.el.querySelector('.o_cw_popover').length) {
-                //         self._unselectEvent();
-                //     } else {
-                //         var data = {start: startDate, end: endDate};
-                //         if (self.props.context.default_name) {
-                //             data.title = self.props.context.default_name;
-                //         }
-                //         self.trigger_up('openCreate', data);
-                //     }
-                //     self.$calendar.fullCalendar('unselect');
-                // },
+                select(startDate, endDate) {
+                    self.isSwipeEnabled = false;
+                    debugger;
+                    // Clicking on the view, dispose any visible popover. Otherwise create a new event.
+                    if (self.el.querySelectorAll('.o_cw_popover').length) {
+                        self._unselectEvent();
+                    } else {
+                        var data = {start: startDate, end: endDate};
+                        if (self.props.context.default_name) {
+                            data.title = self.props.context.default_name;
+                        }
+                        self.trigger('openCreate', data);
+                    }
+                    self.$calendar.fullCalendar('unselect');
+                }
                 // eventRender(event, element, view) {
                 //     self.isSwipeEnabled = false;
                 //     var render = self._eventRender(event);

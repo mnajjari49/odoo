@@ -4,7 +4,7 @@
             <h4>This is OWL Calendar View</h4>
         </div> -->
         <div class="o_calendar_view">
-            <!-- <div class="o_calendar_buttons" role="toolbar" aria-label="Calendar toolbar"/> -->
+            <div class="o_calendar_buttons" role="toolbar" aria-label="Calendar toolbar"/>
             <div class="o_calendar_widget" />
         </div>
     </div>

@@ -24,7 +24,7 @@ odoo.define('web.CalendarController', function (require) {
     }
 
     var CalendarController = ControllerAdapter.extend({
-        custom_events: Object.assign({}, ControllerAdapter.prototype.custom_events, {
+        events: Object.assign({}, ControllerAdapter.prototype.events, {
             changeDate: '_onChangeDate',
             changeFilter: '_onChangeFilter',
             deleteRecord: '_onDeleteRecord',
@@ -264,10 +264,11 @@ odoo.define('web.CalendarController', function (require) {
          */
         _onOpenCreate: function (event) {
             var self = this;
+            debugger;
             if (this.model.get().scale === "month") {
-                event.data.allDay = true;
+                event.detail.allDay = true;
             }
-            var data = this.model.calendarEventToRecord(event.data);
+            var data = this.model.calendarEventToRecord(event.detail);
 
             var context = _.extend({}, this.context, event.options && event.options.context);
             // context default has more priority in default_get so if data.name is false then it may
@@ -302,8 +303,8 @@ odoo.define('web.CalendarController', function (require) {
                 this.quick = null;
             }
 
-            if (!options.disableQuickCreate && !event.data.disableQuickCreate && this.quickAddPop) {
-                this.quick = new QuickCreate(this, true, options, data, event.data);
+            if (!options.disableQuickCreate && !event.detail.disableQuickCreate && this.quickAddPop) {
+                this.quick = new QuickCreate(this, true, options, data, event.detail);
                 this.quick.open();
                 this.quick.opened(function () {
                     self.quick.focus();
@@ -324,8 +325,8 @@ odoo.define('web.CalendarController', function (require) {
                     view_id: this.formViewId || false,
                     disable_multiple_selection: true,
                     on_saved: function () {
-                        if (event.data.on_save) {
-                            event.data.on_save();
+                        if (event.detail.on_save) {
+                            event.detail.on_save();
                         }
                         self.reload();
                     },

@@ -41,6 +41,7 @@ return AbstractModel.extend({
      */
     calendarEventToRecord: function (event) {
         // Normalize event_end without changing fullcalendars event.
+        debugger;
         var data = {'name': event.title};
         var start = event.start.clone();
         var end = event.end && event.end.clone();
