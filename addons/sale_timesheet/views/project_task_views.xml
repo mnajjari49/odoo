@@ -33,7 +33,7 @@
         <field name="model">project.project</field>
         <field name="inherit_id" ref="hr_timesheet.project_invoice_form"/>
         <field name="arch" type="xml">
-            <div id="rating_settings" position="before">
+            <div id="timesheet_timer_settings" position="after">
                 <div class="col-lg-6 o_setting_box" id="allow_billable_settings" attrs="{'invisible': [('billable_type', '=', 'employee_rate')]}">
                     <div class="o_setting_left_pane">
                         <field name="allow_billable"/>
@@ -45,7 +45,7 @@
                         </div>
                     </div>
                 </div>
-            </xpath>
+            </div>
         </field>
     </record>
 

@@ -112,6 +112,11 @@ class Project(models.Model):
             },
         }
 
+    @api.onchange('project_template_id')
+    def copy_template(self):
+        super(Project, self).copy_template()
+        setattr(self, 'allow_billable', getattr(self.project_template_id, 'allow_billable'))
+
 
 class ProjectTask(models.Model):
     _inherit = "project.task"

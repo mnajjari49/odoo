@@ -81,6 +81,7 @@ class Project(models.Model):
     def copy_template(self):
         super(Project, self).copy_template()
         setattr(self, 'allow_timesheets', getattr(self.project_template_id, 'allow_timesheets'))
+        setattr(self, 'allow_timesheet_timer', getattr(self.project_template_id, 'allow_timesheet_timer'))
 
     @api.model
     def _init_data_analytic_account(self):
