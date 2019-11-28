@@ -821,6 +821,7 @@ odoo.define('web.CalendarRenderer', function (require) {
 
         mounted() {
             this._initCalendar()
+            this._initSidebar()
         }
         /**
             * Initialize the main calendar
@@ -932,9 +933,9 @@ odoo.define('web.CalendarRenderer', function (require) {
                 //     self._unselectEvent();
                 //     return 'popover';
                 // },
-                // windowResize() {
-                //     self._render();
-                // },
+                windowResize() {
+                    self._render();
+                },
                 // views: {
                 //     day: {
                 //         columnFormat: 'LL'
@@ -958,15 +959,46 @@ odoo.define('web.CalendarRenderer', function (require) {
             this.$calendar.fullCalendar(fc_options);
         }
 
-        // /**
-        //  * Remove highlight classes and dispose of popovers
-        //  *
-        //  * @private
-        // */
-        // _unselectEvent() {
-        //     this.el.querySelector('.fc-event').classList.remove('o_cw_custom_highlight');
-        //     this.el.querySelector('.o_cw_popover').popover('dispose');
-        // }
+        /**
+         * Initialize the sidebar
+         *
+         * @private
+         */
+        _initSidebar() {
+            this.$sidebar = this.$('.o_calendar_sidebar');
+            this.$sidebar_container = this.$(".o_calendar_sidebar_container");
+            this._initCalendarMini();
+        }
+        /**
+         * Initialize the mini calendar in the sidebar
+         *
+         * @private
+         */
+        _initCalendarMini() {
+            var self = this;
+            this.$small_calendar = this.$(".o_calendar_mini");
+            this.$small_calendar.datepicker({
+                'onSelect': function (datum, obj) {
+                    self.trigger_up('changeDate', {
+                        date: moment(new Date(+obj.currentYear , +obj.currentMonth, +obj.currentDay))
+                    });
+                },
+                'showOtherMonths': true,
+                'dayNamesMin' : this.state.fc_options.dayNamesShort,
+                'monthNames': this.state.fc_options.monthNamesShort,
+                'firstDay': this.state.fc_options.firstDay,
+            });
+        }
+
+        /**
+         * Remove highlight classes and dispose of popovers
+         *
+         * @private
+        */
+        _unselectEvent() {
+            this.el.querySelector('.fc-event').classList.remove('o_cw_custom_highlight');
+            this.el.querySelector('.o_cw_popover').popover('dispose');
+        }
 
         // /**
         //  * Render event popover
@@ -1010,28 +1042,6 @@ odoo.define('web.CalendarRenderer', function (require) {
         //         template: qweb.render('CalendarView.event.popover.placeholder', {color: this.getColor(eventData.color_index)}),
         //         container: eventData.allDay ? '.fc-view' : '.fc-scroller',
         //     }
-        // }
-
-        // /**
-        //  * Note: this is not dead code, it is called by two template
-        //  *
-        //  * @param {any} key
-        //  * @returns {integer}
-        //  */
-        // getColor(key) {
-        //     if (!key) {
-        //         return;
-        //     }
-        //     if (this.color_map[key]) {
-        //         return this.color_map[key];
-        //     }
-        //     // check if the key is a css color
-        //     if (typeof key === 'string' && key.match(/^((#[A-F0-9]{3})|(#[A-F0-9]{6})|((hsl|rgb)a?\(\s*(?:(\s*\d{1,3}%?\s*),?){3}(\s*,[0-9.]{1,4})?\))|)$/i)) {
-        //         return this.color_map[key] = key;
-        //     }
-        //     var index = (((_.keys(this.color_map).length + 1) * 5) % 24) + 1;
-        //     this.color_map[key] = index;
-        //     return index;
         // }
         // /**
         //  * Prepare context to display in the popover.
@@ -1120,54 +1130,105 @@ odoo.define('web.CalendarRenderer', function (require) {
             }
         }
 
-        // /**
-        //  * Render the calendar view, this is the main entry point.
-        //  *
-        //  * @override method from AbstractRenderer
-        //  * @private
-        //  * @returns {Promise}
-        //  */
-        // _render() {
-        //     var $calendar = this.$calendar;
-        //     var $fc_view = $calendar.find('.fc-view');
-        //     var scrollPosition = $fc_view.scrollLeft();
+        /**
+         * Note: this is not dead code, it is called by two template
+         *
+         * @param {any} key
+         * @returns {integer}
+         */
+        getColor(key) {
+            debugger;
+            if (!key) {
+                return;
+            }
+            if (this.color_map[key]) {
+                return this.color_map[key];
+            }
+            // check if the key is a css color
+            if (typeof key === 'string' && key.match(/^((#[A-F0-9]{3})|(#[A-F0-9]{6})|((hsl|rgb)a?\(\s*(?:(\s*\d{1,3}%?\s*),?){3}(\s*,[0-9.]{1,4})?\))|)$/i)) {
+                return this.color_map[key] = key;
+            }
+            var index = (((_.keys(this.color_map).length + 1) * 5) % 24) + 1;
+            this.color_map[key] = index;
+            return index;
+        }
 
-        //     $fc_view.scrollLeft(0);
-        //     $calendar.fullCalendar('unselect');
+        /**
+         * Render the calendar view, this is the main entry point.
+         *
+         * @override method from AbstractRenderer
+         * @private
+         * @returns {Promise}
+         */
+        _render() {
+            debugger;
+            var $calendar = this.$calendar;
+            var $fc_view = $calendar.find('.fc-view');
+            var scrollPosition = $fc_view.scrollLeft();
 
-        //     if (scales[this.props.scale] !== $calendar.data('fullCalendar').getView().type) {
-        //         $calendar.fullCalendar('changeView', scales[this.props.scale]);
-        //     }
+            $fc_view.scrollLeft(0);
+            $calendar.fullCalendar('unselect');
 
-        //     if (this.target_date !== this.props.target_date.toString()) {
-        //         $calendar.fullCalendar('gotoDate', moment(this.props.target_date));
-        //         this.target_date = this.props.target_date.toString();
-        //     }
+            if (scales[this.props.scale] !== $calendar.data('fullCalendar').getView().type) {
+                $calendar.fullCalendar('changeView', scales[this.props.scale]);
+            }
 
-        //     this.$small_calendar.datepicker("setDate", this.props.highlight_date.toDate())
-        //                         .find('.o_selected_range')
-        //                         .removeClass('o_color o_selected_range');
-        //     var $a;
-        //     switch (this.porps.scale) {
-        //         case 'month': $a = this.$small_calendar.find('td'); break;
-        //         case 'week': $a = this.$small_calendar.find('tr:has(.ui-state-active)'); break;
-        //         case 'day': $a = this.$small_calendar.find('a.ui-state-active'); break;
-        //     }
-        //     $a.addClass('o_selected_range');
-        //     setTimeout(function () {
-        //         $a.not('.ui-state-active').addClass('o_color');
-        //     });
+            if (this.target_date !== this.props.target_date.toString()) {
+                $calendar.fullCalendar('gotoDate', moment(this.props.target_date));
+                this.target_date = this.props.target_date.toString();
+            }
 
-        //     $fc_view.scrollLeft(scrollPosition);
+            this.$small_calendar.datepicker("setDate", this.props.highlight_date.toDate())
+                                .find('.o_selected_range')
+                                .removeClass('o_color o_selected_range');
+            var $a;
+            switch (this.porps.scale) {
+                case 'month': $a = this.$small_calendar.find('td'); break;
+                case 'week': $a = this.$small_calendar.find('tr:has(.ui-state-active)'); break;
+                case 'day': $a = this.$small_calendar.find('a.ui-state-active'); break;
+            }
+            $a.addClass('o_selected_range');
+            setTimeout(function () {
+                $a.not('.ui-state-active').addClass('o_color');
+            });
 
-        //     this._unselectEvent();
-        //     var filterProm = this._renderFilters();
-        //     this._renderEvents();
-        //     this.$calendar.prependTo(this.$('.o_calendar_view'));
+            $fc_view.scrollLeft(scrollPosition);
 
-        //     return Promise.all([filterProm, this._super.apply(this, arguments)]);
-        // }
-    
+            this._unselectEvent();
+            var filterProm = this._renderFilters();
+            this._renderEvents();
+            this.$calendar.prependTo(this.$('.o_calendar_view'));
+
+            return Promise.all([filterProm, this._super.apply(this, arguments)]);
+        }
+
+        /**
+         * Render all events
+         *
+         * @private
+        */
+        _renderEvents() {
+            this.$calendar.fullCalendar('removeEvents');
+            this.$calendar.fullCalendar('addEventSource', this.state.data);
+        }
+
+        /**
+         * Render all filters
+         *
+         * @private
+         * @returns {Promise} resolved when all filters have been rendered
+         */
+        _renderFilters() {
+            // Dispose of filter popover
+            this.$('.o_calendar_filter_item').popover('dispose');
+            _.each(this.filters || (this.filters = []), function (filter) {
+                filter.destroy();
+            });
+            if (this.state.fullWidth) {
+                return;
+            }
+            return this._renderFiltersOneByOne();
+        }
     }
 
     OwlCalendarRenderer.config = {

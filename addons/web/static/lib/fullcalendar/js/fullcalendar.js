@@ -8502,6 +8502,7 @@ var View = FC.View = Class.extend(EmitterMixin, ListenerMixin, {
 	// Given an event and the default element used for rendering, returns the element that should actually be used.
 	// Basically runs events and elements through the eventRender hook.
 	resolveEventEl: function(event, el) {
+		debugger;
 		var custom = this.trigger('eventRender', event, event, el);
 
 		if (custom === false) { // means don't render at all

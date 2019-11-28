@@ -7,9 +7,14 @@
             <div class="o_calendar_buttons" role="toolbar" aria-label="Calendar toolbar"/>
             <div class="o_calendar_widget" />
         </div>
+        <div class="o_calendar_sidebar_container d-none d-md-block">
+            <div class="o_calendar_sidebar">
+                <div class="o_calendar_mini"/>
+            </div>
+        </div>
     </div>
 
-    <div t-name="CalendarView" class="o_calendar_container">
+    <!-- <div t-name="CalendarView" class="o_calendar_container">
         <div class="o_calendar_view">
             <div class="o_calendar_buttons" role="toolbar" aria-label="Calendar toolbar"/>
             <div class="o_calendar_widget" />
@@ -19,7 +24,7 @@
                 <div class="o_calendar_mini"/>
             </div>
         </div>
-    </div>
+    </div> -->
 
     <t t-name="calendar-box">
         <div t-att-style="typeof color === 'string' ? ('background-color:' + color) + ';' : ''" t-attf-class="#{record.is_highlighted ? 'o_event_hightlight' : ''} #{typeof color === 'number' ? _.str.sprintf('o_calendar_color_%s', color) : 'o_calendar_color_1'}">
