@@ -49,6 +49,7 @@ var QuickCreate = Dialog.extend({
                     }
                 }},
                 {text: _t("Edit"), click: function () {
+                    debugger;
                     dataCalendar.disableQuickCreate = true;
                     dataCalendar.title = self.$('input').val().trim();
                     dataCalendar.on_save = self.destroy.bind(self);

@@ -867,31 +867,33 @@ odoo.define('web.CalendarRenderer', function (require) {
                         self.trigger('openCreate', data);
                     }
                     self.$calendar.fullCalendar('unselect');
-                }
-                // eventRender(event, element, view) {
-                //     self.isSwipeEnabled = false;
-                //     var render = self._eventRender(event);
-                //     element.querySelector('.fc-content').innerhtml = render.innerhtml;
-                //     element.classList.add(render.getAttribute('class'));
-                //     element.setAttribute('data-event-id', event.id);
+                },
+                eventRender(event, element, view) {
+                    debugger;
+                    self.isSwipeEnabled = false;
+                    var render = self._eventRender(event);
+                    element.querySelector('.fc-content').innerhtml = render.innerhtml;
+                    element.classList.add(render.getAttribute('class'));
+                    element.setAttribute('data-event-id', event.id);
 
-                //     // Add background if doesn't exist
-                //     if (!element.querySelector('.fc-bg').length) {
-                //         // element.find('.fc-content').after($('<div/>', {class: 'fc-bg'}));
-                //         element.querySelector('.fc-content').className += "fc-bg";
-                //     }
+                    // Add background if doesn't exist
+                    if (!element.querySelector('.fc-bg').length) {
+                        // element.find('.fc-content').after($('<div/>', {class: 'fc-bg'}));
+                        element.querySelector('.fc-content').className += "fc-bg";
+                    }
 
-                //     // For month view: Show background for all-day/multidate events only
-                //     if (view.name === 'month' && event.record) {
-                //         var start = event.r_start || event.start;
-                //         var end = event.r_end || event.end;
-                //         // Detect if the event occurs in just one day
-                //         // note: add & remove 1 min to avoid issues with 00:00
-                //         var isSameDayEvent = start.clone().add(1, 'minute').isSame(end.clone().subtract(1, 'minute'), 'day');
-                //         if (!event.record.allday && isSameDayEvent) {
-                //             element.classList.add('o_cw_nobg');
-                //         }
-                //     }
+                    // For month view: Show background for all-day/multidate events only
+                    if (view.name === 'month' && event.record) {
+                        var start = event.r_start || event.start;
+                        var end = event.r_end || event.end;
+                        // Detect if the event occurs in just one day
+                        // note: add & remove 1 min to avoid issues with 00:00
+                        var isSameDayEvent = start.clone().add(1, 'minute').isSame(end.clone().subtract(1, 'minute'), 'day');
+                        if (!event.record.allday && isSameDayEvent) {
+                            element.classList.add('o_cw_nobg');
+                        }
+                    }
+                },
 
                 //     // On double click, edit the event
                 //     element.addEventListener('dblclick', function () {
@@ -1103,19 +1105,20 @@ odoo.define('web.CalendarRenderer', function (require) {
         //  * @param {any} event
         //  * @returns {string} the html for the rendered event
         //  */
-        // _eventRender(event) {
-        //     var qweb_context = {
-        //         event: event,
-        //         record: event.record,
-        //         color: this.getColor(event.color_index),
-        //     };
-        //     this.qweb_context = qweb_context;
-        //     if (_.isEmpty(qweb_context.record)) {
-        //         return '';
-        //     } else {
-        //         return qweb.render("calendar-box", qweb_context);
-        //     }
-        // }
+        _eventRender(event) {
+            debugger;
+            var qweb_context = {
+                event: event,
+                record: event.record,
+                color: this.getColor(event.color_index),
+            };
+            this.qweb_context = qweb_context;
+            if (_.isEmpty(qweb_context.record)) {
+                return '';
+            } else {
+                return qweb.render("calendar-box", qweb_context);
+            }
+        }
 
         // /**
         //  * Render the calendar view, this is the main entry point.

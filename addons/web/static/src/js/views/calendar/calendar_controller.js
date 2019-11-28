@@ -422,7 +422,6 @@ odoo.define('web.CalendarController', function (require) {
                     self.quickCreating = false;
                 })
                 .guardedCatch(function (result) {
-                    debugger;
                     var errorEvent = result.event;
                     // This will occurs if there are some more fields required
                     // Preventdefaulting the error event will prevent the traceback window
