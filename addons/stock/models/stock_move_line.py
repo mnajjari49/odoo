@@ -440,7 +440,7 @@ class StockMoveLine(models.Model):
         # Now, we can actually move the quant.
         done_ml = self.env['stock.move.line']
         for ml in self - ml_to_delete:
-            if ml.product_id.type == 'product':
+            if ml.product_id.type != 'service':
                 rounding = ml.product_uom_id.rounding
 
                 # if this move line is force assigned, unreserve elsewhere if needed
