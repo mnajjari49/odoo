@@ -40,6 +40,7 @@ return AbstractModel.extend({
      * Transform fullcalendar event object to OpenERP Data object
      */
     calendarEventToRecord: function (event) {
+        debugger;
         // Normalize event_end without changing fullcalendars event.
         var data = {'name': event.title};
         var start = event.start.clone();
@@ -146,6 +147,7 @@ return AbstractModel.extend({
      * @param {OdooEvent} event
      */
     createRecord: function (event) {
+        debugger;
         var data = this.calendarEventToRecord(event.data.data);
         for (var k in data) {
             if (data[k] && data[k]._isAMomentObject) {
