@@ -906,17 +906,15 @@ class Module(models.Model):
             filter_lang = [code for code, _ in self.env['res.lang'].get_installed()]
 
         update_mods = self.filtered(lambda r: r.state in ('installed', 'to install', 'to upgrade'))
-        irt_cursor = self.env['ir.translation']._get_import_cursor(overwrite)
+        irt_cursor = self.env['ir.translation']._get_import_cursor()
         # TODO batch
         for mod in update_mods:
             for lang in filter_lang:
                 iso_code = tools.get_iso_codes(lang)
                 base_lang_code = iso_code.split('_')[0] if '_' in iso_code else False
 
-                irt_cursor._overwrite = overwrite
-                irt_cursor.transfer(lang, [mod.name], src_lang=base_lang_code)
-                irt_cursor._overwrite = True
-                irt_cursor.transfer(lang, [mod.name], src_lang=iso_code)
+                irt_cursor.transfer(lang, [mod.name], src_lang=base_lang_code, overwrite=overwrite)
+                irt_cursor.transfer(lang, [mod.name], src_lang=iso_code, overwrite=True)
 
     def _check(self):
         for module in self:
