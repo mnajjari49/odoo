@@ -31,6 +31,7 @@
                             <field name="id" invisible="1"/>
                             <field name="name"/>
                             <field name="model" attrs="{'readonly': [('id', '!=', False)]}"/>
+                            <field name="default_order" attrs="{'required': [('id', '!=', False)], 'invisible': [('id', '=', False)]}"/>
                             <field name="transient" attrs="{'readonly': [('id', '!=', False)]}" groups="base.group_no_one"/>
                         </group>
                         <group>
