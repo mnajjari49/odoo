@@ -212,6 +212,7 @@ class Project(models.Model):
     date = fields.Date(string='Expiration Date', index=True, tracking=True)
     subtask_project_id = fields.Many2one('project.project', string='Sub-task Project', ondelete="restrict",
         help="Project in which sub-tasks of the current project will be created. It can be the current project itself.")
+    allow_subtasks = fields.Boolean('Sub-tasks')
 
     # rating fields
     rating_request_deadline = fields.Datetime(compute='_compute_rating_request_deadline', store=True)
@@ -332,6 +333,9 @@ class Project(models.Model):
         if 'active' in vals:
             # archiving/unarchiving a project does it on its tasks, too
             self.with_context(active_test=False).mapped('tasks').write({'active': vals['active']})
+        if 'allow_subtasks' in vals and not vals.get('allow_subtasks'):
+            for project in self:
+                project.subtask_project_id = project.id
         if vals.get('partner_id') or vals.get('privacy_visibility'):
             for project in self.filtered(lambda project: project.privacy_visibility == 'portal'):
                 project.allowed_user_ids |= project.partner_id.user_ids
@@ -540,6 +544,7 @@ class Task(models.Model):
     parent_id = fields.Many2one('project.task', string='Parent Task', index=True)
     child_ids = fields.One2many('project.task', 'parent_id', string="Sub-tasks", context={'active_test': False})
     subtask_project_id = fields.Many2one('project.project', related="project_id.subtask_project_id", string='Sub-task Project', readonly=True)
+    allow_subtasks = fields.Boolean('project.project', related="project_id.allow_subtasks", readonly=True)
     subtask_count = fields.Integer("Sub-task count", compute='_compute_subtask_count')
     email_from = fields.Char(string='Email', help="These people will receive email.", index=True,
         compute='_compute_email_from', store="True", readonly=False)
