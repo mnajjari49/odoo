@@ -356,6 +356,14 @@ class Project(models.Model):
         analytic_accounts_to_delete.unlink()
         return result
 
+    @api.model
+    def default_get(self, fields):
+        res = super(Project, self).default_get(fields)
+        if 'rating_status' in fields:
+            if self.user_has_groups('project.group_project_rating'):
+                res['rating_status'] = 'stage'
+        return res
+
     def message_subscribe(self, partner_ids=None, channel_ids=None, subtype_ids=None):
         """ Subscribe to all existing active tasks when subscribing to a project """
         res = super(Project, self).message_subscribe(partner_ids=partner_ids, channel_ids=channel_ids, subtype_ids=subtype_ids)

@@ -11,3 +11,10 @@ class ResConfigSettings(models.TransientModel):
     module_hr_timesheet = fields.Boolean(string="Task Logs")
     group_subtask_project = fields.Boolean("Sub-tasks", implied_group="project.group_subtask_project")
     group_project_rating = fields.Boolean("Use Rating on Project", implied_group='project.group_project_rating')
+
+    def execute(self):
+        res = super(ResConfigSettings, self).execute()
+        if self.group_project_rating:
+            # Change the rating status on existing projects from 'no' to 'stage'
+            self.env['project.project'].search([('rating_status', '=', 'no')]).write({'rating_status': 'stage'}) 
+        return res
