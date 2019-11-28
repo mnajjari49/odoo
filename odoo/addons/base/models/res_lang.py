@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
-import base64
+import itertools
 import json
 import locale
 import logging
@@ -10,9 +10,8 @@ import re
 import tarfile
 import tempfile
 from collections import defaultdict
-from datetime import timedelta
 from operator import itemgetter
-from io import BytesIO, StringIO
+from io import BytesIO
 from werkzeug.urls import url_join
 
 import requests
@@ -252,18 +251,19 @@ class Lang(models.Model):
         """ Download the translation files of all modules from the i18n servers """
         mods = self.env['ir.module.module'].search_read([('state', '!=', 'uninstallable'),],
                                                         fields=['name', 'i18n_location'])
-        urls = defaultdict(list)
+        # consider language packs are the most up to date, store the list of downloaded
+        # module per language to check the filesystem only if was not found online
+        processed = defaultdict(set)
+
         # [{'id': 1, 'name': 'base', 'i18n_location': 'https://...'},...] -> {'https://...': ['base',...],...}
+        urls = defaultdict(list)
         for module_info in mods:
             urls[module_info['i18n_location']].append(module_info['name'])
 
-        # ['fr_BE', 'fr', 'nl_BE'] -> {'fr', 'nl'}
-        langs = {lang.split('_')[0]: lang for lang in self.mapped('code')}
-
-        processed = defaultdict(set)
-
-        # TODO download once and process twice for self = [fr, fr_BE]
-        for short_code, lang in langs.items():
+        # ['fr_BE', 'fr_FR', 'nl_BE'] -> {'fr': ['fr_FR', 'fr_BE'], 'nl': ['nl_BE']}
+        # will download once and process twice for self = [fr, fr_BE]
+        langs = itertools.groupby(self.mapped('code'), key=lambda l: l.split('_')[0])
+        for short_code, full_codes in langs:
             for url in urls:
                 full_url = self._get_i18n_url(url, short_code)
                 try:
@@ -280,8 +280,9 @@ class Lang(models.Model):
                     bio = BytesIO()
                     bio.write(stream.content)
                     bio.seek(0)
-                    for extracted_lang, modules in self._extract_i18n_file_content(bio, lang, urls[url]).items():
-                        processed[extracted_lang] |= modules
+                    for full_code in list(full_codes):
+                        for extracted_lang, modules in self._extract_i18n_file_content(bio, full_code, urls[url]).items():
+                            processed[extracted_lang] |= modules
                 except requests.exceptions.RequestException as err:
                     _logger.error("Could not fetch translations from %s, error: %s", full_url, err)
         return processed
