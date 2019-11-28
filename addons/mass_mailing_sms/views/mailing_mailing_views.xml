@@ -101,7 +101,7 @@
             <xpath expr="//page[@name='mail_body']" position="attributes">
                 <attribute name="attrs">{'invisible': [('mailing_type', '!=', 'mail')]}</attribute>
             </xpath>
-            <xpath expr="//page[@name='mail_body']" position="after">
+            <xpath expr="//page[@name='mail_body']" position="before">
                 <page string="SMS Content" name="sms_body" attrs="{'invisible': [('mailing_type', '!=', 'sms')]}">
                     <field name="body_plaintext" widget="sms_widget" attrs="{'required': [('mailing_type', '=', 'sms')]}"/>
                     <group>
