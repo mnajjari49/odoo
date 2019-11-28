@@ -4,6 +4,7 @@ import datetime
 import dateutil
 import itertools
 import logging
+import re
 import time
 from ast import literal_eval
 from collections import defaultdict, Mapping
@@ -99,6 +100,9 @@ class IrModel(models.Model):
 
     name = fields.Char(string='Model Description', translate=True, required=True)
     model = fields.Char(default='x_', required=True, index=True)
+    default_order = fields.Char(string='Order', default='id',
+                                help='SQL expression describing the default ordering for '
+                                     'records in the model; e.g. "x_sequence asc, id desc"')
     info = fields.Text(string='Information')
     field_id = fields.One2many('ir.model.fields', 'model_id', string='Fields', required=True, copy=True,
                                default=_default_field_id)
@@ -155,6 +159,22 @@ class IrModel(models.Model):
                     raise ValidationError(_("The model name must start with 'x_'."))
             if not models.check_object_name(model.model):
                 raise ValidationError(_("The model name can only contain lowercase characters, digits, underscores and dots."))
+
+    @api.constrains('default_order')
+    def _check_order(self):
+        for model in self:
+            if self.env.get(model.model) is None:
+                # magic fields (like id) are not set up yet and registry
+                # is not updated, can't validate anything
+                # field is invisible in the view until first save + default is 'id'
+                # should be sufficient to assume things will go well
+                continue
+            stored_fields = list(map(lambda f: f.name, filter(lambda f: f.store == True, self.env[model.model]._fields.values())))
+            model._check_qorder(model.default_order)  # regex check for the whole clause ('is it valid sql?')
+            order_fields = re.findall(r'(?:\s*\"?([a-z0-9:_]+)\"?(?:\s+(?:desc|asc))?\s*(?:,|$))', model.default_order)
+            for field in order_fields:
+                if field not in stored_fields:
+                    raise ValidationError(_("Unable to order by %s: fields used for ordering must be present on the model and stored.") % field)
 
     _sql_constraints = [
         ('obj_name_uniq', 'unique (model)', 'Each model must be unique!'),
@@ -238,7 +258,11 @@ class IrModel(models.Model):
         # writes (4,id,False) even for non dirty items.
         if 'field_id' in vals:
             vals['field_id'] = [op for op in vals['field_id'] if op[0] != 4]
-        return super(IrModel, self).write(vals)
+        res = super(IrModel, self).write(vals)
+        # ordering has been changed, reload registry to reflect update + signaling
+        if 'default_order' in vals:
+            self.pool.setup_models(self._cr)
+        return res
 
     @api.model
     def create(self, vals):
@@ -264,6 +288,7 @@ class IrModel(models.Model):
         return {
             'model': model._name,
             'name': model._description,
+            'default_order': model._order,
             'info': next(cls.__doc__ for cls in type(model).mro() if cls.__doc__),
             'state': 'manual' if model._custom else 'base',
             'transient': model._transient,
@@ -299,6 +324,7 @@ class IrModel(models.Model):
             _module = False
             _custom = True
             _transient = bool(model_data['transient'])
+            _order = model_data['default_order']
             __doc__ = model_data['info']
 
         return CustomModel
