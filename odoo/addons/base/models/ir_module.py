@@ -910,10 +910,14 @@ class Module(models.Model):
         # TODO batch
         for mod in update_mods:
             for lang in filter_lang:
+                # fr_FR -> fr, fr_BE -> fr_BE
                 iso_code = tools.get_iso_codes(lang)
                 base_lang_code = iso_code.split('_')[0] if '_' in iso_code else False
+                # Step 1: for sub-languages, load base language first (e.g. es_CL.po is loaded over es.po)
+                if base_lang_code:
+                    irt_cursor.transfer(lang, [mod.name], src_lang=base_lang_code, overwrite=overwrite)
 
-                irt_cursor.transfer(lang, [mod.name], src_lang=base_lang_code, overwrite=overwrite)
+                # Step 2: then load the main translation file, possibly overriding the terms coming from the base language
                 irt_cursor.transfer(lang, [mod.name], src_lang=iso_code, overwrite=True)
 
     def _check(self):

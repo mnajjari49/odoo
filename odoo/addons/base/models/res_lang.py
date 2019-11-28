@@ -203,7 +203,17 @@ class Lang(models.Model):
 
         with tarfile.open(mode='r:xz', fileobj=fileobj) as tar_content:
             with tempfile.TemporaryDirectory() as tmp:
-                for filename in tar_content.getnames():
+                for member in tar_content.getmembers():
+
+                    # sanity checks
+                    if not member.isfile():
+                        continue
+                    if member.size > MAX_FILE_SIZE:
+                        raise UserError(_("Content too long (got %.2fMB, max %.2fMB)") % (
+                            member.size / (1024*1024),
+                            MAX_FILE_SIZE / (1024*1024)
+                        ))
+                    filename = member.name
                     if not filename.endswith('.po'):
                         _logger.info("Skip unexpected file %s", filename)
                         continue
