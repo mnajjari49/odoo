@@ -10,7 +10,7 @@ class Alias(models.Model):
     alias_contact = fields.Selection(selection_add=[('employees', 'Authenticated Employees')])
 
 
-class MailAlias(models.AbstractModel):
+class AliasMixin(models.AbstractModel):
     _inherit = 'mail.alias.mixin'
 
     def _alias_check_contact_on_record(self, record, message, message_dict, alias):
@@ -26,4 +26,4 @@ class MailAlias(models.AbstractModel):
                     'error_template': self.env.ref('hr.mail_template_data_unknown_employee_email_address').body_html,
                 }
             return True
-        return super(MailAlias, self)._alias_check_contact_on_record(record, message, message_dict, alias)
+        return super(AliasMixin, self)._alias_check_contact_on_record(record, message, message_dict, alias)

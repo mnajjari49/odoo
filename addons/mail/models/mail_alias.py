@@ -51,7 +51,7 @@ class Alias(models.Model):
         'Record Thread ID',
         help="Optional ID of a thread (record) to which all incoming messages will be attached, even "
              "if they did not reply to it. If set, this will disable the creation of new records completely.")
-    alias_domain = fields.Char('Alias domain', compute='_get_alias_domain',
+    alias_domain = fields.Char('Alias domain', compute='_compute_alias_domain',
                                default=lambda self: self.env["ir.config_parameter"].sudo().get_param("mail.catchall.domain"))
     alias_parent_model_id = fields.Many2one(
         'ir.model', 'Parent Model',
@@ -73,7 +73,7 @@ class Alias(models.Model):
         ('alias_unique', 'UNIQUE(alias_name)', 'Unfortunately this email alias is already used, please choose a unique one')
     ]
 
-    def _get_alias_domain(self):
+    def _compute_alias_domain(self):
         alias_domain = self.env["ir.config_parameter"].sudo().get_param("mail.catchall.domain")
         for record in self:
             record.alias_domain = alias_domain
@@ -181,6 +181,8 @@ class AliasMixin(models.AbstractModel):
     _inherits = {'mail.alias': 'alias_id'}
     _description = 'Email Aliases Mixin'
 
+    ALIAS_WRITEABLE_FIELDS = ['alias_name', 'alias_parent_thread_id', 'alias_force_thread_id', 'alias_defaults']
+
     alias_id = fields.Many2one('mail.alias', string='Alias', ondelete="restrict", required=True)
 
     def get_alias_model_name(self, vals):
@@ -197,21 +199,49 @@ class AliasMixin(models.AbstractModel):
         """
         return {'alias_parent_thread_id': self.id}
 
+    def _filter_alias_fields(self, vals):
+        """ Split the vals dict into two dictionnary of vals,
+            one for alias field and the other for other fields """
+        alias_field, other_field = {}, {}
+        for key in list(vals):
+            if key in self.ALIAS_WRITEABLE_FIELDS:
+                alias_field[key] = vals.get(key)
+            else:
+                other_field[key] = vals.get(key)
+        return alias_field, other_field
+
     @api.model
     def create(self, vals):
-        """ Create a record with ``vals``, and create a corresponding alias. """
-        record = super(AliasMixin, self.with_context(
-            alias_model_name=self.get_alias_model_name(vals),
-            alias_parent_model_name=self._name,
-        )).create(vals)
+        """ - Slip writable fields of mail.alias and other fields,
+            - Create a corresponding alias if none specify. 
+            - Create the record with the rigth alias and other fields value
+            - Update the alias with values of get_alias_values() and return the record """
+        alias_field, other_field = self._filter_alias_fields(vals)
+        if not other_field.get('alias_id', False):
+            alias = self.env['mail.alias'].sudo().with_context(
+                alias_model_name=self.get_alias_model_name(vals),
+                alias_parent_model_name=self._name,
+            ).create(alias_field)
+            other_field['alias_id'] = alias.id
+        record = super(AliasMixin, self).create(other_field)
         record.alias_id.sudo().write(record.get_alias_values())
+        return record
+
+    def write(self, vals):
+        """ Split writable fields of mail.alias and other fields
+            alias fields will write with sudo and the other normally """
+        alias_field, other_field = self._filter_alias_fields(vals)
+        if alias_field and self.check_access_rights('write', raise_exception=False):
+            record = super(AliasMixin, self.sudo()).write(alias_field)
+        if other_field:
+            record = super(AliasMixin, self).write(other_field)
         return record
 
     def unlink(self):
         """ Delete the given records, and cascade-delete their corresponding alias. """
         aliases = self.mapped('alias_id')
         res = super(AliasMixin, self).unlink()
-        aliases.unlink()
+        aliases.sudo().unlink()
         return res
 
     def _init_column(self, name):

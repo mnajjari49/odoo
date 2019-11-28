@@ -95,13 +95,6 @@ class Team(models.Model):
         defaults['team_id'] = self.id
         return values
 
-    def write(self, vals):
-        result = super(Team, self).write(vals)
-        if 'use_leads' in vals or 'alias_defaults' in vals:
-            for team in self:
-                team.alias_id.write(team.get_alias_values())
-        return result
-
     #TODO JEM : refactor this stuff with xml action, proper customization,
     @api.model
     def action_your_pipeline(self):

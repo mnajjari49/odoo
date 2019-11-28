@@ -206,10 +206,7 @@ class Channel(models.Model):
             vals['image_128'] = defaults['image_128']
 
         # Create channel and alias
-        channel = super(Channel, self.with_context(
-            alias_model_name=self._name, alias_parent_model_name=self._name, mail_create_nolog=True, mail_create_nosubscribe=True)
-        ).create(vals)
-        channel.alias_id.write({"alias_force_thread_id": channel.id, 'alias_parent_thread_id': channel.id})
+        channel = super(Channel, self.with_context(mail_create_nolog=True, mail_create_nosubscribe=True)).create(vals)
 
         if vals.get('group_ids'):
             channel._subscribe_users()
@@ -221,8 +218,6 @@ class Channel(models.Model):
         return channel
 
     def unlink(self):
-        aliases = self.mapped('alias_id')
-
         # Delete mail.channel
         try:
             all_emp_group = self.env.ref('mail.channel_all_employees')
@@ -231,8 +226,6 @@ class Channel(models.Model):
         if all_emp_group and all_emp_group in self and not self._context.get(MODULE_UNINSTALL_FLAG):
             raise UserError(_('You cannot delete those groups, as the Whole Company group is required by other modules.'))
         res = super(Channel, self).unlink()
-        # Cascade-delete mail aliases as well, as they should not exist without the mail.channel.
-        aliases.sudo().unlink()
         return res
 
     def write(self, vals):
@@ -258,6 +251,14 @@ class Channel(models.Model):
 
     def get_alias_model_name(self, vals):
         return vals.get('alias_model', 'mail.channel')
+
+    def get_alias_values(self):
+        """ Return values to create an alias, or to write on the alias after its
+            creation.
+        """
+        values = super(Channel, self).get_alias_values()
+        values.update({"alias_force_thread_id": self.id})
+        return values
 
     def _subscribe_users(self):
         for mail_channel in self:
