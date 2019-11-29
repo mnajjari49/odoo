@@ -114,7 +114,7 @@ class Message(models.Model):
         help='Tracked values are stored in a separate model. This field allow to reconstruct '
              'the tracking and to generate statistics on the model.')
     # mail gateway
-    no_auto_thread = fields.Boolean(
+    check_reply_to = fields.Boolean(
         'No threading for answers',
         help='Answers do not go in the original document discussion thread. This has an impact on the generated message-id.')
     message_id = fields.Char('Message-Id', help='Message unique identifier', index=True, readonly=1, copy=False)
@@ -1249,7 +1249,7 @@ class Message(models.Model):
 
     @api.model
     def _get_message_id(self, values):
-        if values.get('no_auto_thread', False) is True:
+        if values.get('check_reply_to', False) is True:
             message_id = tools.generate_tracking_message_id('reply_to')
         elif self.is_thread_message(values):
             message_id = tools.generate_tracking_message_id('%(res_id)s-%(model)s' % values)

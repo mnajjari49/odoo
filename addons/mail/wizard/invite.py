@@ -71,7 +71,7 @@ class Invite(models.TransientModel):
                     'reply_to': email_from,
                     'model': wizard.res_model,
                     'res_id': wizard.res_id,
-                    'no_auto_thread': True,
+                    'check_reply_to': True,
                     'add_sign': True,
                 })
                 partners_data = []

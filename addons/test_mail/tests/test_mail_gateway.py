@@ -625,14 +625,14 @@ class TestMailgateway(TestMailCommon):
         first_record = self.env['mail.test.simple'].with_user(self.user_employee).create({'name': 'Replies to Record'})
         record_msg = first_record.message_post(
             subject='Discussion',
-            no_auto_thread=False,
+            check_reply_to=False,
             subtype_xmlid='mail.mt_comment',
         )
         self.assertEqual(record_msg.reply_to, formataddr(('%s %s' % (self.user_employee.company_id.name, first_record.name), '%s@%s' % ('catchall.test', 'test.com'))))
         mail_msg = first_record.message_post(
             subject='Replies to Record',
             reply_to='groups@test.com',
-            no_auto_thread=True,
+            check_reply_to=True,
             subtype_xmlid='mail.mt_comment',
         )
         self.assertEqual(mail_msg.reply_to, 'groups@test.com')

@@ -107,7 +107,7 @@ class WebsiteSaleForm(WebsiteForm):
                 'body': nl2br(data['custom']),
                 'model': 'sale.order',
                 'message_type': 'comment',
-                'no_auto_thread': False,
+                'check_reply_to': False,
                 'res_id': order.id,
             }
             request.env['mail.message'].with_user(SUPERUSER_ID).create(values)
