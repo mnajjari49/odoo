@@ -53,8 +53,6 @@ _POSSIBLE_OPCODES_P3 = [
     'BUILD_TUPLE_UNPACK_WITH_CALL', 'BUILD_MAP_UNPACK_WITH_CALL',
     # ???
     'GET_YIELD_FROM_ITER',
-    # matrix operator
-    'BINARY_MATRIX_MULTIPLY', 'INPLACE_MATRIX_MULTIPLY',
 ]
 
 # opcodes necessary to build literal values
@@ -69,17 +67,18 @@ _CONST_OPCODES = set(opmap[x] for x in [
     'BUILD_CONST_KEY_MAP',
 ] if x in opmap)
 
+# operations which are both binary and inplace, same order as in doc'
+_operations = [
+    'POWER', 'MULTIPLY', # 'MATRIX_MULTIPLY', # matrix operator (3.5+)
+    'FLOOR_DIVIDE', 'TRUE_DIVIDE', 'MODULO', 'ADD',
+    'SUBTRACT', 'SUBSCR', 'LSHIFT', 'RSHIFT', 'AND', 'XOR', 'OR',
+]
 # operations on literal values
 _EXPR_OPCODES = _CONST_OPCODES.union(set(opmap[x] for x in [
-    'UNARY_POSITIVE', 'UNARY_NEGATIVE', 'UNARY_NOT',
-    'UNARY_INVERT', 'BINARY_POWER', 'BINARY_MULTIPLY',
-    'BINARY_FLOOR_DIVIDE', 'BINARY_TRUE_DIVIDE',
-    'BINARY_MODULO', 'BINARY_ADD', 'BINARY_SUBTRACT', 'BINARY_SUBSCR',
-    'BINARY_LSHIFT', 'BINARY_RSHIFT', 'BINARY_AND', 'BINARY_XOR',
-    'BINARY_OR', 'INPLACE_ADD', 'INPLACE_SUBTRACT', 'INPLACE_MULTIPLY',
-    'INPLACE_MODULO', 'INPLACE_POWER',
-    'INPLACE_LSHIFT', 'INPLACE_RSHIFT', 'INPLACE_AND',
-    'INPLACE_XOR','INPLACE_OR', 'STORE_SUBSCR',
+    'UNARY_POSITIVE', 'UNARY_NEGATIVE', 'UNARY_NOT', 'UNARY_INVERT',
+    *('BINARY_' + op for op in _operations),
+    *('INPLACE_' + op for op in _operations),
+    'STORE_SUBSCR',
     'BUILD_SLICE',
     # comprehensions
     'LIST_APPEND', 'MAP_ADD', 'SET_ADD',
