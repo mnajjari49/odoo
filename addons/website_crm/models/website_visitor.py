@@ -23,8 +23,8 @@ class WebsiteVisitor(models.Model):
                   CASE WHEN p.email_normalized is not null THEN p.email_normalized ELSE l.email_normalized END as email,
                   CASE WHEN p.mobile is not null THEN p.mobile WHEN l.mobile is not null THEN l.mobile ELSE l.phone END as mobile
                   FROM website_visitor v
-                  JOIN crm_lead_website_visitor_rel lv on lv.website_visitor_id = v.id
-                  JOIN crm_lead l ON lv.crm_lead_id = l.id
+                  LEFT JOIN crm_lead_website_visitor_rel lv on lv.website_visitor_id = v.id
+                  LEFT JOIN crm_lead l ON lv.crm_lead_id = l.id
                   LEFT JOIN res_partner p on p.id = v.partner_id
                   WHERE v.id in %s
                   ORDER BY l.create_date ASC"""
