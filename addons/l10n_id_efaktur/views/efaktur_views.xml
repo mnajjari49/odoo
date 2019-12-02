@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="efaktur_form_view" model="ir.ui.view">
+            <field name="name">l10n_id_efaktur.efaktur.form.view</field>
+            <field name="model">l10n_id_efaktur.efaktur</field>
+            <field name="arch" type="xml">
+                <form string="Efaktur Number">
+                    <sheet string="Efaktur">
+                        <group>
+                            <group>
+                                <field name="name" readonly="1"/>
+                            </group>
+                        </group>
+                        <field name="invoice_id" readonly="1"/>
+                        <field name="company_id" options="{'no_create': True}" groups="base.group_multi_company"/>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <record id="efaktur_tree_view" model="ir.ui.view">
+            <field name="name">l10n_id_efaktur.efaktur.tree.view</field>
+            <field name="model">l10n_id_efaktur.efaktur</field>
+            <field name="arch" type="xml">
+                <tree string="Efaktur Number">
+                    <field name="name"/>
+                    <field name="invoice_id" widget="many2many_tags"/>
+                    <field name="company_id" groups="base.group_multi_company"/>
+                </tree>
+            </field>
+        </record>
+
+        <record id='efaktur_invoice_action' model='ir.actions.act_window'>
+            <field name="name">e-Faktur</field>
+            <field name="res_model">l10n_id_efaktur.efaktur</field>
+            <field name="view_mode">tree,form</field>
+            <field name="context">{'search_default_upload': True, 'search_default_used': True}</field>
+            <field name="view_id" ref="efaktur_tree_view"/>
+            <field name="help" type="html">
+                <p class="oe_view_nocontent_create">
+                    e-Faktur
+                </p>
+            </field>
+        </record>
+
+        <menuitem id="menu_efaktur_action" name="e-Faktur"
+            parent="account.menu_finance_receivables"
+            groups="base.group_no_one"
+            action="efaktur_invoice_action" sequence="111"/>
+
+        <record id="view_efaktur_download" model="ir.ui.view">
+            <field name="name">view.efaktur.download</field>
+            <field name="model">l10n_id_efaktur.efaktur</field>
+            <field name="arch" type="xml">
+                <search string="Search">
+                    <field name="invoice_id" string="Reference" filter_domain="['|',('invoice_id.number','ilike',self),('name','ilike',self)]" />
+                    <field name="invoice_id" filter_domain="[('invoice_id.number','ilike',self)]"/>
+                    <field name="name"/>
+                    <group>
+                        <filter string="Downloaded" name="is_downloaded" domain="['|', ('invoice_id.l10n_id_attachment_id', '!=', False),('invoice_id.l10n_id_date_validated', '=', False)]"/>
+                        <separator/>
+                        <filter string="Not Uploaded" name="upload" domain="[('invoice_id.l10n_id_date_validated', '=', False)]" />
+                        <separator/>
+                        <filter string="Code Used" name="used" domain="[('invoice_id', '!=', False)]"/>
+                    </group>
+                </search>
+            </field>
+        </record>
+
+    </data>
+</odoo>

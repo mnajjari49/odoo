@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="res_partner_tax_form_view" model="ir.ui.view">
+            <field name="name">res.partner.tax.form.view</field>
+            <field name="model">res.partner</field>
+            <field name="inherit_id" ref="base.view_partner_form"/>
+            <field name="arch" type="xml">
+                <page name="accounting" position="inside">
+                    <group string="Indonesian Taxes">
+                        <group>
+                            <field name="l10n_id_pkp"/>
+                            <field name="l10n_id_npwp" attrs="{'invisible': [('l10n_id_pkp', '!=', True)]}"/>
+                            <field name="l10n_id_nik" attrs="{'invisible': [('l10n_id_pkp', '!=', True)]}"/>
+                        </group>
+                        <group attrs="{'invisible': [('l10n_id_pkp', '!=', True)]}">
+                            <field name="l10n_id_tax_address"/>
+                            <field name="l10n_id_tax_name"/>
+                        </group>
+                    </group>
+                </page>
+            </field>
+        </record>
+    </data>
+</odoo>

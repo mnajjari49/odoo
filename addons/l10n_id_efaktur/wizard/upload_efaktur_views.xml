@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+	<data>
+		<record id="upload_efaktur_view" model="ir.ui.view">
+            <field name="name">upload.efaktur.wizard.view</field>
+            <field name="model">upload.efaktur.wizard</field>
+            <field name="arch" type="xml">
+                <form string="Upload e-Faktur">
+                	Are you sure want to set these e-Faktur as Upload Success ?
+                    <footer>
+                        <button string="Yes" name="upload_efaktur" type="object" class="oe_highlight"/>
+                        <button string="Cancel" class="btn-secondary" special="cancel"/>
+                    </footer>
+               </form>
+            </field>
+        </record>
+
+		 <record id="action_upload_efaktur" model="ir.actions.act_window">
+			 <field name="name">Upload Success</field>
+			 <field name="res_model">upload.efaktur.wizard</field>
+			 <field name="binding_model_id" ref="account.model_account_move"/>
+			 <field name="view_mode">form</field>
+ 			 <field name="view_id" ref="upload_efaktur_view"/>
+ 			 <field name="target">new</field>
+		 </record>
+	</data>
+</odoo>

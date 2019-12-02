@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="account_move_efaktur_form_view" model="ir.ui.view">
+            <field name="name">account.move.efaktur.form.view</field>
+            <field name="model">account.move</field>
+            <field name="inherit_id" ref="account.view_move_form"/>
+            <field name="arch" type="xml">
+                <field name="partner_id" position="after">
+                    <field name="l10n_id_need_kode_transaksi" invisible="1"/>
+                    <field name="l10n_id_kode_transaksi" attrs="{'invisible': [('l10n_id_need_kode_transaksi', '=', False)], 'required': [('l10n_id_need_kode_transaksi', '=', True)]}"/>
+                    <field name="l10n_id_replace_invoice_id" attrs="{'readonly': [('state', '!=','draft')]}" options="{'m2o_dialog': False, 'no_create': True}"/>
+                </field>
+                <field name="type" position="after">
+                    <span style="font-size: 11px;" attrs="{'invisible': ['|', ('l10n_id_date_validated', '!=', False), ('l10n_id_efaktur_id', '=', False)]}" class="label label-danger">
+                        <strong>e-Faktur: Not yet Uploaded</strong>
+                    </span>
+                    <span style="font-size: 11px;" attrs="{'invisible': [('l10n_id_date_validated', '=', False)]}" class="label label-success">
+                        <strong>e-Faktur: Uploaded</strong>
+                    </span>
+                </field>
+                <button name="button_draft" position="after">
+                    <button string='E-faktur' name="download_efaktur" type="object" attrs="{'invisible':['|', ('l10n_id_csv_created','=',True), ('state', '=', 'draft')]}"/>
+                    <button name="reset_efaktur" string="Reset E-Faktur" type="object" attrs="{'invisible':['|','|',('l10n_id_efaktur_id','=',False),('state','!=','cancel'),('l10n_id_date_validated','!=',False)]}"/>
+                </button>
+                <xpath expr=".//group[@id='other_tab_group']" position="inside">
+                    <group string="Electronic Tax">
+                        <field name="l10n_id_efaktur_id" attrs="{'invisible': [('type', 'not in', ('out_invoice', 'out_refund'))]}" domain="[('invoice_id', '=', False)]" options="{'no_create': True, 'no_open': True}"/>
+                        <field name="l10n_id_tax_number" attrs="{'invisible': [('type', 'not in', ('in_invoice', 'in_refund'))]}"/>
+                        <field name="l10n_id_csv_created" attrs="{'invisible': [('type', 'not in', ('out_invoice', 'out_refund'))]}"/>
+                        <field name="l10n_id_upload_user" attrs="{'invisible': [('type', 'not in', ('out_invoice', 'out_refund'))]}"/>
+                        <field name="l10n_id_date_validated" attrs="{'invisible': [('type', 'not in', ('out_invoice', 'out_refund'))]}"/>
+                    </group>
+                </xpath>
+            </field>
+        </record>
+
+        <record id="account_move_efaktur_tree_view" model="ir.ui.view">
+            <field name="name">account.move.efaktur.tree.view</field>
+            <field name="model">account.move</field>
+            <field name="inherit_id" ref="account.view_invoice_tree"/>
+            <field name="arch" type="xml">
+                <field name="invoice_user_id" position="after">
+                    <field name="l10n_id_efaktur_id" optional="show"/>
+                    <field name="l10n_id_upload_user" optional="hide"/>
+                    <field name="l10n_id_date_validated" optional="hide"/>
+                    <field name="l10n_id_csv_created" optional="hide"/>
+                </field>
+            </field>
+        </record>
+
+        <record id="system_group_view_efaktur_id" model="ir.ui.view">
+            <field name="name">system.group.view.efaktur.id</field>
+            <field name="model">account.move</field>
+            <field name="inherit_id" ref="l10n_id_efaktur.account_move_efaktur_form_view"/>
+            <field name="groups_id" eval="[(6, 0, [ref('base.group_system') ])]"/>
+            <field name="arch" type="xml">
+                <field name="l10n_id_efaktur_id" position="attributes">
+                    <attribute name="readonly">1</attribute>
+                </field>
+            </field>
+        </record>
+
+        <record id="dowload_efaktur_action" model="ir.actions.server">
+            <field name="name">Download e-Faktur</field>
+            <field name="model_id" ref="account.model_account_move"/>
+            <field name="binding_model_id" ref="account.model_account_move"/>
+            <field name="state">code</field>
+            <field name="code">action = records.download_efaktur()</field>
+        </record>
+
+        <record id="view_account_invoice_filter" model="ir.ui.view">
+            <field name="name">account.move.select.l10n_id.inherit</field>
+            <field name="model">account.move</field>
+            <field name="inherit_id" ref="account.view_account_invoice_filter"/>
+            <field name="arch" type="xml">
+                <field name="name" position="after">
+                    <group>
+                        <filter string="Tax CSV Not Uploaded" name="upload" domain="[('l10n_id_date_validated', '=', False), ('l10n_id_efaktur_id', '!=', False)]" />
+                    </group>
+                </field>
+            </field>
+        </record>
+    </data>
+</odoo>

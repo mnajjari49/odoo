@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+	<data>
+		<record id="reexport_taxnumber_view" model="ir.ui.view">
+            <field name="name">reexport.taxnumber.view</field>
+            <field name="model">reexport.taxnumber</field>
+            <field name="arch" type="xml">
+            <form string="Reexport E-Faktur">
+				<field name="company_id" invisible="1"/>
+				<group string="Existing">
+					<field name="number_available"/>
+					<field name="last_available"/>
+				</group>
+                <group col="4" string="New">
+                	<field name="start_number" required="1"/>
+					<field name="end_number" required="1"/>
+                </group>
+                <footer>
+                	<button name="generate_number" string="Generate Number" type="object" class="oe_highlight" />
+            		<button string="Cancel" class="btn-secondary" special="cancel" />
+                </footer>
+            </form>
+            </field>
+        </record>
+
+        <record id='taxnumber_menu' model='ir.actions.act_window'>
+            <field name="name">Tax-Number Generator</field>
+            <field name="res_model">reexport.taxnumber</field>
+            <field name="view_mode">form</field>
+            <field name="view_id" ref="reexport_taxnumber_view"/>
+			<field name="target">new</field>
+        </record>
+
+        <menuitem id="generate_tax_number_menu" name="Generate Tax-Number" parent="account.menu_finance_receivables" sequence="1000" action="taxnumber_menu"/>
+	</data>
+</odoo>

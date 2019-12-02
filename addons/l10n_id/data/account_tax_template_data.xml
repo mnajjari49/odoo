@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <record id="ppn_tag" model="account.account.tag">
+        <field name="name">PPN - Send with e-faktur</field>
+        <field name="applicability">taxes</field>
+    </record>
 
     <record id="tax_ST1" model="account.tax.template">
         <field name="description">ST1</field>
@@ -12,6 +16,7 @@
             (0,0, {
                 'factor_percent': 100,
                 'repartition_type': 'base',
+                'tag_ids': [(4, ref('ppn_tag'))],
             }),
             (0,0, {
                 'factor_percent': 100,
@@ -23,6 +28,7 @@
             (0,0, {
                 'factor_percent': 100,
                 'repartition_type': 'base',
+                'tag_ids': [(4, ref('ppn_tag'))],
             }),
             (0,0, {
                 'factor_percent': 100,
@@ -43,6 +49,7 @@
             (0,0, {
                 'factor_percent': 100,
                 'repartition_type': 'base',
+                'tag_ids': [(4, ref('ppn_tag'))],
             }),
             (0,0, {
                 'factor_percent': 100,
@@ -54,6 +61,7 @@
             (0,0, {
                 'factor_percent': 100,
                 'repartition_type': 'base',
+                'tag_ids': [(4, ref('ppn_tag'))],
             }),
             (0,0, {
                 'factor_percent': 100,
@@ -74,6 +82,7 @@
             (0,0, {
                 'factor_percent': 100,
                 'repartition_type': 'base',
+                'tag_ids': [(4, ref('ppn_tag'))],
             }),
             (0,0, {
                 'factor_percent': 100,
@@ -85,6 +94,7 @@
             (0,0, {
                 'factor_percent': 100,
                 'repartition_type': 'base',
+                'tag_ids': [(4, ref('ppn_tag'))],
             }),
             (0,0, {
                 'factor_percent': 100,
@@ -105,6 +115,7 @@
             (0,0, {
                 'factor_percent': 100,
                 'repartition_type': 'base',
+                'tag_ids': [(4, ref('ppn_tag'))],
             }),
             (0,0, {
                 'factor_percent': 100,
@@ -116,6 +127,7 @@
             (0,0, {
                 'factor_percent': 100,
                 'repartition_type': 'base',
+                'tag_ids': [(4, ref('ppn_tag'))],
             }),
             (0,0, {
                 'factor_percent': 100,
@@ -136,6 +148,7 @@
             (0,0, {
                 'factor_percent': 100,
                 'repartition_type': 'base',
+                'tag_ids': [(4, ref('ppn_tag'))],
             }),
             (0,0, {
                 'factor_percent': 100,
@@ -147,6 +160,7 @@
             (0,0, {
                 'factor_percent': 100,
                 'repartition_type': 'base',
+                'tag_ids': [(4, ref('ppn_tag'))],
             }),
             (0,0, {
                 'factor_percent': 100,
@@ -167,6 +181,7 @@
             (0,0, {
                 'factor_percent': 100,
                 'repartition_type': 'base',
+                'tag_ids': [(4, ref('ppn_tag'))],
             }),
             (0,0, {
                 'factor_percent': 100,
@@ -178,6 +193,7 @@
             (0,0, {
                 'factor_percent': 100,
                 'repartition_type': 'base',
+                'tag_ids': [(4, ref('ppn_tag'))],
             }),
             (0,0, {
                 'factor_percent': 100,
