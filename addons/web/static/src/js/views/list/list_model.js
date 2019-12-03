@@ -103,6 +103,7 @@ odoo.define('web.ListModel', function (require) {
             options = options || {};
             options.fetchRecordsWithGroups = true;
             return this._super(list, options).then(function (result) {
+                debugger
                 return self._readGroupExtraFields(list).then(_.constant(result));
             });
         },
