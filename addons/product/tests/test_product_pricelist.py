@@ -125,21 +125,21 @@ class TestProductPricelist(common.TestPricelistCommon):
         self.customer_pricelist = self.env['product.pricelist'].create({
             'name': 'Customer Pricelist',
             'item_ids': [(0, 0, {
-                'name': '10% Discount on Assemble Computer',
+                #  'name': '10% Discount on Assemble Computer',
                 'applied_on': '1_product',
                 'product_tmpl_id': self.ipad_retina_display.product_tmpl_id.id,
                 'compute_price': 'formula',
                 'base': 'list_price',
                 'price_discount': 10
             }), (0, 0, {
-                'name': '1 surcharge on Laptop',
+                #  'name': '1 surcharge on Laptop',
                 'applied_on': '1_product',
                 'product_tmpl_id': self.laptop_E5023.product_tmpl_id.id,
                 'compute_price': 'formula',
                 'base': 'list_price',
                 'price_surcharge': 1
             }), (0, 0, {
-                'name': '5% Discount on all Computer related products',
+                #  'name': '5% Discount on all Computer related products',
                 'applied_on': '2_product_category',
                 'min_quantity': 2,
                 'compute_price': 'formula',
@@ -147,7 +147,7 @@ class TestProductPricelist(common.TestPricelistCommon):
                 'categ_id': self.category_5.id,
                 'price_discount': 5
             }), (0, 0, {
-                'name': '30% Christmas Discount on all products',
+                #  'name': '30% Christmas Discount on all products',
                 'applied_on': '3_global',
                 'date_start': '2011-12-27',
                 'date_end': '2011-12-31',

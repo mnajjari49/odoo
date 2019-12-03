@@ -253,6 +253,7 @@
                                       <field name="date_end"/>
                                       <field name="base" invisible="1"/>
                                       <field name="applied_on" invisible="1"/>
+                                      <field name="company_id" groups="base.group_multi_company"/>
                                   </tree>
                               </field>
                             </page>
