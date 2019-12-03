@@ -152,6 +152,7 @@ class TestReconciliationExec(TestAccountReconciliationCommon):
 
         # Reconcile the bank statement with the invoice.
         receivable_line = move.line_ids.filtered(lambda line: line.account_id.user_type_id.type in ('receivable', 'payable'))
+        bank_stmt.button_post()
         bank_stmt.line_ids[0].reconcile([
             {'id': receivable_line.id},
             {'name': 'exchange difference', 'balance': -7.3, 'account_id': self.diff_income_account.id},
@@ -281,7 +282,9 @@ class TestReconciliationExec(TestAccountReconciliationCommon):
                 'journal_id': self.bank_journal_euro.id,
                 'line_ids': [(0,0, debit_line_vals), (0, 0, credit_line_vals)]
             }
-            return self.env['account.move'].create(vals).id
+            move = self.env['account.move'].create(vals)
+            move.post()
+            return move.id
         move_list_vals = [
             ('1', -1.83, 0, self.currency_swiss_id),
             ('2', 728.35, 795.05, self.currency_swiss_id),
@@ -363,6 +366,7 @@ class TestReconciliationExec(TestAccountReconciliationCommon):
                 'line_ids': [(0,0, debit_line_vals), (0, 0, credit_line_vals)]
             }
         move_ids += self.env['account.move'].create(vals)
+        move_ids.post()
 
         account_move_line = move_ids.mapped('line_ids').filtered(lambda l: l.account_id == self.account_rcv)
         writeoff_vals = [{
@@ -971,6 +975,7 @@ class TestReconciliationExec(TestAccountReconciliationCommon):
         })
         payment_move1.post()
 
+        (purchase_move + payment_move0 + payment_move1).post()
         (purchase_move + payment_move0).mapped('line_ids').sorted().filtered(lambda l: l.account_id.internal_type == 'payable').reconcile()
         (purchase_move + payment_move1).mapped('line_ids').sorted().filtered(lambda l: l.account_id.internal_type == 'payable').reconcile()
 

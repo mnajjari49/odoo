@@ -559,8 +559,11 @@ class PosSession(models.Model):
         for output_account, vals in stock_output_vals.items():
             stock_output_lines[output_account] = MoveLine.create(vals)
 
-        ## SECTION: Reconcile account move lines
+        ## SECTION: Post and reconcile account move lines
         # reconcile cash receivable lines
+        self.statement_ids.button_post()
+        account_move.post()
+
         for statement in self.statement_ids:
             if not self.config_id.cash_control:
                 statement.write({'balance_end_real': statement.balance_end})

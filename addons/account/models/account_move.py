@@ -3704,6 +3704,8 @@ class AccountMoveLine(models.Model):
             all_accounts.append(line.account_id)
             if (line.matched_debit_ids or line.matched_credit_ids) and line.reconciled:
                 raise UserError(_('You are trying to reconcile some entries that are already reconciled.'))
+            if line.move_id.state != 'posted':
+                raise UserError(_('You can only reconcile posted entries.'))
         if len(company_ids) > 1:
             raise UserError(_('To reconcile the entries company should be the same for all entries.'))
         if len(set(all_accounts)) > 1:
@@ -4239,6 +4241,7 @@ class AccountPartialReconcile(models.Model):
         self.ensure_one()
         move_date = self.debit_move_id.date
         newly_created_move = self.env['account.move']
+        to_reconcile = []
         # We use a set here in case the reconciled lines belong to the same move (it happens with POS)
         for move in {self.debit_move_id.move_id, self.credit_move_id.move_id}:
             #move_date is the max of the 2 reconciled items
@@ -4292,9 +4295,7 @@ class AccountPartialReconcile(models.Model):
                             'tag_ids': [(6, 0, line.tag_ids.ids)],
                         })
                         if line.account_id.reconcile:
-                            #setting the account to allow reconciliation will help to fix rounding errors
-                            to_clear_aml |= line
-                            to_clear_aml.reconcile()
+                            to_reconcile.append(to_clear_aml + line)
 
                     taxes_payment_exigible = line.tax_ids.flatten_taxes_hierarchy().filtered(lambda tax: tax.tax_exigibility == 'on_payment')
                     if taxes_payment_exigible:
@@ -4338,6 +4339,8 @@ class AccountPartialReconcile(models.Model):
                 newly_created_move.write({'date': move_date})
             # post move
             newly_created_move.post()
+            for lines in to_reconcile:
+                lines.reconcile()
 
     def _create_tax_basis_move(self):
         # Check if company_journal for cash basis is set if not, raise exception

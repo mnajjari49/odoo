@@ -104,6 +104,7 @@ class TestPayment(AccountTestCommon):
             'date': time.strftime('%Y') + '-07-15'
         })
 
+        bank_stmt.button_post()
         bank_stmt_line.reconcile([{'id': liquidity_aml.id}])
         return bank_stmt
 

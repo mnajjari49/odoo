@@ -74,6 +74,7 @@ class TestReconciliationHeavyLoad(TestAccountReconciliationCommon):
 
         move.write({'line_ids': line_ids})
 
+        move.post()
         move.line_ids.reconcile()
 
         self.assertTrue(all(move.line_ids.mapped('reconciled')))
