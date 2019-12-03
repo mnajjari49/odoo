@@ -151,10 +151,11 @@ class WebsiteVisitor(models.Model):
         ctx = dict(
             default_model=visitor_mail_values.get('res_model'),
             default_res_id=visitor_mail_values.get('res_id'),
-            default_use_template=False,
+            default_use_template=True,
             default_partner_ids=[(6, 0, visitor_mail_values.get('partner_ids'))],
             default_composition_mode='comment',
             default_reply_to=self.env.user.partner_id.email,
+            default_template_id=self.env.ref('website_mail.website_visitor_mail_template').id,
         )
         return {
             'name': _('Compose Email'),
