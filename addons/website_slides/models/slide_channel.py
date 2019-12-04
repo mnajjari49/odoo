@@ -144,7 +144,7 @@ class Channel(models.Model):
         help='Condition to enroll: everyone, on invite, on payment (sale bridge).')
     enroll_msg = fields.Html(
         'Enroll Message', help="Message explaining the enroll process",
-        default=False, translate=tools.html_translate, sanitize_attributes=False)
+        default='Contact Responsible', translate=tools.html_translate, sanitize_attributes=False)
     enroll_group_ids = fields.Many2many('res.groups', string='Auto Enroll Groups', help="Members of those groups are automatically added as members of the channel.")
     visibility = fields.Selection([
         ('public', 'Public'), ('members', 'Members Only')],
