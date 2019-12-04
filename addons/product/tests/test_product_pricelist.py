@@ -157,10 +157,9 @@ class TestProductPricelist(common.TestPricelistCommon):
             })]
         })
 
-
         # I check sale price of Customizable Desk
         context = {}
-        context.update({'pricelist': self.customer_pricelist.id, 'quantity': 1})
+        context.update({'pricelist_id': self.customer_pricelist.id, 'quantity': 1})
         ipad_retina_display = self.ipad_retina_display.with_context(context)
         msg = "Wrong sale price: Customizable Desk. should be %s instead of %s" % (ipad_retina_display.price, (ipad_retina_display.lst_price-ipad_retina_display.lst_price*(0.10)))
         self.assertEqual(float_compare(ipad_retina_display.price, (ipad_retina_display.lst_price-ipad_retina_display.lst_price*(0.10)), precision_digits=2), 0, msg)

@@ -276,15 +276,6 @@ class ProductTemplate(models.Model):
         target_currency = pricelist.currency_id or self.env['res.currency'].browse(
             self.env.context.get('currency_id', None)
         )
-        # VFE TODO do not support this anymore ?
-        # remove from search view
-        if not pricelist and 'pricelist' in self.env.context:
-            pricelist_key = self.env.context.get('pricelist')
-            # Support context pricelists specified as display_name or ID for compatibility
-            if isinstance(pricelist_key, str):
-                pricelist = pricelist.name_search(pricelist_key, operator='=', limit=1)
-            elif isinstance(pricelist_key, int):
-                pricelist = pricelist.browse(pricelist_key)
         uom_id = self.env.context.get('uom_id', False)
         return (
             pricelist,
