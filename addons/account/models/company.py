@@ -307,7 +307,7 @@ class ResCompany(models.Model):
             chart_template_xml_ids = self.env['ir.model.data'].search([('module', 'in', module_list), ('model', '=', 'account.chart.template')], limit=1)
             if chart_template_xml_ids:
                 chart_template = self.env['account.chart.template'].browse(chart_template_xml_ids.res_id)
-                chart_template.try_loading(company=self)
+                chart_template.with_context(install_module=chart_template_xml_ids.module).try_loading(company=self)
 
     @api.model
     def create(self, vals):
