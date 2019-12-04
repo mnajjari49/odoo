@@ -22,6 +22,7 @@ class SaleOrder(models.Model):
 
     @api.constrains('company_id', 'sale_order_option_ids')
     def _check_optional_product_company_id(self):
+        # VFE TODO replace by check_company ?
         for order in self:
             companies = order.sale_order_option_ids.product_id.company_id
             if companies and companies != order.company_id:
@@ -71,6 +72,7 @@ class SaleOrder(models.Model):
 
     @api.onchange('sale_order_template_id')
     def onchange_sale_order_template_id(self):
+        # VFE TODO TESTS those onchanges weren't tested at attl
         if not self.sale_order_template_id:
             self.require_signature = self._get_default_require_signature()
             self.require_payment = self._get_default_require_payment()
@@ -83,6 +85,7 @@ class SaleOrder(models.Model):
             if line.product_id:
                 discount = 0
                 if self.pricelist_id:
+                    # VFE TO
                     price = self.pricelist_id.with_context(uom=line.product_uom_id.id).get_product_price(line.product_id, 1)
                     if self.pricelist_id.discount_policy == 'without_discount' and line.price_unit:
                         discount = (line.price_unit - price) / line.price_unit * 100
@@ -128,7 +131,7 @@ class SaleOrder(models.Model):
     def action_confirm(self):
         res = super(SaleOrder, self).action_confirm()
         for order in self:
-            if order.sale_order_template_id and order.sale_order_template_id.mail_template_id:
+            if order.sale_order_template_id.mail_template_id:
                 self.sale_order_template_id.mail_template_id.send_mail(order.id)
         return res
 
@@ -137,6 +140,7 @@ class SaleOrder(models.Model):
         self.ensure_one()
         user = access_uid and self.env['res.users'].sudo().browse(access_uid) or self.env.user
 
+        # VFE TODO check if this force_website ctxt key still has any sense...
         if not self.sale_order_template_id or (not user.share and not self.env.context.get('force_website')):
             return super(SaleOrder, self).get_access_action(access_uid)
         return {
@@ -156,13 +160,14 @@ class SaleOrderLine(models.Model):
     # Take the description on the order template if the product is present in it
     @api.onchange('product_id')
     def product_id_change(self):
-        domain = super(SaleOrderLine, self).product_id_change()
+        # VFE TODO can't we remove this useless link?
+        res = super(SaleOrderLine, self).product_id_change()
         if self.product_id and self.order_id.sale_order_template_id:
             for line in self.order_id.sale_order_template_id.sale_order_template_line_ids:
                 if line.product_id == self.product_id:
                     self.name = line.with_context(lang=self.order_id.partner_id.lang).name
                     break
-        return domain
+        return res
 
 
 class SaleOrderOption(models.Model):
@@ -201,14 +206,11 @@ class SaleOrderOption(models.Model):
     def _onchange_product_id(self):
         if not self.product_id:
             return
-        product = self.product_id.with_context(lang=self.order_id.partner_id.lang)
-        self.price_unit = product.list_price
+        self = self.with_context(lang=self.order_id.partner_id.lang)
+        product = self.product_id
         self.name = product.get_product_multiline_description_sale()
         self.uom_id = self.uom_id or product.uom_id
-        pricelist = self.order_id.pricelist_id
-        if pricelist and product:
-            partner_id = self.order_id.partner_id.id
-            self.price_unit = pricelist.with_context(uom=self.uom_id.id).get_product_price(product, self.quantity)
+        self.price_unit = self.order_id.pricelist_id.get_product_price(product, self.quantity, self.uom_id.id)
 
     def button_add_to_order(self):
         self.add_option_to_order()
@@ -216,9 +218,7 @@ class SaleOrderOption(models.Model):
     def add_option_to_order(self):
         self.ensure_one()
 
-        sale_order = self.order_id
-
-        if sale_order.state not in ['draft', 'sent']:
+        if self.order_id.state not in ['draft', 'sent']:
             raise UserError(_('You cannot add options to a confirmed order.'))
 
         values = self._get_values_to_add_to_order()

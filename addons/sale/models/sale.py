@@ -1465,7 +1465,7 @@ class SaleOrderLine(models.Model):
         # the type of the attribute has been changed after creation.
         # VFE INVESTIGATE IS IT STILL POSSIBLE ???
         if self.product_no_variant_attribute_value_ids:
-            self = self.with_context(p_id=self.product_id.id,ptav_ids=tuple(self.product_no_variant_attribute_value_ids.ids))
+            self = self.with_context(p_id=self.product_id.id, ptav_ids=tuple(self.product_no_variant_attribute_value_ids.ids))
         product = self.product_id
         price = price_without_discount = 0.0
         pricelist_kwargs = dict(
@@ -1479,10 +1479,9 @@ class SaleOrderLine(models.Model):
 
         self.discount = 0 if price == price_without_discount else \
             ((price_without_discount - price) / (price_without_discount or 1.0)) * 100
-        price_unit = price_without_discount
 
         self.price_unit = self.env['account.tax']._fix_tax_included_price_company(
-            price=price_unit,
+            price=price_without_discount,
             prod_taxes=product.taxes_id,
             line_taxes=self.tax_id,
             company_id=self.company_id)
@@ -1490,21 +1489,22 @@ class SaleOrderLine(models.Model):
     @api.onchange('product_id')
     def product_id_change(self):
         if not self.product_id:
+            self.name = ""
+            self.product_uom = self.env['uom.uom']
+            self.unit_price = 0.0
+            self.product_uom_qty = 1.0
             return
 
-        self = self.with_context(lang=self.order_partner_id.lang)
+        self = self.with_context(lang=self.order_partner_id.lang).with_company(self.company_id)
 
         self._cleanup_variant_configuration()
         self._update_description()
         warning = self._check_product()
 
-        product = self.product_id
-        if product:
-            self.product_uom = product.uom_id
-            self.product_uom_qty = self.product_uom_qty or 1.0
+        self.product_uom = self.product_id.uom_id
 
-            self._compute_tax_id()
-            self._compute_price()
+        self._compute_tax_id()
+        self._compute_price()
 
         return warning
 
