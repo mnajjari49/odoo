@@ -631,6 +631,7 @@ class RepairLine(models.Model):
             taxes = line.tax_id.compute_all(line.price_unit, line.repair_id.currency_id, line.product_uom_qty, line.product_id, line.repair_id.partner_id)
             line.price_subtotal = taxes['total_excluded']
 
+    # VFE FIXME does it happen to change the repair_id of a line?
     @api.onchange('type', 'repair_id')
     def onchange_operation_type(self):
         """ On change of operation type it sets source location, destination location

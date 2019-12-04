@@ -78,6 +78,7 @@ class Pricelist(models.Model):
     def _compute_price_rule_get_items(self, date, prod_tmpl_ids, prod_ids, categ_ids):
         self.ensure_one()
         # Load all rules
+        # VFE TODO has the flush on the price any sense ? it is a non stored compute...
         self.env['product.pricelist.item'].flush(['price', 'currency_id', 'company_id'])
         self.env.cr.execute(
             """
