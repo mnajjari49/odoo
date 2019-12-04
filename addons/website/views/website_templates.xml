@@ -468,10 +468,12 @@
         <div id="footer" class="oe_structure oe_structure_solo" t-ignore="true" t-if="not no_footer">
             <section class="s_text_block pt16 pb8">
                 <div class="container">
-                    <div class="o_footer_logo">
-                        <a href="/" class="footer-brand logo">
-                            <img src="website/static/src/img/website_logo.png" aria-label="Logo of MyCompany" title="MyCompany" role="img"/>
-                        </a>
+                    <div class="row">
+                        <div class="col-md-5 o_footer_logo">
+                            <a href="/" class="footer-brand logo">
+                                <img src="website/static/src/img/website_logo.png" class="img-fluid" aria-label="Logo of MyCompany" title="MyCompany" role="img" style="width: 50%;"/>
+                            </a>
+                        </div>
                     </div>
                     <div class="row">
                         <div class="col-lg-5">
@@ -530,10 +532,12 @@
                     <div class="o_footer_address">
                         250 Executive Park Blvd, Suite 3400<br/>San Francisco CA 94134<br/>United States
                     </div>
-                    <div class="o_footer_logo">
-                        <a href="/" class="footer-brand logo">
-                            <img src="website/static/src/img/website_logo.png" aria-label="Logo of MyCompany" title="MyCompany" role="img"/>
-                        </a>
+                    <div class="row">
+                        <div class="offset-md-3 col-md-6 o_footer_logo">
+                            <a href="/" class="footer-brand logo">
+                                <img src="website/static/src/img/website_logo.png" class="img-fluid" aria-label="Logo of MyCompany" title="MyCompany" role="img" style="width: 50%;"/>
+                            </a>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -553,7 +557,7 @@
                         </div>
                         <div class="col-lg-6 o_footer_logo text-center text-lg-right">
                             <a href="/" class="footer-brand logo">
-                                <img src="website/static/src/img/website_logo.png" aria-label="Logo of MyCompany" title="MyCompany" role="img"/>
+                                <img src="website/static/src/img/website_logo.png" class="img-fluid" aria-label="Logo of MyCompany" title="MyCompany" role="img" style="width: 50%;"/>
                             </a>
                         </div>
                     </div>
@@ -586,10 +590,12 @@
         <div id="footer" class="oe_structure oe_structure_solo" t-ignore="true" t-if="not no_footer">
             <section class="s_text_block pt16 pb8">
                 <div class="container">
-                    <div class="o_footer_logo text-center m-3">
-                        <a href="/" class="footer-brand logo">
-                            <img src="website/static/src/img/website_logo.png" aria-label="Logo of MyCompany" title="MyCompany" role="img"/>
-                        </a>
+                    <div class="row">
+                        <div class="offset-md-3 col-md-6 o_footer_logo text-center my-3">
+                            <a href="/" class="footer-brand logo">
+                                <img src="website/static/src/img/website_logo.png" class="img-fluid" aria-label="Logo of MyCompany" title="MyCompany" role="img" style="width: 50%;"/>
+                            </a>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -608,10 +614,12 @@
                         San Francisco CA 94134, United States<br/>
                         <a href="tel:+1 (650) 691-3277">+1 (650) 691-3277</a> <a href="mailto:info@yourcompany.example.com">info@yourcompany.example.com</a>
                     </div>
-                    <div class="o_footer_logo m-4">
-                        <a href="/" class="footer-brand logo">
-                            <img src="website/static/src/img/website_logo.png" aria-label="Logo of MyCompany" title="MyCompany" role="img"/>
-                        </a>
+                    <div class="row">
+                        <div class="offset-lg-3 col-lg-6 o_footer_logo my-4">
+                            <a href="/" class="footer-brand logo">
+                                <img src="website/static/src/img/website_logo.png" class="img-fluid" aria-label="Logo of MyCompany" title="MyCompany" role="img" style="width: 50%;"/>
+                            </a>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -844,7 +852,7 @@
             <list string="Button">
                 <fontselection data-variable="buttons-font-number"/>
             </list>
-            <list string="Navbar">
+            <list string="Header">
                 <fontselection data-variable="navbar-font-number"/>
             </list>
         </content>

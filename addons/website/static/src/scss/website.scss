@@ -1197,9 +1197,6 @@ header {
 
 #footer {
     @if o-website-value('footer-template') != 'corporate' {
-        .o_footer_logo img {
-            height: $spacer * 3;
-        }
         @if o-website-value('footer-template') == 'showcase' {
             .o_footer_logo {
                 margin-top: $spacer;
