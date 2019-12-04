@@ -95,6 +95,7 @@ class Channel(models.Model):
         string="Course type", default="documentation", required=True)
     sequence = fields.Integer(default=10, help='Display order')
     user_id = fields.Many2one('res.users', string='Responsible', default=lambda self: self.env.uid)
+    responsible_has_email = fields.Boolean('Responsible Email', compute='_compute_responsible_has_email', compute_sudo=True)
     color = fields.Integer('Color Index', default=0, help='Used to decorate kanban view')
     tag_ids = fields.Many2many(
         'slide.channel.tag', 'slide_channel_tag_rel', 'channel_id', 'tag_id',
@@ -138,6 +139,10 @@ class Channel(models.Model):
         'mail.template', string='Share Template',
         help="Email template used when sharing a slide",
         default=lambda self: self.env['ir.model.data'].xmlid_to_res_id('website_slides.slide_template_shared'))
+    enroll_request_template_id = fields.Many2one(
+        'mail.template', string='Enroll Request Template',
+        help='Email template used when sending enroll request to responsible',
+        default=lambda self: self.env['ir.model.data'].xmlid_to_res_id('website_slides.mail_template_slide_channel_join_request'))
     enroll = fields.Selection([
         ('public', 'Public'), ('invite', 'On Invitation')],
         default='public', string='Enroll Policy', required=True,
@@ -342,6 +347,11 @@ class Channel(models.Model):
                 channel.can_review = user_karma >= channel.karma_review
                 channel.can_comment = user_karma >= channel.karma_slide_comment
                 channel.can_vote = user_karma >= channel.karma_slide_vote
+
+    @api.depends('user_id')
+    def _compute_responsible_has_email(self):
+        for channel in self:
+            channel.responsible_has_email = channel.user_id.email
 
     # ---------------------------------------------------------
     # ORM Overrides
@@ -601,3 +611,12 @@ class Channel(models.Model):
 
     def get_backend_menu_id(self):
         return self.env.ref('website_slides.website_slides_menu_root').id
+
+    def send_email_to_responsible(self):
+        mail_ids = []
+        for channel in self:
+            template = channel.enroll_request_template_id.with_context(
+                user=self.env.user
+            )
+            mail_ids.append(template.sudo().send_mail(channel.id))
+        return mail_ids

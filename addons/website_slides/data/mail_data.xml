@@ -90,5 +90,26 @@
             <field name="auto_delete" eval="True"/>
             <field name="user_signature" eval="False"/>
         </record>
+
+        <!--Slide channel request access to responsible-->
+        <record id="mail_template_slide_channel_join_request" model="mail.template">
+            <field name="name">Course Access Request</field>
+            <field name="model_id" ref="model_slide_channel" />
+            <field name="subject">${ctx.user.name} has requested access to ${object.name}</field>
+            <field name="email_to">${object.user_id.email}</field>
+            <field name="body_html" type="html">
+                <div style="margin: 0px; padding: 0px; font-size: 13px;">
+                    <p style="margin: 0px; padding: 0px; font-size: 13px;">
+                        Dear ${object.user_id.name}<br/><br/>
+                        <strong>${ctx.user.name}</strong> requested access to ${object.name} channel.<br/><br/>
+
+                        <a href="/web#model=slide.channel&amp;view_type=form&amp;id=${object.id}" style="background-color: #875A7B; padding: 8px 16px 8px 16px; text-decoration: none; color: #fff; border-radius: 5px; font-size: 13px;">
+                            Grant him/her access !
+                        </a>
+                    </p>
+                </div>
+            </field>
+            <field name="auto_delete" eval="True"/>
+        </record>
     </data>
 </odoo>

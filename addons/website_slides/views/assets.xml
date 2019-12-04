@@ -27,6 +27,7 @@
                 <script type="text/javascript" src="/website_slides/static/src/js/slides_course_slides_list.js"/>
                 <script type="text/javascript" src="/website_slides/static/src/js/slides_course_fullscreen_player.js"/>
                 <script type="text/javascript" src="/website_slides/static/src/js/slides_course_join.js"/>
+                <script type="text/javascript" src="/website_slides/static/src/js/slides_course_enroll_email.js"/>
                 <script type="text/javascript" src="/website_slides/static/src/js/slides_course_quiz.js"/>
                 <script type="text/javascript" src="/website_slides/static/src/js/slides_course_quiz_question_form.js"/>
                 <script type="text/javascript" src="/website_slides/static/src/js/slides_course_quiz_finish.js"/>

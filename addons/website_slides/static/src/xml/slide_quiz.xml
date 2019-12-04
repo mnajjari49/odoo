@@ -62,7 +62,19 @@
                 </div>
             </div>
             <div t-if="widget.readonly &amp;&amp; widget.channel.channelEnroll == 'invite'" class="alert alert-info">
-                <b>This course is private. <a href="/contactus" class="font-weight-bold">Contact the website administrator</a>  to enroll.</b>
+                <b>This course is private.
+                    <a t-if="!widget.publicUser" t-attf-href="#{widget.channel.responsibleHasEmail ? '#' : '/contactus'}"
+                       t-attf-class="font-weight-bold #{widget.channel.responsibleHasEmail ? 'o_wslides_send_email_responsible' : ''}"
+                       t-att-data-channel-id="widget.channel.channelId">
+                        Contact the responsible
+                    </a>
+                    <span t-else="">
+                        Please
+                        <a t-att-href="'/web/login?redirect=' + widget.redirectURL" class="font-weight-bold">
+                            sign in
+                        </a>
+                    </span> to enroll.
+                </b>
             </div>
             <div t-if="!widget.readonly" class="d-flex align-items-center justify-content-between">
                 <div t-att-class="'d-flex align-items-center' + (widget.slide.completed ? ' alert alert-success my-0 py-1 px-3' : '')">

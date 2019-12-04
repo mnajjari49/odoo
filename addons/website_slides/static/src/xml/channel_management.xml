@@ -9,4 +9,10 @@
             </a>
         </div>
     </t>
+
+    <t t-name="slide.course.email">
+        <div>
+            <p>Do you want to request this course's access ?</p>
+        </div>
+    </t>
 </templates>

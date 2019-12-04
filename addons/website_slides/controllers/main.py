@@ -547,6 +547,11 @@ class WebsiteSlides(WebsiteProfile):
         request.env['slide.channel'].browse(channel_id).message_unsubscribe(partner_ids=[request.env.user.partner_id.id])
         return True
 
+    @http.route('/slides/channel/email/responsible', type='json', auth='user', website=True)
+    def slide_channel_send_email_to_responsible(self, channel_id):
+        result = request.env['slide.channel'].browse(channel_id).send_email_to_responsible()
+        return result
+
     # --------------------------------------------------
     # SLIDE.SLIDE MAIN / SEARCH
     # --------------------------------------------------

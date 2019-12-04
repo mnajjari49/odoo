@@ -100,6 +100,7 @@
                                         <field string="Allow Rating" name="allow_comment"/>
                                         <field name="publish_template_id" domain="[('model','=','slide.slide')]" groups="base.group_no_one"/>
                                         <field name="share_template_id" domain="[('model','=','slide.slide')]" groups="base.group_no_one"/>
+                                        <field name="enroll_request_template_id" groups="base.group_no_one" attrs="{'invisible': [('enroll', '!=', 'invite')]}"/>
                                     </group>
                                     <group name="display" string="Display">
                                         <field name="visibility" widget="radio"/>

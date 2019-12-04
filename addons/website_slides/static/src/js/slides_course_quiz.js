@@ -10,6 +10,8 @@ odoo.define('website_slides.quiz', function (require) {
     var QuestionFormWidget = require('website_slides.quiz.question.form');
     var SlideQuizFinishModal = require('website_slides.quiz.finish');
 
+    var SlideEnrollEmailDialog = require('website_slides.course.enroll.email').slideEnrollEmailDialog;
+
     var QWeb = core.qweb;
     var _t = core._t;
 
@@ -36,6 +38,7 @@ odoo.define('website_slides.quiz', function (require) {
             'click .o_wslides_js_quiz_add': '_onCreateQuizClick',
             'click .o_wslides_js_quiz_edit_question': '_onEditQuestionClick',
             'click .o_wslides_js_quiz_delete_question': '_onDeleteQuestionClick',
+            'click .o_wslides_send_email_responsible': '_onSendEmailToResponsibleClick',
         },
 
         custom_events: {
@@ -446,6 +449,20 @@ odoo.define('website_slides.quiz', function (require) {
         },
 
         /**
+         * Handler for the contact responsible link below a Quiz
+         * @param ev
+         * @private
+         */
+        _onSendEmailToResponsibleClick: function(ev) {
+            ev.preventDefault();
+            var channelId = $(ev.currentTarget).data('channelId');
+            new SlideEnrollEmailDialog(this, {
+                channelId: channelId,
+                $element: $(ev.currentTarget).closest('.alert.alert-info')
+            }).open();
+        },
+
+        /**
          * Displays the created Question at the correct place (after the last question or
          * at the first place if there is no questions yet) It also displays the 'Add Question'
          * button or open a new QuestionFormWidget if the user wants to immediately add another one.
@@ -633,7 +650,8 @@ odoo.define('website_slides.quiz', function (require) {
             return {
                 channelId: slideData.channelId,
                 channelEnroll: slideData.channelEnroll,
-                signupAllowed: slideData.signupAllowed
+                signupAllowed: slideData.signupAllowed,
+                responsibleHasEmail: slideData.responsibleHasEmail
             };
         },
 
