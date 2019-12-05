@@ -46,11 +46,16 @@ class SaleOrderTemplate(models.Model):
             self.company_id = companies[0]
 
     def write(self, vals):
-        if 'active' in vals and not vals.get('active'):
-            template_id = self.env['ir.default'].get('sale.order', 'sale_order_template_id')
-            for template in self:
-                if template_id and template_id == template.id:
-                    raise UserError(_('Before archiving "%s" please select another default template in the settings.') % template.name)
+        if not vals.get('active', True):
+            companies = self.env['res.company'].sudo().search([('sale_order_template_id', 'in', self.ids)])
+            user_companies = companies.filtered(lambda c: c in self.env.user.company_ids)
+            if companies and user_companies:
+                raise UserError(_("The template %s is used as default for companies %s") % (
+                    self.name,
+                    str(user_companies.mapped('name'))
+                ))
+            elif companies:
+                raise UserError(_("The template %s is used as default by some companies and cannot be archived.") % (self.name))
         return super(SaleOrderTemplate, self).write(vals)
 
 

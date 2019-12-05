@@ -10,9 +10,14 @@ from odoo.exceptions import UserError, ValidationError
 class SaleOrder(models.Model):
     _inherit = 'sale.order'
 
+    def _default_sale_order_template_id(self):
+        company_id = self.env.context.get('default_company_id', False)
+        company = self.env["res.company"].browse(company_id) if company_id else self.env.company
+        return company.sale_order_template_id
+
     sale_order_template_id = fields.Many2one(
         'sale.order.template', 'Quotation Template',
-        readonly=True, check_company=True,
+        readonly=True, check_company=True, default=lambda self: self._default_sale_order_template_id(),
         states={'draft': [('readonly', False)], 'sent': [('readonly', False)]},
         domain="['|', ('company_id', '=', False), ('company_id', '=', company_id)]")
     sale_order_option_ids = fields.One2many(
