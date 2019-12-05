@@ -132,6 +132,7 @@ class TestSaleProductAttributeValueConfig(TestSaleProductAttributeValueCommon):
             self.assertTrue(self.computer._is_combination_possible(computer_ssd_256 + computer_ram_8))
 
             # CASE: not archived (with no_variant)
+            self.hdd_attribute._compute_products()
             self.hdd_attribute.create_variant = 'no_variant'
             self._add_hdd_attribute_line()
             computer_hdd_1 = self._get_product_template_attribute_value(self.hdd_1)
@@ -157,6 +158,7 @@ class TestSaleProductAttributeValueConfig(TestSaleProductAttributeValueCommon):
 
             # CASE: archived combination has different attributes (without no_variant)
             self.computer_hdd_attribute_lines.write({'active': False})
+            self.hdd_attribute._compute_products()
             self.hdd_attribute.create_variant = 'always'
             self._add_hdd_attribute_line()
             computer_ssd_256 = self._get_product_template_attribute_value(self.ssd_256)
@@ -234,6 +236,7 @@ class TestSaleProductAttributeValueConfig(TestSaleProductAttributeValueCommon):
         # CASE: no_variant combination, it's another variant now
 
         self.computer_ssd_attribute_lines.write({'active': False})
+        self.ssd_attribute._compute_products()
         self.ssd_attribute.create_variant = 'no_variant'
         self._add_ssd_attribute_line()
         computer_ssd_256 = self._get_product_template_attribute_value(self.ssd_256)
@@ -254,6 +257,7 @@ class TestSaleProductAttributeValueConfig(TestSaleProductAttributeValueCommon):
 
         # CASE: dynamic combination, but the variant already exists
         self.computer_hdd_attribute_lines.write({'active': False})
+        self.hdd_attribute._compute_products()
         self.hdd_attribute.create_variant = 'dynamic'
         self._add_hdd_attribute_line()
         computer_ssd_256 = self._get_product_template_attribute_value(self.ssd_256)
@@ -357,6 +361,7 @@ class TestSaleProductAttributeValueConfig(TestSaleProductAttributeValueCommon):
         work with dynamic. If the combination is possible, it should create it.
         If it's not possible, it should not create it."""
         self.computer_hdd_attribute_lines.write({'active': False})
+        self.hdd_attribute._compute_products()
         self.hdd_attribute.create_variant = 'dynamic'
         self._add_hdd_attribute_line()
 
