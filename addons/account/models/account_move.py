@@ -98,7 +98,7 @@ class AccountMove(models.Model):
     state = fields.Selection(selection=[
             ('draft', 'Draft'),
             ('posted', 'Posted'),
-            ('cancel', 'Cancelled')
+            ('cancel', 'Cancelled'),
         ], string='Status', required=True, readonly=True, copy=False, tracking=True,
         default='draft')
     type = fields.Selection(selection=[
@@ -189,7 +189,8 @@ class AccountMove(models.Model):
     invoice_payment_state = fields.Selection(selection=[
         ('not_paid', 'Not Paid'),
         ('in_payment', 'In Payment'),
-        ('paid', 'Paid')],
+        ('paid', 'Paid'),
+        ('from_invoicing', 'From Invoicing')],
         string='Payment', store=True, readonly=True, copy=False, tracking=True,
         compute='_compute_amount')
     invoice_date = fields.Date(string='Invoice/Bill Date', readonly=True, index=True, copy=False,
@@ -972,6 +973,15 @@ class AccountMove(models.Model):
             in_payment_set = {}
 
         for move in self:
+
+            if move.invoice_payment_state == 'from_invoicing':
+                # from_invoicing state is set via SQL when setting setting field
+                # invoicing_switch_threshold (defined in account_accountant).
+                # The only way of going out of this state is through this setting,
+                # so we don't recompute it here.
+                move.invoice_payment_state = move.invoice_payment_state
+                continue
+
             total_untaxed = 0.0
             total_untaxed_currency = 0.0
             total_tax = 0.0

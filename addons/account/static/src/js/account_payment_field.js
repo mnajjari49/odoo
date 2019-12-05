@@ -72,7 +72,8 @@ var ShowPaymentLineWidget = AbstractField.extend({
                         ref: content.ref,
                         account_payment_id: content.account_payment_id,
                     }));
-                    $content.filter('.js_unreconcile_payment').on('click', self._onRemoveMoveReconcile.bind(self));
+                    var unreconcile_button = $content.filter('.js_unreconcile_payment').on('click', self._onRemoveMoveReconcile.bind(self));
+
                     $content.filter('.js_open_payment').on('click', self._onOpenPayment.bind(self));
                     return $content;
                 },
@@ -163,5 +164,5 @@ field_registry.add('payment', ShowPaymentLineWidget);
 return {
     ShowPaymentLineWidget: ShowPaymentLineWidget
 };
-    
+
 });
