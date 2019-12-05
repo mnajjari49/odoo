@@ -793,6 +793,7 @@
             <list string="Logo">
                 <checkbox><opt data-xmlid="website.layout_logo_show" data-reload="/"/></checkbox>
                 <opt data-widget="input" data-unit="rem" data-variable="logo-height" string="Logo Height"/>
+                <opt data-depends="!option_header_visibility_scroll" data-widget="input" data-unit="rem" data-variable="fixed-logo-height" string="Logo Height When Scrolling"/>
             </list>
             <list string="Header Template">
                 <selection id="header_templates_select">

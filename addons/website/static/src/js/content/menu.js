@@ -6,6 +6,47 @@ var publicWidget = require('web.public.widget');
 var wUtils = require('website.utils');
 var animations = require('website.content.snippets.animation');
 
+const BaseFixedHeaderScroll = animations.Animation.extend({
+    effects: [{
+        startEvents: 'scroll',
+        update: '_onWindowScroll',
+    }],
+
+    /**
+     * @override
+     */
+    start: function () {
+        this.smallLogo = false;
+        this.scrolled = false;
+        return this._super.apply(this, arguments);
+    },
+
+    //--------------------------------------------------------------------------
+    // Handlers
+    //--------------------------------------------------------------------------
+
+    /**
+     * Called when the window is scrolled
+     *
+     * @private
+     * @param {integer} scrollTop
+     */
+    _onWindowScroll: function (scrollTop) {
+        var scroll = scrollTop;
+        if (!this.scrolled) {
+            this.$el.addClass('scrolled');
+            this.scrolled = true;
+        }
+        if (scroll > 10 && !this.smallLogo) {
+            this.smallLogo = true;
+            this.$el.toggleClass('fixed_logo');
+        } else if (scroll <= 10 && this.smallLogo) {
+            this.smallLogo = false;
+            this.$el.toggleClass('fixed_logo');
+        }
+    },
+});
+
 publicWidget.registry.affixMenu = publicWidget.Widget.extend({
     selector: 'header.o_affix_enabled',
 
@@ -236,7 +277,7 @@ publicWidget.registry.menuDirection = publicWidget.Widget.extend({
     },
 });
 
-publicWidget.registry.fixedHeader = publicWidget.Widget.extend({
+publicWidget.registry.fixedHeader = BaseFixedHeaderScroll.extend({
     selector: 'header.o_header_fixed',
 
     /**
@@ -273,11 +314,7 @@ publicWidget.registry.fixedHeader = publicWidget.Widget.extend({
     },
 });
 
-const BaseDisappearingHeader = animations.Animation.extend({
-    effects: [{
-        startEvents: 'scroll',
-        update: '_onWindowScroll',
-    }],
+const BaseDisappearingHeader = BaseFixedHeaderScroll.extend({
 
     /**
      * @override
@@ -341,6 +378,13 @@ const BaseDisappearingHeader = animations.Animation.extend({
 publicWidget.registry.DisappearingHeader = BaseDisappearingHeader.extend({
     selector: 'header.o_header_disappears',
 
+    /**
+     * @override
+     */
+    start: function () {
+        return this._super.apply(this, arguments);
+    },
+
     //--------------------------------------------------------------------------
     // Private
     //--------------------------------------------------------------------------
@@ -349,13 +393,13 @@ publicWidget.registry.DisappearingHeader = BaseDisappearingHeader.extend({
      * @override
      */
     _hideHeader: function () {
-        this.$el.animate({top: '-=' + this.$el.height()}, "slow");
+        this.$el.css('transform', 'translate(0, -100%)');
     },
     /**
      * @override
      */
     _showHeader: function () {
-        this.$el.animate({top: '+=' + this.$el.height()}, "slow");
+        this.$el.css('transform', 'translate(0, 0)');
     },
 });
 
@@ -370,13 +414,13 @@ publicWidget.registry.FadeOutHeader = BaseDisappearingHeader.extend({
      * @override
      */
     _hideHeader: function () {
-        this.$el.fadeOut();
+        this.$el.stop(false, true).fadeOut();
     },
     /**
      * @override
      */
     _showHeader: function () {
-        this.$el.fadeIn();
+        this.$el.stop(false, true).fadeIn();
     },
 });
 });

@@ -55,6 +55,7 @@ $-font-numbers: (
     --h6: #{$-h6-color};
 
     --logo-height: #{$o-theme-navbar-logo-height};
+    --fixed-logo-height: #{$o-theme-navbar-fixed-logo-height};
     --number-of-fonts: #{length($o-theme-fonts)};
 }
 
@@ -1093,7 +1094,7 @@ table.table_desc tr td {
     z-index: $zindex-modal - 20;
     background: $light;
     margin-top: -999px;
-    transition: margin-top 500ms ease 0s;
+    transition: margin-top 500ms ease 0s, transform 200ms;
     @include media-breakpoint-down(sm) {
         .navbar-collapse {
             @if o-website-value('header-template') != 'space' {
@@ -1104,6 +1105,39 @@ table.table_desc tr td {
     }
     &.affixed {
         margin-top: 0px !important; // the default margin-top is adapted in JS
+    }
+    .navbar-brand {
+        transition: font-size 200ms, opacity 100ms ease-out;
+
+        img {
+            transition: height 200ms;
+        }
+    }
+    &.scrolled + main {
+        transition: padding-top 200ms;
+    }
+    &.fixed_logo {
+        .navbar-brand {
+            font-size: $o-theme-navbar-fixed-logo-height / $line-height-base;
+
+            img {
+                height: $o-theme-navbar-fixed-logo-height;
+            }
+        }
+        & + main {
+            padding-top: $o-theme-navbar-fixed-logo-height !important;
+        }
+        @include media-breakpoint-up(md) {
+            @if index(('brand', 'pizza'), o-website-value('header-template')) {
+                .navbar-brand {
+                    font-size: 0px;
+                    opacity: 0;
+                    img {
+                        height: 0px;
+                    }
+                }
+            }
+        }
     }
 }
 #oe_main_menu_navbar + #wrapwrap .o_header_affix {
@@ -1154,14 +1188,16 @@ header {
             .o_navbar_toggler_container {
                 direction: rtl;
             }
-            .container {
+            #top_menu.navbar-nav {
+                height: 90vh;
+                padding-top : 10vh;
+            }
+            &:not(.fixed_logo) .container {
                 padding-top: $spacer;
                 padding-bottom: $spacer;
-
-                #top_menu.navbar-nav {
-                    height: 90vh;
-                    padding-top : 10vh;
-                }
+            }
+            .container {
+                transition: padding 200ms;
             }
         }
     } @else if index(('brand', 'pizza'), o-website-value('header-template')) {
@@ -1177,10 +1213,12 @@ header {
             margin: auto;
         }
         .navbar-brand {
-            @if o-website-value('header-template') == 'pizza' {
-                margin-top: $navbar-padding-y;
-            } @else {
-                margin-bottom: $navbar-padding-y;
+            @include media-breakpoint-up(md) {
+                @if o-website-value('header-template') == 'pizza' {
+                    margin-top: $navbar-padding-y;
+                } @else {
+                    margin-bottom: $navbar-padding-y;
+                }
             }
         }
         @if o-website-value('header-template') == 'pizza' {
