@@ -26,7 +26,7 @@ odoo.define('web.AbstractView', function (require) {
 var AbstractModel = require('web.AbstractModel');
 var AbstractRenderer = require('web.AbstractRenderer');
 var AbstractController = require('web.AbstractController');
-var ControlPanelView = require('web.ControlPanelView');
+var ControlPanel = require('web.ControlPanel');
 var mvc = require('web.mvc');
 var SearchPanel = require('web.SearchPanel');
 var viewUtils = require('web.viewUtils');
@@ -83,7 +83,7 @@ var AbstractView = Factory.extend({
      * @param {string} [params.displayName]
      * @param {Array[]} [params.domain=[]]
      * @param {Object[]} [params.dynamicFilters] transmitted to the
-     *   ControlPanelView
+     *   ControlPanel
      * @param {number[]} [params.ids]
      * @param {boolean} [params.isEmbedded=false]
      * @param {Object} [params.searchQuery={}]
@@ -225,9 +225,6 @@ var AbstractView = Factory.extend({
             var modelParent = self.model && self.model.getParent();
             var prom = _super(parent);
             prom.then(function (controller) {
-                if (controlPanel) {
-                    controlPanel.setParent(controller);
-                }
                 if (searchPanel) {
                     searchPanel.setParent(controller);
                 }
@@ -272,16 +269,12 @@ var AbstractView = Factory.extend({
      * @returns {Promise<ControlPanelController>} resolved when the controlPanel
      *   is ready
      */
-    _createControlPanel: function (parent) {
-        var self = this;
-        var controlPanelView = new ControlPanelView(this.controlPanelParams);
-        return controlPanelView.getController(parent).then(function (controlPanel) {
-            self.controllerParams.controlPanel = controlPanel;
-            return controlPanel.appendTo(document.createDocumentFragment()).then(function () {
-                self._updateMVCParams(controlPanel.getSearchQuery());
-                return controlPanel;
-            });
-        });
+    _createControlPanel: async function (parent) {
+        const controlPanel = new ControlPanel(null, this.controlPanelParams);
+        await controlPanel.mount(document.createDocumentFragment());
+        this.controllerParams.controlPanel = controlPanel;
+        this._updateMVCParams(controlPanel.env.cpstore.getters.getQuery());
+        return controlPanel;
     },
     /**
      * @private

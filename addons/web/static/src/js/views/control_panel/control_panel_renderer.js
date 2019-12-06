@@ -1,18 +1,103 @@
 odoo.define('web.ControlPanelRenderer', function (require) {
 "use strict";
 
-var config = require('web.config');
-var data = require('web.data');
-var FavoriteMenu = require('web.FavoriteMenu');
-var FilterMenu = require('web.FilterMenu');
-var GroupByMenu = require('web.GroupByMenu');
-var mvc = require('web.mvc');
-var SearchBar = require('web.SearchBar');
-var TimeRangeMenu = require('web.TimeRangeMenu');
+const config = require('web.config');
+const data = require('web.data');
+const FavoriteMenu = require('web.FavoriteMenu');
+const FilterMenu = require('web.FilterMenu');
+const GroupByMenu = require('web.GroupByMenu');
+const mvc = require('web.mvc');
+const Pager = require('web.Pager');
+const SearchBar = require('web.SearchBar');
+const Sidebar = require('web.Sidebar');
+const TimeRangeMenu = require('web.TimeRangeMenu');
+
+const { Component } = owl;
+
+class ControlPanelRenderer extends Component {
+    /**
+     * @param {Object} [props]
+     * @param {Object[]} [props.breadcrumbs]
+     * @param {Object} [props.buttons]
+     * @param {Object} [props.pager]
+     * @param {Object} [props.sidebar]
+     * @param {string} [props.title]
+     * @param {Object[]} [props.views]
+     * @param {string} [props.viewType]
+     */
+    constructor() {
+        super(...arguments);
+        if (!window.top.cprenderer) {
+            window.top.cprenderer = this;
+        }
+    }
+
+    async willStart() {
+        this.attachButtons = this.attachButtons || 'buttons' in this.props;
+    }
+
+    async willUpdateProps(nextProps) {
+        this.attachButtons = this.attachButtons || nextProps.buttons !== this.props.buttons;
+    }
+
+    mounted() {
+        if (this.attachButtons && this.props.buttons) {
+            const buttons = this.props.buttons();
+            const container = this.el.querySelector('.o_cp_buttons');
+            [...container.children].forEach(child => child.remove());
+            buttons.forEach(button => {
+                container.appendChild(button);
+            });
+            delete this.attachButtons;
+        }
+    }
+
+    patched() {
+        if (this.attachButtons && this.props.buttons) {
+            const buttons = this.props.buttons();
+            const container = this.el.querySelector('.o_cp_buttons');
+            [...container.children].forEach(child => child.remove());
+            buttons.forEach(button => {
+                container.appendChild(button);
+            });
+            delete this.attachButtons;
+        }
+    }
+
+    get viewTypeIcon() {
+        return this.views.find(v => v.type === this.props.viewType).icon;
+    }
+
+    get breadcrumbs() {
+        return this.props.breadcrumbs.map(bc => {
+            return {
+                controllerID: bc.controllerID,
+                title: bc.title && bc.title.trim(),
+            };
+        }).concat({ title: this.props.title && this.props.title.trim() });
+    }
+
+    _onBreadcrumbClicked(controllerID) {
+        if (controllerID) {
+            this.trigger('breadcrumb_clicked', { controllerID });
+        }
+    }
+
+    /**
+     * @private
+     * @param {string} viewType
+     */
+    _onSwitchView(viewType) {
+        this.trigger('switch_view', { view_type: viewType });
+    }
+}
+
+ControlPanelRenderer.defaultProps = {
+    breadcrumbs: [],
+};
 
 var Renderer = mvc.Renderer;
-
-var ControlPanelRenderer = Renderer.extend({
+var _ControlPanelRenderer = Renderer.extend({
     template: 'ControlPanel',
     custom_events: {
         get_action_info: '_onGetActionInfo',
@@ -54,6 +139,7 @@ var ControlPanelRenderer = Renderer.extend({
         this.menusSetup = false;
         this.searchMenuTypes = params.searchMenuTypes || [];
         this.subMenus = {};
+        throw new Error('You instanciated the wrong ControlPanelRenderer motherf*cker');
     },
     /**
      * Render the control panel and create a dictionnary of its exposed elements.
@@ -381,6 +467,9 @@ var ControlPanelRenderer = Renderer.extend({
         this._setSearchMenusVisibility();
     },
 });
+
+ControlPanelRenderer.components = { Pager, SearchBar, Sidebar };
+ControlPanelRenderer.template = 'ControlPanelRenderer';
 
 return ControlPanelRenderer;
 

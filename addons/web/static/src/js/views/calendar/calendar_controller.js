@@ -132,7 +132,7 @@ var CalendarController = AbstractController.extend({
      * @param {jQueryElement} $node the button should be appended to this
      *   element to be displayed in the bottom right corner of the control panel
      */
-    renderPager: function ($node) {
+    _getPagerProps: function () {
         if (config.device.isMobile) {
             this.$todayButton = $(QWeb.render('CalendarView.TodayButtonMobile'));
             this.$todayButton.on('click', this._move.bind(this, 'today'));

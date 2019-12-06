@@ -141,6 +141,14 @@ var ActionMixin = {
     getTitle: function () {
         return this._title;
     },
+    prependControlPanel: async function() {
+        if (this._controlPanel) {
+            const content = [...this.el.children];
+            content.forEach(el => el.remove());
+            await this._controlPanel.mount(this.el);
+            content.forEach(el => this.el.appendChild(el));
+        }
+    },
     /**
      * Gives the focus to the action
      */
@@ -165,12 +173,13 @@ var ActionMixin = {
      * @param {Object} [options]
      * @param {boolean} [options.clear]
      */
-    updateControlPanel: function (status, options) {
-        if (this._controlPanel) {
-            status = status || {};
-            status.title = status.title || this.getTitle();
-            this._controlPanel.updateContents(status, options || {});
-        }
+    updateControlPanel: function (props={}) {
+        // if (this._controlPanel) {
+        //     const newProps  = Object.assign({
+        //         title: this.getTitle(),
+        //     }, props);
+        //     this._controlPanel.updateProps(newProps);
+        // }
     },
     // TODO: add hooks methods:
     // - onRestoreHook (on_reverse_breadcrumbs)
@@ -185,7 +194,7 @@ var ActionMixin = {
      */
     _setTitle: function (title) {
         this._title = title;
-        this.updateControlPanel({title: this._title}, {clear: false});
+        this.updateControlPanel({ title });
     },
     /**
      * FIXME: this logic should be rethought

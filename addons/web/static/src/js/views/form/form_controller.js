@@ -5,7 +5,6 @@ var BasicController = require('web.BasicController');
 var core = require('web.core');
 var Dialog = require('web.Dialog');
 var dialogs = require('web.view_dialogs');
-var Sidebar = require('web.Sidebar');
 
 var _t = core._t;
 var qweb = core.qweb;
@@ -88,10 +87,9 @@ var FormController = BasicController.extend({
      *                            for the new record.
      * @returns {Promise}
      */
-    createRecord: function (parentID) {
-        var self = this;
-        var record = this.model.get(this.handle, {raw: true});
-        return this.model.load({
+    createRecord: async function (parentID) {
+        const record = this.model.get(this.handle, { raw: true });
+        const handle = await this.model.load({
             context: record.getContext(),
             fields: record.fields,
             fieldsInfo: record.fieldsInfo,
@@ -100,11 +98,13 @@ var FormController = BasicController.extend({
             res_ids: record.res_ids,
             type: 'record',
             viewType: 'form',
-        }).then(function (handle) {
-            self.handle = handle;
-            self._updateEnv();
-            return self._setMode('edit');
         });
+        this.handle = handle;
+        this.updateControlPanel({
+            pager: this._getPagerProps(),
+            sidebar: this._getSidebarProps(),
+        });
+        return this._setMode('edit');
     },
     /**
      * Returns the current res_id, wrapped in a list. This is only used by the
@@ -169,69 +169,55 @@ var FormController = BasicController.extend({
      * @param {Object} options
      * @returns {Promise}
      */
-    renderPager: function ($node, options) {
-        options = _.extend({}, options, {
+    _getPagerProps(options={}) {
+        return this._super(Object.assign(options, {
             validate: this.canBeDiscarded.bind(this),
-        });
-        return this._super($node, options);
+        }));
     },
-    /**
-     * Instantiate and render the sidebar if a sidebar is requested
-     * Sets this.sidebar
-     * @param {jQuery} [$node] a jQuery node where the sidebar should be
-     *   inserted
-     * @return {Promise}
-     **/
-    renderSidebar: function ($node) {
-        var self = this;
-        if (this.hasSidebar) {
-            var otherItems = [];
-            if (this.archiveEnabled && this.initialState.data.active !== undefined) {
-                var classname = "o_sidebar_item_archive" + (this.initialState.data.active ? "" : " o_hidden")
-                otherItems.push({
-                    label: _t("Archive"),
-                    callback: function () {
-                        Dialog.confirm(self, _t("Are you sure that you want to archive this record?"), {
-                            confirm_callback: self._toggleArchiveState.bind(self, true),
-                        });
-                    },
-                    classname: classname,
-                });
-                classname = "o_sidebar_item_unarchive" + (this.initialState.data.active ? " o_hidden" : "")
-                otherItems.push({
-                    label: _t("Unarchive"),
-                    callback: this._toggleArchiveState.bind(this, false),
-                    classname: classname,
-                });
-            }
-            if (this.is_action_enabled('delete')) {
-                otherItems.push({
-                    label: _t('Delete'),
-                    callback: this._onDeleteRecord.bind(this),
-                });
-            }
-            if (this.is_action_enabled('create') && this.is_action_enabled('duplicate')) {
-                otherItems.push({
-                    label: _t('Duplicate'),
-                    callback: this._onDuplicateRecord.bind(this),
-                });
-            }
-            this.sidebar = new Sidebar(this, {
-                editable: this.is_action_enabled('edit'),
-                viewType: 'form',
-                env: {
-                    context: this.model.get(this.handle).getContext(),
-                    activeIds: this.getSelectedIds(),
-                    model: this.modelName,
+    _getSidebarProps() {
+        if (!this.hasSidebar) {
+            return {};
+        }
+        const props = this._super(...arguments);
+        const other = [];
+        if (this.archiveEnabled && this.initialState.data.active !== undefined) {
+            let classname = "o_sidebar_item_archive" + (this.initialState.data.active ? "" : " o_hidden")
+            other.push({
+                label: _t("Archive"),
+                callback: function () {
+                    Dialog.confirm(self, _t("Are you sure that you want to archive this record?"), {
+                        confirm_callback: self._toggleArchiveState.bind(self, true),
+                    });
                 },
-                actions: _.extend(this.toolbarActions, {other: otherItems}),
+                classname: classname,
             });
-            return this.sidebar.appendTo($node).then(function() {
-                 // Show or hide the sidebar according to the view mode
-                self._updateSidebar();
+            classname = "o_sidebar_item_unarchive" + (this.initialState.data.active ? " o_hidden" : "")
+            other.push({
+                label: _t("Unarchive"),
+                callback: this._toggleArchiveState.bind(this, false),
+                classname: classname,
             });
         }
-        return Promise.resolve();
+        if (this.is_action_enabled('delete')) {
+            other.push({
+                label: _t('Delete'),
+                callback: this._onDeleteRecord.bind(this),
+            });
+        }
+        if (this.is_action_enabled('create') && this.is_action_enabled('duplicate')) {
+            other.push({
+                label: _t('Duplicate'),
+                callback: this._onDuplicateRecord.bind(this),
+            });
+        }
+        return Object.assign(props, {
+            actions: _.extend(this.toolbarActions, { other }),
+            activeIds: this.getSelectedIds(),
+            context: this.model.get(this.handle).getContext(),
+            editable: this.is_action_enabled('edit'),
+            model: this.modelName,
+            viewType: 'form',
+        });
     },
     /**
      * Show a warning message if the user modified a translated field.  For each
@@ -239,32 +225,32 @@ var FormController = BasicController.extend({
      *
      * @override
      */
-    saveRecord: function () {
-        var self = this;
-        return this._super.apply(this, arguments).then(function (changedFields) {
-            // the title could have been changed
-            self._setTitle(self.getTitle());
-            self._updateEnv();
+    saveRecord: async function () {
+        const changedFields = await this._super(...arguments);
+        // the title could have been changed
+        this._setTitle(this.getTitle());
+        this.updateControlPanel({
+            sidebar: this._getSidebarProps(),
+        });
 
-            if (_t.database.multi_lang && changedFields.length) {
-                // need to make sure changed fields that should be translated
-                // are displayed with an alert
-                var fields = self.renderer.state.fields;
-                var data = self.renderer.state.data;
-                var alertFields = {};
-                for (var k = 0; k < changedFields.length; k++) {
-                    var field = fields[changedFields[k]];
-                    var fieldData = data[changedFields[k]];
-                    if (field.translate && fieldData) {
-                        alertFields[changedFields[k]] = field;
-                    }
-                }
-                if (!_.isEmpty(alertFields)) {
-                    self.renderer.updateAlertFields(alertFields);
+        if (_t.database.multi_lang && changedFields.length) {
+            // need to make sure changed fields that should be translated
+            // are displayed with an alert
+            var fields = this.renderer.state.fields;
+            var data = this.renderer.state.data;
+            var alertFields = {};
+            for (var k = 0; k < changedFields.length; k++) {
+                var field = fields[changedFields[k]];
+                var fieldData = data[changedFields[k]];
+                if (field.translate && fieldData) {
+                    alertFields[changedFields[k]] = field;
                 }
             }
-            return changedFields;
-        });
+            if (!_.isEmpty(alertFields)) {
+                this.renderer.updateAlertFields(alertFields);
+            }
+        }
+        return changedFields;
     },
     /**
      * Overrides to force the viewType to 'form', so that we ensure that the
@@ -625,14 +611,13 @@ var FormController = BasicController.extend({
      *
      * @private
      */
-    _onDuplicateRecord: function () {
-        var self = this;
-        this.model.duplicateRecord(this.handle)
-            .then(function (handle) {
-                self.handle = handle;
-                self._updateEnv();
-                self._setMode('edit');
-            });
+    _onDuplicateRecord: async function () {
+        const handle = await this.model.duplicateRecord(this.handle);
+        this.handle = handle;
+        this.updateControlPanel({
+            sidebar: this._getSidebarProps(),
+        });
+        this._setMode('edit');
     },
     /**
      * Called when the user wants to edit the current record -> @see _setMode

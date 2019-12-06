@@ -1,269 +1,329 @@
 odoo.define('web.ControlPanelController', function (require) {
-"use strict";
+    "use strict";
 
-var mvc = require('web.mvc');
+    const ControlPanelRenderer = require('web.ControlPanelRenderer');
 
-var ControlPanelController = mvc.Controller.extend({
-    className: 'o_cp_controller',
-    custom_events: {
-        facet_removed: '_onFacetRemoved',
-        get_search_query: '_onGetSearchQuery',
-        item_option_clicked: '_onItemOptionClicked',
-        item_trashed: '_onItemTrashed',
-        menu_item_clicked: '_onMenuItemClicked',
-        new_favorite: '_onNewFavorite',
-        new_filters: '_onNewFilters',
-        new_groupBy: '_onNewGroupBy',
-        activate_time_range: '_onActivateTimeRange',
-        autocompletion_filter: '_onAutoCompletionFilter',
-        reload: '_onReload',
-        reset: '_onReset',
-    },
-
-    /**
-     * @override
-     * @param {Object} params
-     * @param {string} params.modelName
-     */
-    init: function (parent, model, renderer, params) {
-        this._super.apply(this, arguments);
-
-        this.modelName = params.modelName;
-    },
-    /**
-     * Called when the control panel is inserted into the DOM.
-     */
-    on_attach_callback: function () {
-        this.renderer.on_attach_callback();
-    },
-    /**
-     * Called when the control panel is remove form the DOM.
-     */
-    on_detach_callback: function () {
-        this.renderer.on_detach_callback();
-    },
-
-    //--------------------------------------------------------------------------
-    // Public
-    //--------------------------------------------------------------------------
+    const { Component, useState } = owl;
+    const ALLOWED_PROPS = [
+        'breadcrumbs',
+        'buttons',
+        'context',
+        'facets',
+        'fields',
+        'filterFields',
+        'filters',
+        'groupBys',
+        'pager',
+        'searchbar',
+        'sidebar',
+        'title',
+        'views',
+        'viewType',
+        'withBreadcrumbs',
+    ];
 
     /**
-     * @see ControlPanelModel (exportState)
-     * @returns {Object}
+     * @private
+     * @param {*} target
+     * @param {*} initial
+     * @returns {*}
      */
-    exportState: function () {
-        return this.model.exportState();
-    },
-    /**
-     * Called by the abstract controller to give focus to the searchbar
-     */
-    focusSearchBar: function () {
-        if (this.renderer.searchBar) {
-            this.renderer.searchBar.focus();
+    function deepCopy(target, initial) {
+        if (Array.isArray(initial)) {
+            // target = target || [];
+            // return Object.assign(target, initial);
+            if (!Array.isArray(target)) {
+                target = [];
+            }
+            for (let i = 0; i < initial.length; i ++) {
+                target[i] = deepCopy(target[i], initial[i]);
+            }
+        } else if (typeof initial === 'object' && initial !== null) {
+            // target = target || {};
+            // return Object.assign(target, initial);
+            try {
+                if (typeof target !== 'object') {
+                    target = initial.constructor ? new initial.constructor() : {};
+                }
+                for (const key in initial) {
+                    if (initial.hasOwnProperty(key)) {
+                        target[key] = deepCopy(target[key], initial[key]);
+                    }
+                }
+            } catch (err) {
+                if (!(err instanceof TypeError)) {
+                    throw err;
+                }
+                target = err.message === 'Illegal constructor' ?
+                    initial :
+                    Object.assign({}, initial);
+            }
+        } else {
+            target = initial;
         }
-    },
+        return target;
+    }
+
     /**
-     * Compute the search related values that will be used to fetch data.
+     * Control panel controller
      *
-     * @returns {Object} object with keys 'context', 'domain', 'groupBy'
-     */
-    getSearchQuery: function () {
-        return this.model.getQuery();
-    },
-    /**
-     * @param {Object} state a ControlPanelModel state
-     * @returns {Promise<Object>} the result of `getSearchState`
-     */
-    importState: function (state) {
-        var defs = [];
-        this.model.importState(state);
-        defs.push(this.getSearchQuery());
-        defs.push(this.renderer.updateState(this.model.get()));
-        return Promise.all(defs).then(function (defsResults) {
-            return defsResults[0];
-        });
-    },
-    /**
-     * Called at each switch view. This is required until the control panel is
-     * shared between controllers of an action.
+     *    ActionManager
+     *          │
+     *    ViewController > AbstractController
+     *         /                 \
+     *   ViewRenderer        CPController
+     *                            │
+     *                        CPRenderer
      *
-     * @param {string} controllerID
+     * @extends Component
      */
-    setControllerID: function (controllerID) {
-        this.controllerID = controllerID;
-    },
-    /**
-     * Update the content and displays the ControlPanel.
-     *
-     * @see  ControlPanelRenderer (updateContents)
-     * @param {Object} status
-     * @param {Object} [options]
-     */
-    updateContents: function (status, options) {
-        this.renderer.updateContents(status, options);
-    },
-    /**
-     * Update the domain of the search view by adding and/or removing filters.
-     *
-     * @todo: the way it is done could be improved, but the actual state of the
-     * searchview doesn't allow to do much better.
+    class ControlPanelController extends Component {
+        constructor() {
+            super(...arguments);
+            this.model = this.props.model;
+            this.renderer = this.props.renderer;
+            this.modelName = this.props.modelName;
 
-     * @param {Object[]} newFilters list of filters to add, described by
-     *   objects with keys domain (the domain as an Array), description (the text
-     *   to display in the facet) and type with value 'filter'.
-     * @param {string[]} filtersToRemove list of filter ids to remove
-     *   (previously added ones)
-     * @returns {string[]} list of added filters (to pass as filtersToRemove
-     *   for a further call to this function)
-     */
-    updateFilters: function (newFilters, filtersToRemove) {
-        var newFilterIDS = this.model.createNewFilters(newFilters);
-        this.model.deactivateFilters(filtersToRemove);
-        this._reportNewQueryAndRender();
-        return newFilterIDS;
-    },
+            this.rendererProps = useState(this.props.rendererProps);
+            this.state = useState({ updateFlag: false });
 
-    //--------------------------------------------------------------------------
-    // Private
-    //--------------------------------------------------------------------------
+            if (!window.top.cpcontroller) {
+                window.top.cpcontroller = this;
+            }
+        }
 
-    /**
-     * @private
-     * @returns {jQuery}
-     */
-    _getSubMenus: function () {
-        return this.renderer.$subMenus;
-    },
-    /**
-     * @private
-     * @returns {Promise}
-     */
-    _reportNewQueryAndRender: function () {
-        this.trigger_up('search', this.model.getQuery());
-        var state = this.model.get();
-        return this.renderer.updateState(state);
-    },
+        //--------------------------------------------------------------------------
+        // Properties
+        //--------------------------------------------------------------------------
 
-    //--------------------------------------------------------------------------
-    // Handlers
-    //--------------------------------------------------------------------------
+        /**
+         * Compute the search related values that will be used to fetch data.
+         * @returns {Object} object with keys 'context', 'domain', 'groupBy'
+         */
+        get searchQuery() {
+            return this.model.getQuery();
+        }
 
-    /**
-     * @private
-     * @param {OdooEvent} ev
-     */
-    _onActivateTimeRange: function (ev) {
-        ev.stopPropagation();
-        this.model.activateTimeRange(
-            ev.data.id,
-            ev.data.timeRangeId,
-            ev.data.comparisonTimeRangeId
-        );
-        this._reportNewQueryAndRender();
-    },
-    /**
-     * @private
-     * @param {OdooEvent} ev
-     */
-    _onAutoCompletionFilter: function (ev) {
-        ev.stopPropagation();
-        this.model.toggleAutoCompletionFilter(ev.data);
-        this._reportNewQueryAndRender();
-    },
-    /**
-     * @private
-     * @param {OdooEvent} ev
-     */
-    _onFacetRemoved: function (ev) {
-        ev.stopPropagation();
-        var group = ev.data.group || this.renderer.getLastFacet();
-        if (group) {
-            this.model.deactivateGroup(group.id);
+        //--------------------------------------------------------------------------
+        // Public
+        //--------------------------------------------------------------------------
+
+        /**
+         * @see ControlPanelModel (exportState)
+         * @returns {Object}
+         */
+        exportState() {
+            return this.model.exportState();
+        }
+
+        /**
+         * Called by the abstract controller to give focus to the searchbar
+         */
+        focusSearchBar() {
+            if (this.renderer.searchBar) {
+                this.renderer.searchBar.focus();
+            }
+        }
+
+        /**
+         * @param {Object} state a ControlPanelModel state
+         * @returns {Promise<Object>} the result of `getSearchState`
+         */
+        async importState(state) {
+            this.model.importState(state);
+            this._updateRendererProps();
+            return this.searchQuery;
+        }
+
+        /**
+         * Called at each switch view. This is required until the control panel is
+         * shared between controllers of an action.
+         * @param {string} controllerID
+         */
+        setControllerID(controllerID) {
+            this.controllerID = controllerID;
+        }
+
+        /**
+         * Update the content of the control panel.
+         * @see  ControlPanelRenderer (updateContents)
+         * @param {Object} status
+         * @param {Object} [options]
+         */
+        updateProps(props) {
+            this._updateRendererProps(props);
+        }
+
+        /**
+         * Update the domain of the search view by adding and/or removing filters.
+         *
+         * @todo: the way it is done could be improved, but the actual state of the
+         * searchview doesn't allow to do much better.
+
+         * @param {Object[]} newFilters list of filters to add, described by
+         *   objects with keys domain (the domain as an Array), description (the text
+         *   to display in the facet) and type with value 'filter'.
+         * @param {string[]} filtersToRemove list of filter ids to remove
+         *   (previously added ones)
+         * @returns {string[]} list of added filters (to pass as filtersToRemove
+         *   for a further call to this function)
+         */
+        updateFilters(newFilters, filtersToRemove) {
+            const newFilterIDS = this.model.createNewFilters(newFilters);
+            this.model.deactivateFilters(filtersToRemove);
+            this._reportNewQueryAndRender();
+            return newFilterIDS;
+        }
+
+        //--------------------------------------------------------------------------
+        // Private
+        //--------------------------------------------------------------------------
+
+        _filterProps(props) {
+            const validProps = {};
+            for (const key in props) {
+                if (ALLOWED_PROPS.includes(key)) {
+                    validProps[key] = props[key];
+                }
+            }
+            return validProps;
+        }
+
+        /**
+         * @private
+         */
+        _reportNewQueryAndRender() {
+            this.trigger('search', this.model.getQuery());
+            this._updateRendererProps();
+        }
+
+        _updateControlPanel() {
+            this.state.updateFlag = !this.state.updateFlag;
+        }
+
+        /**
+         * @private
+         * @param {Object} props
+         */
+        _updateRendererProps(props) {
+            const newProps = props || this.model.get();
+            deepCopy(this.rendererProps, this._filterProps(newProps));
+        }
+
+        //--------------------------------------------------------------------------
+        // Handlers
+        //--------------------------------------------------------------------------
+
+        /**
+         * @private
+         * @param {OwlEvent} ev
+         */
+        _onActivateTimeRange(ev) {
+            const { id, timeRangeId, comparisonTimeRangeId } = ev.detail;
+            this.model.activateTimeRange(id, timeRangeId, comparisonTimeRangeId);
             this._reportNewQueryAndRender();
         }
-    },
-    /**
-     * @private
-     * @param {OdooEvent} ev
-     */
-    _onGetSearchQuery: function (ev) {
-        ev.stopPropagation();
-        var query = this.getSearchQuery();
-        ev.data.callback(query);
-    },
-    /**
-     * @private
-     * @param {OdooEvent} ev
-     */
-    _onItemOptionClicked: function (ev) {
-        ev.stopPropagation();
-        this.model.toggleFilterWithOptions(ev.data.id, ev.data.optionId);
-        this._reportNewQueryAndRender();
-    },
-    /**
-     * @private
-     * @param {OdooEvent} ev
-     */
-    _onItemTrashed: function (ev) {
-        ev.stopPropagation();
-        var def = this.model.deleteFilterEverywhere(ev.data.id);
-        def.then(this._reportNewQueryAndRender.bind(this));
-    },
-    /**
-     * @private
-     * @param {OdooEvent} ev
-     */
-    _onMenuItemClicked: function (ev) {
-        ev.stopPropagation();
-        this.model.toggleFilter(ev.data.id);
-        this._reportNewQueryAndRender();
-    },
-    /**
-     * @private
-     * @param {OdooEvent} ev
-     */
-    _onNewFavorite: function (ev) {
-        ev.stopPropagation();
-        var def = this.model.createNewFavorite(ev.data);
-        def.then(this._reportNewQueryAndRender.bind(this));
-    },
-    /**
-     * @private
-     * @param {OdooEvent} ev
-     */
-    _onNewFilters: function (ev) {
-        ev.stopPropagation();
-        this.model.createNewFilters(ev.data.filters);
-        this._reportNewQueryAndRender();
-    },
-    /**
-     * @private
-     * @param {OdooEvent} ev
-     */
-    _onNewGroupBy: function (ev) {
-        ev.stopPropagation();
-        this.model.createNewGroupBy(ev.data);
-        this._reportNewQueryAndRender();
-    },
-    /**
-     * @private
-     * @param {OdooEvent} ev
-     */
-    _onReload: function (ev) {
-        ev.stopPropagation();
-        this.trigger_up('search', this.model.getQuery());
-    },
-    /**
-     * @private
-     * @param {OdooEvent} ev
-     */
-    _onReset: function (ev) {
-        ev.stopPropagation();
-        var state = this.model.get();
-        this.renderer.updateState(state);
-    },
-});
 
-return ControlPanelController;
+        /**
+         * @private
+         * @param {OwlEvent} ev
+         */
+        _onAutoCompletionFilter(ev) {
+            this.model.toggleAutoCompletionFilter(ev.detail);
+            this._reportNewQueryAndRender();
+        }
 
+        /**
+         * @private
+         * @param {OwlEvent} ev
+         */
+        _onFacetRemoved(ev) {
+            const group = ev.detail.group || this.renderer.getLastFacet();
+            if (group) {
+                this.model.deactivateGroup(group.id);
+                this._reportNewQueryAndRender();
+            }
+        }
+
+        /**
+         * @private
+         * @param {OwlEvent} ev
+         */
+        _onGetSearchQuery(ev) {
+            ev.detail.callback(this.searchQuery);
+        }
+
+        /**
+         * @private
+         * @param {OwlEvent} ev
+         */
+        _onItemOptionClicked(ev) {
+            this.model.toggleFilterWithOptions(ev.detail.id, ev.detail.optionId);
+            this._reportNewQueryAndRender();
+        }
+
+        /**
+         * @private
+         * @param {OwlEvent} ev
+         */
+        async _onItemTrashed(ev) {
+            await this.model.deleteFilterEverywhere(ev.detail.id);
+            this._reportNewQueryAndRender();
+        }
+
+        /**
+         * @private
+         * @param {OwlEvent} ev
+         */
+        _onMenuItemClicked(ev) {
+            this.model.toggleFilter(ev.detail.id);
+            this._reportNewQueryAndRender();
+        }
+
+        /**
+         * @private
+         * @param {OwlEvent} ev
+         */
+        async _onNewFavorite(ev) {
+            await this.model.createNewFavorite(ev.detail);
+            this._reportNewQueryAndRender();
+        }
+
+        /**
+         * @private
+         * @param {OwlEvent} ev
+         */
+        _onNewFilters(ev) {
+            this.model.createNewFilters(ev.detail.filters);
+            this._reportNewQueryAndRender();
+        }
+
+        /**
+         * @private
+         * @param {OwlEvent} ev
+         */
+        _onNewGroupBy(ev) {
+            this.model.createNewGroupBy(ev.detail);
+            this._reportNewQueryAndRender();
+        }
+
+        /**
+         * @private
+         */
+        _onReload() {
+            this.trigger('search', this.model.getQuery());
+        }
+
+        /**
+         * @private
+         */
+        _onReset() {
+            this._updateRendererProps();
+        }
+    }
+
+    ControlPanelController.components = { ControlPanelRenderer };
+    ControlPanelController.template = 'ControlPanelController';
+
+    return ControlPanelController;
 });

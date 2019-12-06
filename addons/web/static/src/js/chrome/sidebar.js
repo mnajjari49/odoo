@@ -1,192 +1,105 @@
 odoo.define('web.Sidebar', function (require) {
 "use strict";
 
-var Context = require('web.Context');
-var core = require('web.core');
-var pyUtils = require('web.py_utils');
-var Widget = require('web.Widget');
+const { _t } = require('web.core');
+const Context = require('web.Context');
+const CustomFileInput = require('web.CustomFileInput');
+const pyUtils = require('web.py_utils');
 
-var QWeb = core.qweb;
-var _t = core._t;
+const { Component } = owl;
 
-var Sidebar = Widget.extend({
-    events: {
-        "click a.dropdown-item": "_onDropdownClicked"
-    },
-    /**
-     * @override
-     *
-     * @param {Object} options
-     * @param {Object} options.items
-     * @param {Object} options.sections
-     * @param {Object} options.env
-     * @param {Object} options.actions
-     *
-     */
-    init: function (parent, options) {
-        this._super.apply(this, arguments);
-        this.options = _.defaults(options || {}, {
-            'editable': true
-        });
-        this.env = options.env;
-        this.sections = options.sections || [
-            {name: 'print', label: _t('Print')},
-            {name: 'other', label: _t('Action')},
-        ];
-        this.items = options.items || {
-            print: [],
-            other: [],
-        };
-        if (options.actions) {
-            this._addToolbarActions(options.actions);
+class Sidebar extends Component {
+
+    mounted() {
+        window.sidebar = this;
+        this._addTooltips();
+    }
+
+    patched() {
+        this._addTooltips();
+    }
+
+    //--------------------------------------------------------------------------
+    // Properties
+    //--------------------------------------------------------------------------
+
+    get sections() {
+        const items = this.items;
+        return this.props.sections.filter(
+            s => items[s.name].length || (s.name === 'files' && this.props.editable)
+        );
+    }
+
+    get items() {
+        const actions = this.props.actions;
+        const items = {};
+        if (Object.keys(actions).length) {
+            ['print', 'action', 'relate'].forEach(type => {
+                if (actions[type] && actions[type].length) {
+                    const section = type === 'print' ? 'print' : 'other';
+                    const newItems = actions[type].map(action => {
+                        return { label: action.name, action };
+                    });
+                    if (!items[section]) {
+                        items[section] = [];
+                    }
+                    items[section].unshift(...newItems);
+                }
+            });
+            if ('other' in actions) {
+                if (!items.other) {
+                    items.other = [];
+                }
+                items.other.unshift(...actions.other);
+            }
         }
-    },
-    /**
-     * @override
-     */
-    start: function () {
-        this._super.apply(this, arguments);
-        this.$el.addClass('btn-group');
-        this._redraw();
-    },
-
-    //--------------------------------------------------------------------------
-    // Public
-    //--------------------------------------------------------------------------
-
-    /**
-     * Update the env for the sidebar then rerender it.
-     *
-     * @param  {Object} env
-     */
-    updateEnv: function (env) {
-        this.env = env;
-        this._redraw();
-    },
+        return Object.assign({}, this.props.items, items);
+    }
 
     //--------------------------------------------------------------------------
     // Private
     //--------------------------------------------------------------------------
 
     /**
-     * For each item added to the section:
-     *
-     * ``label``
-     *     will be used as the item's name in the sidebar, can be html
-     *
-     * ``action``
-     *     descriptor for the action which will be executed, ``action`` and
-     *     ``callback`` should be exclusive
-     *
-     * ``callback``
-     *     function to call when the item is clicked in the sidebar, called
-     *     with the item descriptor as its first argument (so information
-     *     can be stored as additional keys on the object passed to
-     *     ``_addItems``)
-     *
-     * ``classname`` (optional)
-     *     ``@class`` set on the sidebar serialization of the item
-     *
-     * ``title`` (optional)
-     *     will be set as the item's ``@title`` (tooltip)
-     *
+     * Add teh tooltips to the items
      * @private
-     * @param {String} sectionCode
-     * @param {Array<{label, action | callback[, classname][, title]}>} items
      */
-    _addItems: function (sectionCode, items) {
-        if (items) {
-            this.items[sectionCode].unshift.apply(this.items[sectionCode], items);
-        }
-    },
-    /**
-     * Method that will add the custom actions to the toolbar
-     *
-     * @private
-     * @param {Object} toolbarActions
-     */
-    _addToolbarActions: function (toolbarActions) {
-        var self = this;
-        _.each(['print','action','relate'], function (type) {
-            if (type in toolbarActions) {
-                var actions = toolbarActions[type];
-                if (actions && actions.length) {
-                    var items = _.map(actions, function (action) {
-                        return {
-                            label: action.name,
-                            action: action,
-                        };
-                    });
-                    self._addItems(type === 'print' ? 'print' : 'other', items);
-                }
-            }
+    _addTooltips() {
+        $(this.el.querySelectorAll('[title]')).tooltip({
+            delay: { show: 500, hide: 0 }
         });
-        if ('other' in toolbarActions) {
-            this._addItems('other', toolbarActions.other);
-        }
-    },
+    }
+
     /**
      * Performs the action for the item clicked after getting the data
      * necessary with a trigger up
-     *
      * @private
      * @param  {Object} item
      */
-    _onItemActionClicked: function (item) {
-        var self = this;
-        this.trigger_up('sidebar_data_asked', {
-            callback: function (env) {
-                self.env = env;
-                var activeIdsContext = {
-                    active_id: env.activeIds[0],
-                    active_ids: env.activeIds,
-                    active_model: env.model,
-                };
-                if (env.domain) {
-                    activeIdsContext.active_domain = env.domain;
-                }
+    async _itemAction(item) {
+        const activeIdsContext = {
+            active_id: this.props.activeIds[0],
+            active_ids: this.props.activeIds,
+            active_model: this.props.model,
+        };
+        if (this.props.domain) {
+            activeIdsContext.active_domain = this.props.domain;
+        }
 
-                var context = pyUtils.eval('context', new Context(env.context, activeIdsContext));
-                self._rpc({
-                    route: '/web/action/load',
-                    params: {
-                        action_id: item.action.id,
-                        context: context,
-                    },
-                }).then(function (result) {
-                    result.context = new Context(
-                        result.context || {}, activeIdsContext)
-                            .set_eval_context(context);
-                    result.flags = result.flags || {};
-                    result.flags.new_window = true;
-                    self.do_action(result, {
-                        on_close: function () {
-                            self.trigger_up('reload');
-                        },
-                    });
-                });
-            }
+        const context = pyUtils.eval('context', new Context(this.props.context, activeIdsContext));
+        const result = await this.rpc({
+            route: '/web/action/load',
+            params: {
+                action_id: item.action.id,
+                context: context,
+            },
         });
-    },
-    /**
-     * Method that renders the sidebar when there is a data update
-     *
-     * @private
-     */
-    _redraw: function () {
-        this.$el.html(QWeb.render('Sidebar', {widget: this}));
-
-        // Hides Sidebar sections when item list is empty
-        _.each(this.$('.o_dropdown'), function (el) {
-            var $dropdown = $(el);
-            if (!$dropdown.find('.dropdown-item').length) {
-                $dropdown.hide();
-            }
-        });
-        this.$("[title]").tooltip({
-            delay: { show: 500, hide: 0}
-        });
-    },
+        result.context = new Context(result.context || {}, activeIdsContext)
+            .set_eval_context(context);
+        result.flags = result.flags || {};
+        result.flags.new_window = true;
+        this.trigger('do_action', { action: result });
+    }
 
     //--------------------------------------------------------------------------
     // Handlers
@@ -194,24 +107,36 @@ var Sidebar = Widget.extend({
 
     /**
      * Method triggered when the user clicks on a toolbar dropdown
-     *
      * @private
-     * @param  {MouseEvent} event
+     * @param {Object} item
+     * @param {MouseEvent} ev
      */
-    _onDropdownClicked: function (event) {
-        var section = $(event.currentTarget).data('section');
-        var index = $(event.currentTarget).data('index');
-        var item = this.items[section][index];
+    _onDropdownClicked(item, ev) {
         if (item.callback) {
-            item.callback.apply(this, [item]);
+            item.callback([item]);
         } else if (item.action) {
-            this._onItemActionClicked(item);
+            this._itemAction(item);
         } else if (item.url) {
-            return true;
+            return;
         }
-        event.preventDefault();
+        ev.preventDefault();
+    }
+}
+
+Sidebar.components = { CustomFileInput };
+Sidebar.defaultProps = {
+    actions: {},
+    editable: true,
+    items: {
+        print: [],
+        other: [],
     },
-});
+    sections: [
+        { name: 'print', label: _t('Print') },
+        { name: 'other', label: _t('Action') },
+    ],
+};
+Sidebar.template = 'Sidebar';
 
 return Sidebar;
 

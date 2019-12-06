@@ -1,15 +1,18 @@
-odoo.define('web.ControlPanelModel', function (require) {
+odoo.define('web.ControlPanelStore', function (require) {
 "use strict";
 
 var controlPanelViewParameters = require('web.controlPanelViewParameters');
 var core = require('web.core');
 var Domain = require('web.Domain');
+const env = require('web.env');
 var mvc = require('web.mvc');
 var pyUtils = require('web.py_utils');
 var searchBarAutocompleteRegistry = require('web.search_bar_autocomplete_sources_registry');
 var session = require('web.session');
 
 var _t = core._t;
+
+const { Store } = owl;
 
 const DEFAULT_TIMERANGE = controlPanelViewParameters.DEFAULT_TIMERANGE;
 let TIME_RANGE_OPTIONS = controlPanelViewParameters.TIME_RANGE_OPTIONS;
@@ -26,7 +29,7 @@ function isEqualTo (array1) {
     }
 }
 
-var ControlPanelModel = mvc.Model.extend({
+const actions = {
     /**
      * @override
      * @param {string} [params.actionId]
@@ -417,7 +420,7 @@ var ControlPanelModel = mvc.Model.extend({
                         }
                         if (filter.currentOptionIds) {
                             filter.currentOptionIds.clear();
-                        }   
+                        }
                     })
                     group.activeFilterIds = [];
                 });
@@ -456,7 +459,7 @@ var ControlPanelModel = mvc.Model.extend({
                     acc.push(y.optionId);
                 }
                 return acc;
-            }, 
+            },
             []
         );
 
@@ -723,8 +726,8 @@ var ControlPanelModel = mvc.Model.extend({
         return pyUtils.assembleDomains(domains, 'AND');
     },
     /**
-     * Return an array containing 'facets' used to create the content of the search bar. 
-     * 
+     * Return an array containing 'facets' used to create the content of the search bar.
+     *
      * @returns {Object}
      */
     _getFacets: function () {
@@ -1210,8 +1213,100 @@ var ControlPanelModel = mvc.Model.extend({
             self._addNewFavorite(favorite);
         });
     },
-});
+};
 
-return ControlPanelModel;
+const getters = {
+    getFavorites() {
+        return this.state.filters.filter(f => f.type === 'favorite');
+    },
+    getFilters() {
+        return this.state.filters.filter(f => f.type === 'filter');
+    },
+    getGroupbys() {
+        return this.state.filters.filter(f => f.type === 'groupby');
+    },
+    getQuery() {
+        return {
+            context: {},
+            domain: [],
+            groupBy: [],
+            orderedBy: [],
+        };
+        var userContext = session.user_context;
+        var context = _.extend(
+            pyUtils.eval('contexts', this._getQueryContext(), userContext),
+            this._getTimeRangeMenuData(true)
+        );
+        var domain = Domain.prototype.stringToArray(this._getDomain(), userContext);
+        // this must be done because pyUtils.eval does not know that it needs to evaluate domains within contexts
+        if (context.timeRangeMenuData) {
+            if (typeof context.timeRangeMenuData.timeRange === 'string') {
+                context.timeRangeMenuData.timeRange = pyUtils.eval('domain', context.timeRangeMenuData.timeRange);
+            }
+            if (typeof context.timeRangeMenuData.comparisonTimeRange === 'string') {
+                context.timeRangeMenuData.comparisonTimeRange = pyUtils.eval('domain', context.timeRangeMenuData.comparisonTimeRange);
+            }
+        }
+        var action_context = this.actionContext;
+        var results = pyUtils.eval_domains_and_contexts({
+            domains: [this.actionDomain].concat([domain] || []),
+            contexts: [action_context].concat(context || []),
+            eval_context: session.user_context,
+        });
+        if (results.error) {
+            throw new Error(_.str.sprintf(_t("Failed to evaluate search criterions")+": \n%s",
+                            JSON.stringify(results.error)));
+        }
+
+        var groupBys = this._getGroupBy();
+        var groupBy = groupBys.length ?
+                        groupBys :
+                        (this.actionContext.group_by || []);
+        groupBy = (typeof groupBy === 'string') ? [groupBy] : groupBy;
+
+        context = _.omit(results.context, 'time_ranges');
+
+        return {
+            context: context,
+            domain: results.domain,
+            groupBy: groupBy,
+            orderedBy: this._getOrderedBy(),
+        };
+    },
+    getTimeranges() {
+        return this.state.filters.filter(f => f.type === 'timerange');
+    },
+};
+
+const state = {
+    breadcrumbs: {
+        breadcrumbs: [],
+        title: "",
+    },
+    buttons: [],
+    filters: {},
+    groups: {},
+    pager: {
+        limit: 0,
+        minimum: 0,
+        size: 0,
+    },
+    query: [],
+    sidebar: {
+        actions: {},
+        items: [],
+        sections: [],
+    },
+    viewSwitcher: {
+        views: [],
+        viewType: null,
+    },
+};
+
+const ControlPanelStore = new Store({ actions, getters, state });
+
+env.cpstore = ControlPanelStore;
+
+return ControlPanelStore;
 
 });

@@ -9,12 +9,12 @@ odoo.define('web.AbstractAction', function (require) {
  */
 
 var ActionMixin = require('web.ActionMixin');
-var ControlPanelView = require('web.ControlPanelView');
+var ControlPanel = require('web.ControlPanel');
 var Widget = require('web.Widget');
 
 var AbstractAction = Widget.extend(ActionMixin, {
     config: {
-        ControlPanelView: ControlPanelView,
+        ControlPanel: ControlPanel,
     },
 
     /**
@@ -89,39 +89,35 @@ var AbstractAction = Widget.extend(ActionMixin, {
      *
      * @override
      */
-    willStart: function () {
-        var self = this;
-        var proms = [this._super.apply(this, arguments)];
+    willStart: async function () {
+        const proms = [this._super(...arguments)];
         if (this.hasControlPanel) {
-            var params = this.controlPanelParams;
+            const params = this.controlPanelParams;
             if (this.loadControlPanel) {
-                proms.push(this
-                    .loadFieldView(params.modelName, params.context || {}, params.viewId, 'search')
-                    .then(function (fieldsView) {
+                const { context, modelName, viewId } = params;
+                const loadFieldViewPromise = this.loadFieldView(modelName, context || {}, viewId, 'search')
+                    .then(fieldsView =>
                         params.viewInfo = {
                             arch: fieldsView.arch,
                             fields: fieldsView.fields,
-                        };
-                    }));
+                        });
+                proms.push(loadFieldViewPromise);
             }
-            return Promise.all(proms).then(function () {
-                var controlPanelView = new self.config.ControlPanelView(params);
-                return controlPanelView.getController(self).then(function (controlPanel) {
-                    self._controlPanel = controlPanel;
-                    return self._controlPanel.appendTo(document.createDocumentFragment());
-                });
-            });
+            await Promise.all(proms);
+            const controlPanelView = new this.config.ControlPanel(params);
+            this._controlPanel = await controlPanelView.getController(this);
+            await this._controlPanel.mount(document.createElement('div'));
         }
         return Promise.all(proms);
     },
     /**
      * @override
      */
-    start: function () {
-        if (this._controlPanel) {
-            this._controlPanel.$el.prependTo(this.$el);
-        }
-        return this._super.apply(this, arguments);
+    start: async function () {
+        await this._super(...arguments);
+    },
+    on_attach_callback: function () {
+        return this.prependControlPanel();
     },
 });
 

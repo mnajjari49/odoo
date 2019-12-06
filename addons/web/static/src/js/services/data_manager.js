@@ -55,6 +55,8 @@ return core.Class.extend({
             }, this._invalidate.bind(this, this._cache.actions, key));
         }
 
+        console.warning('load_action')
+
         return this._cache.actions[key].then(function (action) {
             return $.extend(true, {}, action);
         });
@@ -118,7 +120,10 @@ return core.Class.extend({
                 if (result.filters) {
                     self._cache.filters[filters_key] = Promise.resolve(result.filters);
                 }
-
+                self.load_filters(params).then(filters => {
+                    console.log({ filters });
+                });
+                console.log({ result, cache: self._cache });
                 return result.fields_views;
             }, this._invalidate.bind(this, this._cache.views, key));
         }

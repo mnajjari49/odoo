@@ -1102,9 +1102,7 @@ var Discuss = AbstractAction.extend({
      */
     _updateControlPanel: function () {
         this.updateControlPanel({
-            cp_content: {
-                $buttons: this.$buttons,
-            },
+            buttons: [...this.$buttons],
         });
     },
     /**
