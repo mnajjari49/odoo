@@ -9487,8 +9487,8 @@ QUnit.module('relational_fields', {
         form.destroy();
     });
 
-    QUnit.test('propagate context to sub views', function (assert) {
-        assert.expect(5);
+    QUnit.test('propagate context to sub views without default_* keys', function (assert) {
+        assert.expect(6);
 
         var form = createView({
             View: FormView,
@@ -9506,9 +9506,13 @@ QUnit.module('relational_fields', {
             mockRPC: function (route, args) {
                 assert.strictEqual(args.kwargs.context.flutter, 'shy',
                     'view context key should be used for every rpcs');
+                if (route === '/web/dataset/call_kw/turtle/default_get') {
+                    assert.notOk(args.kwargs.context.default_flutter,
+                        'view context default_* key should not be used for sub view default_get');
+                }
                 return this._super.apply(this, arguments);
             },
-            viewOptions: {context: {flutter: 'shy'}},
+            viewOptions: {context: {flutter: 'shy', default_flutter: 'why'}},
         });
         form.$('.o_field_x2many_list_row_add a').click();
         form.$('input[name="turtle_foo"]').val('pinky pie').trigger('input');
