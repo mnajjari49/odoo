@@ -276,6 +276,8 @@ class ProductTemplate(models.Model):
         target_currency = pricelist.currency_id or self.env['res.currency'].browse(
             self.env.context.get('currency_id', None)
         )
+        # VFE TODO do not support this anymore ?
+        # remove from search view
         if not pricelist and 'pricelist' in self.env.context:
             pricelist_key = self.env.context.get('pricelist')
             # Support context pricelists specified as display_name or ID for compatibility
@@ -296,20 +298,12 @@ class ProductTemplate(models.Model):
     def _compute_price(self):
         # Computed for templates AND variants
         pricelist, quantity, uom, date, currency = self._get_context_values()
-        if pricelist:
-            prices = pricelist.get_products_price(
-                self, quantity,
-                uom=uom,
-                date=date,
-                currency=currency,
-            )
-        else:
-            prices = self.price_compute(
-                'list_price',
-                uom=uom,
-                date=date,
-                currency=currency,
-            )
+        prices = pricelist.get_products_price(
+            self, quantity,
+            uom=uom,
+            date=date,
+            currency=currency,
+        )
 
         for product in self:
             product.price = prices.get(product.id)

@@ -243,20 +243,12 @@ class ProductProduct(models.Model):
         # s.t. self is a product.product for the variant price computation.
         pricelist, quantity, uom, date, currency = self.product_tmpl_id._get_context_values()
 
-        if pricelist:
-            prices = pricelist.get_products_price(
-                self, quantity,
-                uom=uom,
-                currency=currency,
-                date=date,
-            )
-        else:
-            prices = self.price_compute(
-                'list_price',
-                uom=uom,
-                date=date,
-                currency=currency,
-            )
+        prices = pricelist.get_products_price(
+            self, quantity,
+            uom=uom,
+            currency=currency,
+            date=date,
+        )
 
         for product in self:
             product.price = prices.get(product.id)

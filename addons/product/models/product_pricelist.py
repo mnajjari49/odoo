@@ -128,11 +128,18 @@ class Pricelist(models.Model):
             :param date: validity date
             :type date: date or datetime
         """
-        if not self or not products:
+        if not products:
             # If empty, the caller has to fall back on product.lst_price
             return {}
 
-        self.ensure_one()
+        if not self:
+            prices = products.price_compute(
+                'list_price',
+                uom=uom,
+                date=date,
+                currency=currency)
+            return {id: (prices[id], []) for id in products.ids}
+
         company = self.company_id or self.env.company
         # VFE ensure subsequent calls have only pricelist company in context ...
         if not date:
@@ -174,9 +181,6 @@ class Pricelist(models.Model):
             target_uom = uom or product_uom
             qty_in_product_uom = target_uom._compute_quantity(quantity, product.uom_id, round=False)
             # if Public user try to access standard price from website sale, need to call price_compute.
-            # TDE SURPRISE: product can actually be a template
-            # VFE TODO could be only computed if no items or no suitable rule found...
-            price = product.price_compute('list_price', uom=product_uom, date=date, currency=self.currency_id)[product.id]
 
             for rule in items:
                 # VFE TODO split and delegate to pricelist rule ...
@@ -205,8 +209,7 @@ class Pricelist(models.Model):
                         continue
 
                 """ Compute base price of pricelist rule """
-                # VFE TODO compute directly in pricelist currency
-                price, child_rules = rule.get_base_price(
+                price, child_rules = rule._get_base_price(
                     product,
                     qty_in_product_uom,
                     product_uom,
@@ -237,14 +240,16 @@ class Pricelist(models.Model):
                 # Break at first applicable rule found (considering rule ordering)
                 break
 
+            if suitable_rule:
+                # VFE TODO move price computation here, based on suitable_rule
+                rules = [suitable_rule.id] + child_rules
+            else:
+                price = product.price_compute('list_price', uom=product_uom, date=date, currency=self.currency_id)[product.id]
+                rules = []
+
             # The price has to be returned in the target uom.
             if product_uom != target_uom:
                 price = product_uom._compute_price(price, target_uom)
-
-            if suitable_rule:
-                rules = [suitable_rule.id] + child_rules
-            else:
-                rules = child_rules
 
             if currency and currency != self.currency_id:
                 price = self.currency_id._convert(
@@ -283,15 +288,9 @@ class Pricelist(models.Model):
             uom,
             currency,
             date=date,
-        ).get(product.id, [product.price_compute(
-            'list_price',
-            uom=uom,
-            date=date,
-            currency=currency
-            )[product.id]]
-        )[0]
+        ).get(product.id)[0]
 
-    def get_product_price_rules(self, product, quantity, uom, currency=None, date=False):
+    def _get_product_price_rules(self, product, quantity, uom, currency=None, date=False):
         """ For a given pricelist, return price and list of rules for a given product """
         product.ensure_one()
         return self._compute_price_rule(
@@ -300,13 +299,7 @@ class Pricelist(models.Model):
             uom,
             currency,
             date=date,
-        ).get(product.id, [product.price_compute(
-            'list_price',
-            uom=uom,
-            date=date,
-            currency=currency
-            )[product.id], self.env['product.pricelist.item']]
-        )
+        ).get(product.id)
 
     def _get_detailed_prices(self, **pricelist_kwargs):
         """Return the price with and without discounts.
@@ -328,7 +321,7 @@ class Pricelist(models.Model):
             price_without_discount = price
         else:
             # Price in pricelist currency (== order.currency_id)
-            price, rule_ids = self.get_product_price_rules(**pricelist_kwargs)
+            price, rule_ids = self._get_product_price_rules(**pricelist_kwargs)
             price_without_discount = price
 
             if rule_ids:
@@ -344,7 +337,7 @@ class Pricelist(models.Model):
                         break
 
                 if last_rule:
-                    price_without_discount = last_rule.get_base_price(
+                    price_without_discount = last_rule._get_base_price(
                         **pricelist_kwargs)[0]
                     # 0 = price, 1 = sub_rules
                 else:
@@ -642,7 +635,7 @@ class PricelistItem(models.Model):
         self.invalidate_cache()
         return res
 
-    def get_base_price(self, product, quantity, uom, date, currency=None):
+    def _get_base_price(self, product, quantity, uom, date, currency=None):
         self.ensure_one()
         product.ensure_one()
         price = 0.0
