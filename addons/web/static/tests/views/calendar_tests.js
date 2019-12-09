@@ -179,6 +179,7 @@ QUnit.module('Views', {
                 'color="partner_id">'+
                     '<filter name="user_id" avatar_field="image"/>'+
                     '<field name="partner_ids" write_model="filter_partner" write_field="partner_id"/>'+
+                    '<field name="partner_id" filters="1" invisible="1"/>'+
             '</calendar>',
             archs: archs,
             viewOptions: {
@@ -1948,6 +1949,7 @@ QUnit.module('Views', {
                 'color="partner_id">'+
                     '<filter name="user_id" avatar_field="image"/>'+
                     '<field name="partner_ids" write_model="filter_partner" write_field="partner_id"/>'+
+                    '<field name="partner_id" filters="1" invisible="1"/>'+
             '</calendar>',
             viewOptions: {
                 initialDate: initialDate,
@@ -2030,6 +2032,7 @@ QUnit.module('Views', {
                 'color="partner_id">'+
                     '<filter name="user_id" avatar_field="image"/>'+
                     '<field name="partner_ids" write_model="filter_partner" write_field="partner_id"/>'+
+                    '<field name="partner_id" filters="1" invisible="1"/>'+
             '</calendar>',
             archs: {
                 "event,false,form":
@@ -2109,6 +2112,7 @@ QUnit.module('Views', {
                 'color="partner_id">'+
                     '<filter name="user_id" avatar_field="image"/>'+
                     '<field name="partner_ids" write_model="filter_partner" write_field="partner_id"/>'+
+                    '<field name="partner_id" filters="1" invisible="1"/>'+
             '</calendar>',
             archs: {
                 "event,false,form":
@@ -2201,6 +2205,7 @@ QUnit.module('Views', {
                 'color="partner_id">'+
                     '<filter name="user_id" avatar_field="image"/>'+
                     '<field name="partner_ids" write_model="filter_partner" write_field="partner_id"/>'+
+                    '<field name="partner_id" filters="1" invisible="1"/>'+
             '</calendar>',
             viewOptions: {
                 initialDate: initialDate,
