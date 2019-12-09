@@ -599,7 +599,8 @@ class AccountMove(models.Model):
                 })
 
             if in_draft_mode:
-                tax_line._onchange_amount_currency()
+                tax_line.update(tax_line._get_fields_onchange_balance())
+                tax_line.update(tax_line._get_price_total_and_subtotal())
 
     def _recompute_cash_rounding_lines(self):
         ''' Handle the cash rounding feature on invoices.
@@ -694,7 +695,8 @@ class AccountMove(models.Model):
                 cash_rounding_line = create_method(rounding_line_vals)
 
             if in_draft_mode:
-                cash_rounding_line._onchange_amount_currency()
+                cash_rounding_line.update(cash_rounding_line._get_fields_onchange_balance())
+                cash_rounding_line.update(cash_rounding_line._get_price_total_and_subtotal())
 
         existing_cash_rounding_line = self.line_ids.filtered(lambda line: line.is_rounding_line)
 
@@ -828,7 +830,8 @@ class AccountMove(models.Model):
                     })
                 new_terms_lines += candidate
                 if in_draft_mode:
-                    candidate._onchange_amount_currency()
+                    candidate.update(candidate._get_fields_onchange_balance())
+                    candidate.update(candidate._get_price_total_and_subtotal())
             return new_terms_lines
 
         existing_terms_lines = self.line_ids.filtered(lambda line: line.account_id.user_type_id.type in ('receivable', 'payable'))
@@ -2847,9 +2850,12 @@ class AccountMoveLine(models.Model):
         for line in self:
             if line.currency_id != line.move_id.company_id.currency_id:
                 continue
+
             line.amount_currency = line.debit - line.credit
+
             if not line.move_id.is_invoice(include_receipts=True):
                 continue
+
             line.update(line._get_fields_onchange_balance())
             line.update(line._get_price_total_and_subtotal())
 
@@ -2869,10 +2875,7 @@ class AccountMoveLine(models.Model):
     def _onchange_amount_currency(self):
         for line in self:
             company = line.move_id.company_id
-            if line.currency_id == company.currency_id:
-                balance = line.amount_currency
-            else:
-                balance = line.currency_id._convert(line.amount_currency, company.currency_id, company, line.move_id.date)
+            balance = line.currency_id._convert(line.amount_currency, company.currency_id, company, line.move_id.date)
             line.debit = balance if balance > 0.0 else 0.0
             line.credit = -balance if balance < 0.0 else 0.0
 
@@ -2896,6 +2899,11 @@ class AccountMoveLine(models.Model):
         for line in self:
             if line.move_id.is_invoice(include_receipts=True):
                 line._onchange_price_subtotal()
+            elif line.currency_id:
+                company = line.move_id.company_id
+                balance = line.currency_id._convert(line.amount_currency, company.currency_id, company, line.move_id.date)
+                line.debit = balance > 0 and balance or 0.0
+                line.credit = balance < 0 and -balance or 0.0
 
     # -------------------------------------------------------------------------
     # COMPUTE METHODS

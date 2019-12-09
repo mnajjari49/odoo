@@ -1347,7 +1347,11 @@ class TestAccountMoveOutInvoiceOnchanges(AccountTestInvoicingCommon):
             'type': 'out_invoice',
             'partner_id': self.partner_a.id,
             'invoice_line_ids': [
-                (0, None, self.product_line_vals_1),
+                (0, None, {
+                    'name': 'test_out_invoice_write_2',
+                    'quantity': 1.0,
+                    'price_unit': 2000,
+                }),
             ]
         })
 
