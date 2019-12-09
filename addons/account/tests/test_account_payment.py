@@ -46,16 +46,16 @@ class TestAccountMovePayment(AccountTestInvoicingCommon):
         expected_bank_line = {
             'account_id': liquidity_account.id,
             'partner_id': self.partner_a.id,
-            'currency_id': False,
-            'amount_currency': 0.0,
+            'currency_id': self.company_data['currency'].id,
+            'amount_currency': 100.0,
             'debit': 100.0,
             'credit': 0.0,
         }
         expected_receivable_line = {
             'account_id': self.inbound_payment.destination_account_id .id,
             'partner_id': self.partner_a.id,
-            'currency_id': False,
-            'amount_currency': 0.0,
+            'currency_id': self.company_data['currency'].id,
+            'amount_currency': -100.0,
             'debit': 0.0,
             'credit': 100.0,
         }
@@ -115,16 +115,16 @@ class TestAccountMovePayment(AccountTestInvoicingCommon):
         expected_bank_line = {
             'account_id': liquidity_account.id,
             'partner_id': self.partner_a.id,
-            'currency_id': False,
-            'amount_currency': 0.0,
+            'currency_id': self.company_data['currency'].id,
+            'amount_currency': -100.0,
             'debit': 0.0,
             'credit': 100.0,
         }
         expected_payable_line = {
             'account_id': self.outbound_payment.destination_account_id.id,
             'partner_id': self.partner_a.id,
-            'currency_id': False,
-            'amount_currency': 0.0,
+            'currency_id': self.company_data['currency'].id,
+            'amount_currency': 100.0,
             'debit': 100.0,
             'credit': 0.0,
         }
@@ -185,32 +185,32 @@ class TestAccountMovePayment(AccountTestInvoicingCommon):
         cash_transfer_line = {
             'account_id': self.company_data['company'].transfer_account_id.id,
             'partner_id': False,
-            'currency_id': False,
-            'amount_currency': 0.0,
+            'currency_id': self.company_data['currency'].id,
+            'amount_currency': -100.0,
             'debit': 0.0,
             'credit': 100.0,
         }
         bank_transfer_line = {
             'account_id': self.company_data['company'].transfer_account_id.id,
             'partner_id': False,
-            'currency_id': False,
-            'amount_currency': 0.0,
+            'currency_id': self.company_data['currency'].id,
+            'amount_currency': 100.0,
             'debit': 100.0,
             'credit': 0.0,
         }
         liquidity_cash_line = {
             'account_id': liquidity_cash_account.id,
             'partner_id': False,
-            'currency_id': False,
-            'amount_currency': 0.0,
+            'currency_id': self.company_data['currency'].id,
+            'amount_currency': 100.0,
             'debit': 100.0,
             'credit': 0.0,
         }
         liquidity_bank_line = {
             'account_id': liquidity_bank_account.id,
             'partner_id': False,
-            'currency_id': False,
-            'amount_currency': 0.0,
+            'currency_id': self.company_data['currency'].id,
+            'amount_currency': -100.0,
             'debit': 0.0,
             'credit': 100.0,
         }

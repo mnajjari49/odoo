@@ -467,26 +467,14 @@ class account_payment(models.Model):
                 liquidity_line_account = payment.journal_id.default_credit_account_id
 
             # Manage currency.
-            if payment.currency_id == company_currency:
-                # Single-currency.
-                balance = counterpart_amount
-                write_off_balance = write_off_amount
-                counterpart_amount = write_off_amount = 0.0
-                currency_id = False
-            else:
-                # Multi-currencies.
-                balance = payment.currency_id._convert(counterpart_amount, company_currency, payment.company_id, payment.payment_date)
-                write_off_balance = payment.currency_id._convert(write_off_amount, company_currency, payment.company_id, payment.payment_date)
-                currency_id = payment.currency_id.id
+            balance = payment.currency_id._convert(counterpart_amount, company_currency, payment.company_id, payment.payment_date)
+            write_off_balance = payment.currency_id._convert(write_off_amount, company_currency, payment.company_id, payment.payment_date)
+            currency_id = payment.currency_id.id
 
             # Manage custom currency on journal for liquidity line.
             if payment.journal_id.currency_id and payment.currency_id != payment.journal_id.currency_id:
                 # Custom currency on journal.
-                if payment.journal_id.currency_id == company_currency:
-                    # Single-currency
-                    liquidity_line_currency_id = False
-                else:
-                    liquidity_line_currency_id = payment.journal_id.currency_id.id
+                liquidity_line_currency_id = payment.journal_id.currency_id.id
                 liquidity_amount = company_currency._convert(
                     balance, payment.journal_id.currency_id, payment.company_id, payment.payment_date)
             else:
