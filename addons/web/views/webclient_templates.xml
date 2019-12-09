@@ -276,8 +276,6 @@
         <script type="text/javascript" src="/web/static/src/js/widgets/iframe_widget.js"></script>
         <script type="text/javascript" src="/web/static/src/js/chrome/loading.js"></script>
         <script type="text/javascript" src="/web/static/src/js/widgets/model_field_selector.js"></script>
-        <script type="text/javascript" src="/web/static/src/js/chrome/sidebar.js"></script>
-        <script type="text/javascript" src="/web/static/src/js/chrome/pager.js"></script>
         <script type="text/javascript" src="/web/static/src/js/chrome/systray_menu.js"></script>
         <script type="text/javascript" src="/web/static/src/js/widgets/switch_company_menu.js"></script>
         <script type="text/javascript" src="/web/static/src/js/chrome/user_menu.js"></script>
@@ -317,10 +315,15 @@
         <script type="text/javascript" src="/web/static/src/js/views/control_panel/control_panel_view.js"></script>
         <script type="text/javascript" src="/web/static/src/js/views/control_panel/mobile_control_panel_controller.js"></script>
         <script type="text/javascript" src="/web/static/src/js/views/control_panel/mobile_control_panel_renderer.js"></script>
+        <script type="text/javascript" src="/web/static/src/js/views/control_panel/sidebar.js"></script>
+        <script type="text/javascript" src="/web/static/src/js/views/control_panel/pager.js"></script>
+        <script type="text/javascript" src="/web/static/src/js/views/control_panel/breadcrumbs.js"></script>
+        <script type="text/javascript" src="/web/static/src/js/views/control_panel/view_switcher.js"></script>
         <script type="text/javascript" src="/web/static/src/js/views/control_panel/search/search_bar_autocomplete_sources.js"></script>
         <script type="text/javascript" src="/web/static/src/js/views/control_panel/search/search_bar_autocomplete_sources_registry.js"></script>
-        <script type="text/javascript" src="/web/static/src/js/views/control_panel/search/search_facet.js"></script>
         <script type="text/javascript" src="/web/static/src/js/views/control_panel/search/search_bar.js"></script>
+        <script type="text/javascript" src="/web/static/src/js/views/control_panel/search/search_facet.js"></script>
+        <script type="text/javascript" src="/web/static/src/js/views/control_panel/search/search_menus.js"></script>
         <script type="text/javascript" src="/web/static/src/js/views/control_panel/search/filter_menu.js"></script>
         <script type="text/javascript" src="/web/static/src/js/views/control_panel/search/groupby_menu.js"></script>
         <script type="text/javascript" src="/web/static/src/js/views/control_panel/search/groupby_menu_mixin.js"></script>

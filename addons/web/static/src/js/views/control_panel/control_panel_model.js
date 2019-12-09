@@ -21,7 +21,7 @@ const OPTION_GENERATORS = controlPanelViewParameters.OPTION_GENERATORS;
 const YEAR_OPTIONS = controlPanelViewParameters.YEAR_OPTIONS;
 
 // Returns a predicate used to test if two arrays (of maximal length 2) have the same basic content.
-function isEqualTo (array1) {
+function isEqualTo(array1) {
     if (array1.length === 1) {
         return array2 => array2.length === 1 && array2[0] === array1[0];
     } else {
@@ -43,10 +43,10 @@ const actions = {
 
         // Tricks to avoid losing information on filter descriptions in control panel model configuration
         TIME_RANGE_OPTIONS = TIME_RANGE_OPTIONS.map(function (option) {
-            return _.extend({}, option, {description: option.description.toString()});
+            return _.extend({}, option, { description: option.description.toString() });
         });
         COMPARISON_TIME_RANGE_OPTIONS = COMPARISON_TIME_RANGE_OPTIONS.map(function (option) {
-            return _.extend({}, option, {description: option.description.toString()});
+            return _.extend({}, option, { description: option.description.toString() });
         });
 
 
@@ -291,14 +291,14 @@ const actions = {
             eval_context: session.user_context,
         });
         if (results.error) {
-            throw new Error(_.str.sprintf(_t("Failed to evaluate search criterions")+": \n%s",
-                            JSON.stringify(results.error)));
+            throw new Error(_.str.sprintf(_t("Failed to evaluate search criterions") + ": \n%s",
+                JSON.stringify(results.error)));
         }
 
         var groupBys = this._getGroupBy();
         var groupBy = groupBys.length ?
-                        groupBys :
-                        (this.actionContext.group_by || []);
+            groupBys :
+            (this.actionContext.group_by || []);
         groupBy = (typeof groupBy === 'string') ? [groupBy] : groupBy;
 
         context = _.omit(results.context, 'time_ranges');
@@ -421,7 +421,7 @@ const actions = {
                         if (filter.currentOptionIds) {
                             filter.currentOptionIds.clear();
                         }
-                    })
+                    });
                     group.activeFilterIds = [];
                 });
                 this.query = [];
@@ -622,7 +622,7 @@ const actions = {
      * @param {Object[]} group, list of 'prefilters'
      */
     _createGroupOfFilters: function (group) {
-        var self= this;
+        var self = this;
         var type;
         var groupId = _.uniqueId('__group__');
         group.forEach(function (filter) {
@@ -655,7 +655,7 @@ const actions = {
                 timeRanges.push({
                     type: 'timeRange',
                     description: field.string,
-                    fieldName : fieldName,
+                    fieldName: fieldName,
                     fieldType: fieldType,
                     timeRangeId: false,
                     comparisonTimeRangeId: false,
@@ -705,7 +705,7 @@ const actions = {
         // TODO: should not do that, the domain logic should be put somewhere else
         var Obj = searchBarAutocompleteRegistry.getAny([filter.attrs.widget, field.type]);
         if (Obj) {
-            var obj = new (Obj) (this, filter, field, this.actionContext);
+            var obj = new (Obj)(this, filter, field, this.actionContext);
             domain = obj.getDomain(filter.autoCompleteValues);
         }
         return domain;
@@ -980,10 +980,10 @@ const actions = {
             var comparisonTimeRangeDescription;
 
             var timeRange = Domain.prototype.constructDomain(
-                    filter.fieldName,
-                    filter.timeRangeId,
-                    filter.fieldType
-                );
+                filter.fieldName,
+                filter.timeRangeId,
+                filter.fieldType
+            );
             var timeRangeDescription = _.find(filter.timeRangeOptions, function (option) {
                 return option.optionId === filter.timeRangeId;
             }).description.toString();
@@ -1026,7 +1026,7 @@ const actions = {
      */
     _loadFavorites: function () {
         var self = this;
-        var def = this.loadFilters(this.modelName,this.actionId).then(function (favorites) {
+        var def = this.loadFilters(this.modelName, this.actionId).then(function (favorites) {
             if (favorites.length) {
                 favorites = favorites.map(function (favorite) {
                     var userId = favorite.user_id ? favorite.user_id[0] : false;
@@ -1087,13 +1087,13 @@ const actions = {
         return def;
     },
     /**
-     * Load search defaults and set the `domain` key on filter (of type `field`).
-     * Some search defaults need to fetch data (like m2o for example) so this
-     * is asynchronous.
-     *
-     * @private
-     * @returns {Promise[]}
-     */
+        * Load search defaults and set the `domain` key on filter (of type `field`).
+        * Some search defaults need to fetch data (like m2o for example) so this
+        * is asynchronous.
+        *
+        * @private
+        * @returns {Promise[]}
+        */
     _loadSearchDefaults: function () {
         var self = this;
         var defs = [];
@@ -1149,15 +1149,15 @@ const actions = {
         return defs;
     },
     /**
-     * Compute the search Query and save it as an ir.filter in db.
-     * No evaluation of domains is done in order to keep them dynamic.
-     * If the operatio is successful, a new filter of type 'favorite' is
-     * created and activated.
-     *
-     * @private
-     * @param {Object} favorite
-     * @returns {Promise}
-     */
+        * Compute the search Query and save it as an ir.filter in db.
+        * No evaluation of domains is done in order to keep them dynamic.
+        * If the operatio is successful, a new filter of type 'favorite' is
+        * created and activated.
+        *
+        * @private
+        * @param {Object} favorite
+        * @returns {Promise}
+        */
     _saveQuery: function (favorite) {
         var self = this;
         var userContext = session.user_context;
@@ -1185,7 +1185,7 @@ const actions = {
             orderedBy = controllerQueryParams.orderedBy;
         }
         var sort = orderedBy.map(function (order) {
-                return order.name + ((order.asc === false) ? " desc" : "");
+            return order.name + ((order.asc === false) ? " desc" : "");
         });
 
         var irFilter = {
@@ -1232,52 +1232,53 @@ const getters = {
             groupBy: [],
             orderedBy: [],
         };
-        var userContext = session.user_context;
-        var context = _.extend(
-            pyUtils.eval('contexts', this._getQueryContext(), userContext),
-            this._getTimeRangeMenuData(true)
-        );
-        var domain = Domain.prototype.stringToArray(this._getDomain(), userContext);
-        // this must be done because pyUtils.eval does not know that it needs to evaluate domains within contexts
-        if (context.timeRangeMenuData) {
-            if (typeof context.timeRangeMenuData.timeRange === 'string') {
-                context.timeRangeMenuData.timeRange = pyUtils.eval('domain', context.timeRangeMenuData.timeRange);
-            }
-            if (typeof context.timeRangeMenuData.comparisonTimeRange === 'string') {
-                context.timeRangeMenuData.comparisonTimeRange = pyUtils.eval('domain', context.timeRangeMenuData.comparisonTimeRange);
-            }
-        }
-        var action_context = this.actionContext;
-        var results = pyUtils.eval_domains_and_contexts({
-            domains: [this.actionDomain].concat([domain] || []),
-            contexts: [action_context].concat(context || []),
-            eval_context: session.user_context,
-        });
-        if (results.error) {
-            throw new Error(_.str.sprintf(_t("Failed to evaluate search criterions")+": \n%s",
-                            JSON.stringify(results.error)));
-        }
+        // var userContext = session.user_context;
+        // var context = _.extend(
+        //     pyUtils.eval('contexts', this._getQueryContext(), userContext),
+        //     this._getTimeRangeMenuData(true)
+        // );
+        // var domain = Domain.prototype.stringToArray(this._getDomain(), userContext);
+        // // this must be done because pyUtils.eval does not know that it needs to evaluate domains within contexts
+        // if (context.timeRangeMenuData) {
+        //     if (typeof context.timeRangeMenuData.timeRange === 'string') {
+        //         context.timeRangeMenuData.timeRange = pyUtils.eval('domain', context.timeRangeMenuData.timeRange);
+        //     }
+        //     if (typeof context.timeRangeMenuData.comparisonTimeRange === 'string') {
+        //         context.timeRangeMenuData.comparisonTimeRange = pyUtils.eval('domain', context.timeRangeMenuData.comparisonTimeRange);
+        //     }
+        // }
+        // var action_context = this.actionContext;
+        // var results = pyUtils.eval_domains_and_contexts({
+        //     domains: [this.actionDomain].concat([domain] || []),
+        //     contexts: [action_context].concat(context || []),
+        //     eval_context: session.user_context,
+        // });
+        // if (results.error) {
+        //     throw new Error(_.str.sprintf(_t("Failed to evaluate search criterions")+": \n%s",
+        //                     JSON.stringify(results.error)));
+        // }
 
-        var groupBys = this._getGroupBy();
-        var groupBy = groupBys.length ?
-                        groupBys :
-                        (this.actionContext.group_by || []);
-        groupBy = (typeof groupBy === 'string') ? [groupBy] : groupBy;
+        // var groupBys = this._getGroupBy();
+        // var groupBy = groupBys.length ?
+        //                 groupBys :
+        //                 (this.actionContext.group_by || []);
+        // groupBy = (typeof groupBy === 'string') ? [groupBy] : groupBy;
 
-        context = _.omit(results.context, 'time_ranges');
+        // context = _.omit(results.context, 'time_ranges');
 
-        return {
-            context: context,
-            domain: results.domain,
-            groupBy: groupBy,
-            orderedBy: this._getOrderedBy(),
-        };
+        // return {
+        //     context: context,
+        //     domain: results.domain,
+        //     groupBy: groupBy,
+        //     orderedBy: this._getOrderedBy(),
+        // };
     },
     getTimeranges() {
         return this.state.filters.filter(f => f.type === 'timerange');
     },
 };
 
+// Test data
 const state = {
     breadcrumbs: {
         breadcrumbs: [],
@@ -1298,8 +1299,21 @@ const state = {
         sections: [],
     },
     viewSwitcher: {
-        views: [],
-        viewType: null,
+        views: [
+            {
+                icon: 'fas fa-heart',
+                type: 'form',
+            },
+            {
+                icon: 'fa fa-lg fa-th-large',
+                type: 'kanban',
+            },
+            {
+                icon: 'fa fa-lg fa-list-ul',
+                type: 'list',
+            },
+        ],
+        viewType: 'kanban',
     },
 };
 

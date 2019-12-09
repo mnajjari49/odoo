@@ -76,20 +76,6 @@ class ControlPanelRenderer extends Component {
             };
         }).concat({ title: this.props.title && this.props.title.trim() });
     }
-
-    _onBreadcrumbClicked(controllerID) {
-        if (controllerID) {
-            this.trigger('breadcrumb_clicked', { controllerID });
-        }
-    }
-
-    /**
-     * @private
-     * @param {string} viewType
-     */
-    _onSwitchView(viewType) {
-        this.trigger('switch_view', { view_type: viewType });
-    }
 }
 
 ControlPanelRenderer.defaultProps = {

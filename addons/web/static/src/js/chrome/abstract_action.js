@@ -104,8 +104,7 @@ var AbstractAction = Widget.extend(ActionMixin, {
                 proms.push(loadFieldViewPromise);
             }
             await Promise.all(proms);
-            const controlPanelView = new this.config.ControlPanel(params);
-            this._controlPanel = await controlPanelView.getController(this);
+            this._controlPanel = new this.config.ControlPanel(null, params);
             await this._controlPanel.mount(document.createElement('div'));
         }
         return Promise.all(proms);
@@ -115,6 +114,7 @@ var AbstractAction = Widget.extend(ActionMixin, {
      */
     start: async function () {
         await this._super(...arguments);
+        return this.prependControlPanel();
     },
     on_attach_callback: function () {
         return this.prependControlPanel();

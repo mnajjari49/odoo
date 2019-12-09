@@ -215,9 +215,9 @@
 <t t-name="ControlPanel" owl="1">
     <div class="o_control_panel">
         <div class="o_cp_top">
-            <!-- <Breadcrumbs t-if="props.withBreadcrumbs"/> -->
+            <Breadcrumbs t-if="props.withBreadcrumbs"/>
             <div t-if="props.withSearchbar" class="o_cp_searchview" role="search">
-                <!-- <SearchBar t-on-toggle_submenus="state.submenus = !state.submenus"/> -->
+                <SearchBar t-on-toggle_submenus="state.submenus = !state.submenus"/>
             </div>
         </div>
         <div class="o_cp_bottom">
@@ -228,12 +228,245 @@
                 <Sidebar t-if="props.sidebar" t-props="props.sidebar"/>
             </div>
             <div class="o_cp_right">
-                <!-- <Submenus t-if="state.submenus"/> -->
-                <Pager t-if="props.pager"/>
-                <ViewSwitcher t-if="props.viewswitcher"/>
+                <SearchMenus t-if="state.submenus"/>
+                <Pager/>
+                <ViewSwitcher/>
             </div>
         </div>
     </div>
+</t>
+
+<t t-name="Breadcrumbs" owl="1">
+    <ol class="breadcrumb" role="navigation">
+        <li t-foreach="breadcrumbs" t-as="bc" t-key="bc_index"
+            class="breadcrumb-item"
+            t-att-class="{active: bc_last}"
+            t-att-accesskey="bc_index === breadcrumbs.length - 2 and 'b'"
+            t-on-click.prevent="trigger('breadcrumb_clicked', { controllerID: bc.controllerID })"
+            >
+            <t t-if="bc.title">
+                <t t-if="bc_last" t-esc="bc.title"/>
+                <a t-else="" href="#" t-esc="bc.title"/>
+            </t>
+            <em t-else="" class="text-warning">Unnamed</em>
+        </li>
+    </ol>
+</t>
+
+<t t-name="MobileSearchBar" owl="1">
+    <div class="o_mobile_search o_hidden">
+        <div class="o_mobile_search_header">
+            <span class="o_mobile_search_close float-left mt16 mb16 mr8 ml16">
+                <i class="fa fa-arrow-left"/>
+                <strong class="float-right ml8">FILTER</strong>
+            </span>
+            <span class="float-right o_mobile_search_clear_facets mt16 mr16">CLEAR</span>
+        </div>
+        <div class="o_mobile_search_filter o_search_options mb8 mt8 ml16 mr16"/>
+        <div class="btn btn-primary o_mobile_search_show_result fixed-bottom">SEE RESULT</div>
+    </div>
+</t>
+
+<t t-name="Pager" owl="1">
+    <nav class="o_cp_pager" role="search" aria-label="Pager">
+        <div class="o_pager">
+            <t t-if="storeProps.size and !(storeProps.single_page_hidden and singlePage)">
+                <span class="o_pager_counter">
+                    <span class="o_pager_value" t-on-click.prevent="_onEdit">
+                        <input t-if="state.editing"
+                            class="o_input"
+                            type="text"
+                            t-att-value="value"
+                            t-ref="input"
+                            t-on-click.stop.prevent=""
+                            t-on-blur="state.editing = false"
+                            t-on-change="_onValueChange"
+                            t-on-keydown.stop="_onValueKeydown"
+                        />
+                        <t t-else="" t-esc="value"/>
+                    </span>
+                    /
+                    <span class="o_pager_limit" t-esc="storeProps.size"/>
+                </span>
+                <span class="btn-group" aria-atomic="true">
+                    <!-- accesskeys not wanted in X2Many widgets -->
+                    <t t-if="storeProps.withAccessKey">
+                        <t t-set="att_prev" t-value="{'accesskey': 'p'}"/>
+                        <t t-set="att_next" t-value="{'accesskey': 'n'}"/>
+                    </t>
+                    <button type="button"
+                        class="fa fa-chevron-left btn btn-secondary o_pager_previous"
+                        t-att-disabled="storeProps.disabled or singlePage"
+                        t-att="att_prev"
+                        aria-label="Previous"
+                        title="Previous"
+                        tabindex="-1"
+                        t-on-click.stop="_changeSelection(-1)"
+                    />
+                    <button type="button"
+                        class="fa fa-chevron-right btn btn-secondary o_pager_next"
+                        t-att-disabled="storeProps.disabled or singlePage"
+                        t-att="att_next"
+                        aria-label="Next"
+                        title="Next"
+                        tabindex="-1"
+                        t-on-click.stop="_changeSelection(1)"
+                    />
+                </span>
+            </t>
+        </div>
+    </nav>
+</t>
+
+<t t-name="SearchBar" owl="1">
+    <div class="o_searchview" role="search" aria-autocomplete="list" t-on-keydown="_onKeydown">
+        <t t-if="env.config.device.isMobile">
+            <t t-call="MobileSearchBar"/>
+            <button class="o_toggle_searchview_full o_hidden btn fa fa-filter"/>
+            <button class="o_enable_searchview btn btn-link fa fa-search"/>
+        </t>
+        <t t-else="">
+            <span class="o_searchview_more fa" title="Advanced Search..." role="img" aria-label="Advanced Search..."/>
+        </t>
+        <div class="o_searchview_input_container">
+            <div t-foreach="props.facets" t-as="facet" t-key="facet.id" tabindex="0" class="o_searchview_facet" role="img" aria-label="search">
+                <span t-if="facet.type === 'field'" class="o_searchview_facet_label">
+                    <t t-esc="facet.filters[0].attrs.string"/>
+                </span>
+                <span t-else="1" t-att-class="'fa ' + facet.icon + ' o_searchview_facet_label'"/>
+                <div class="o_facet_values">
+                    <t t-foreach="facet.facetValues" t-as="facetValue">
+                        <span t-if="facetValue_index > 0" class="o_facet_values_sep" t-esc="facet.separator"/> <span t-esc="facetValue"/>
+                    </t>
+                </div>
+                <div class="fa fa-sm fa-remove o_facet_remove" role="img" aria-label="Remove" title="Remove"/>
+            </div>
+            <input type="text"
+                class="o_searchview_input"
+                accesskey="Q"
+                placeholder="Search..."
+                role="searchbox"
+                aria-haspopup="true"
+                t-ref="input"
+                t-on-compositionend="_onCompositionendInput"
+                t-on-compositionstart="_onCompositionstartInput"
+            />
+        </div>
+    </div>
+</t>
+
+<t t-name="SearchMenus" owl="1">
+    <div class="o_search_menus">
+    </div>
+</t>
+
+<t t-name="Sidebar" owl="1">
+    <aside class="o_cp_sidebar">
+        <t t-if="Object.keys(items).length">
+            <t t-foreach="sections" t-as="section" t-key="section.name">
+                <t t-set="sectionItems" t-value="items[section.name]"/>
+                <div t-if="sectionItems.length" class="btn-group o_dropdown">
+                    <t t-if="section.name === 'buttons'">
+                        <a t-foreach="sectionItems" t-as="item" t-key="item.title" t-att-class="item.classname"
+                            t-att-title="item.title or None"
+                            t-att-data-section="section.name"
+                            t-att-data-index="item_index"
+                            t-att-href="item.url or '#'"
+                            target="_blank"
+                            >
+                            <t t-raw="item.label"/>
+                        </a>
+                    </t>
+                    <button t-else="" class="o_dropdown_toggler_btn btn btn-secondary dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
+                        <t t-if="section.name === 'files'" t-raw="sectionItems.length || ''"/>
+                        <t t-esc="section.label"/>
+                    </button>
+                    <div class="dropdown-menu o_dropdown_menu" role="menu">
+                        <t t-foreach="sectionItems" t-as="item" t-key="item.title">
+                            <t t-if="section.name === 'files'">
+                                <t t-set="item.title">
+                                    <b>Attachment : </b><br/>
+                                    <t t-raw="item.name"/>
+                                </t>
+                                <t t-if="item.create_uid and item.create_uid[0]" t-set="item.title">
+                                    <t t-raw="item.title"/><br/>
+                                    <b>Created by : </b><br/>
+                                    <t t-raw="item.create_uid[1]"/>  <t t-esc="item.create_date_string" />
+                                </t>
+                                <t t-if="item.create_uid and item.write_uid and item.create_uid[0] != item.write_uid[0]" t-set="item.title">
+                                    <t t-raw="item.title"/><br/>
+                                    <b>Modified by : </b><br/>
+                                    <t t-raw="item.write_uid[1]"/>  <t t-esc="item.write_date_string"/>
+                                </t>
+                            </t>
+                            <a role="menuitem"
+                                t-attf-class="dropdown-item {{item.classname}}"
+                                t-att-title="item.title or None"
+                                t-att-href="item.url or '#'"
+                                t-on-click="_onDropdownClicked(item)"
+                                >
+                                <t t-raw="item.label"/>
+                                <span t-if="section.name === 'files' and props.editable and !item.callback"
+                                    class="fa fa-trash-o o_sidebar_delete_attachment"
+                                    t-att-data-id="item.id"
+                                    title="Delete this attachment"
+                                    role="img"
+                                    aria-label="Delete this attachment"
+                                />
+                            </a>
+                        </t>
+                        <CustomFileInput
+                            action="'/web/binary/upload_attachment'"
+                            multi_upload="true"
+                            model="props.model"
+                            id="props.activeIds and props.activeIds[0]"
+                            t-on-uploaded="_onFileUploaded"
+                            >
+                            <div t-if="section.name === 'files' and props.editable"
+                                role="menuitem"
+                                class="dropdown-item o_sidebar_add_attachment"
+                                >
+                                <span>Add...</span>
+                            </div>
+                        </CustomFileInput>
+                    </div>
+                </div>
+            </t>
+        </t>
+    </aside>
+</t>
+
+<t t-name="ViewSwitcher" owl="1">
+    <nav class="btn-group o_cp_switch_buttons" role="toolbar" aria-label="View switcher">
+        <t t-if="env.device.isMobile">
+            <button class="btn btn-link btn-sm" data-toggle="dropdown" aria-expanded="false">
+                <span class="fa fa-lg" t-att-class="viewTypeIcon"/>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-right list-inline">
+                <li t-foreach="state.views" t-as="view" t-key="view.type">
+                    <t t-call="ViewSwitcher.Button"/>
+                </li>
+            </ul>
+        </t>
+        <t t-else="">
+            <t t-foreach="state.views" t-as="view" t-key="view.type">
+                <t t-call="ViewSwitcher.Button"/>
+            </t>
+        </t>
+    </nav>
+</t>
+
+<t t-name="ViewSwitcher.Button" owl="1">
+    <button type="button"
+        t-att-accesskey="view.accessKey"
+        t-attf-class="btn btn-secondary fa fa-lg {{view.icon}} o_cp_switch_{{view.type}} {{state.viewType === view.type ? ' active' : ''}}"
+        t-attf-aria-label="View {{view.type}}"
+        t-att-data-view-type="view.type"
+        t-attf-title="View {{view.type}}"
+        data-toggle="tooltip"
+        tabindex="-1"
+        t-on-click="trigger('switch_view', { view_type: view.type })"
+    />
 </t>
 
 <t t-name="ControlPanelController" owl="1">
@@ -363,82 +596,6 @@
             </div>
         </div>
     </div>
-</t>
-
-<t t-name="Sidebar" owl="1">
-    <aside class="o_cp_sidebar">
-        <t t-if="Object.keys(items).length">
-            <t t-foreach="sections" t-as="section" t-key="section.name">
-                <t t-set="sectionItems" t-value="items[section.name]"/>
-                <div t-if="sectionItems.length" class="btn-group o_dropdown">
-                    <t t-if="section.name === 'buttons'">
-                        <a t-foreach="sectionItems" t-as="item" t-key="item.title" t-att-class="item.classname"
-                            t-att-title="item.title or None"
-                            t-att-data-section="section.name"
-                            t-att-data-index="item_index"
-                            t-att-href="item.url or '#'"
-                            target="_blank"
-                            >
-                            <t t-raw="item.label"/>
-                        </a>
-                    </t>
-                    <button t-else="" class="o_dropdown_toggler_btn btn btn-secondary dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
-                        <t t-if="section.name === 'files'" t-raw="sectionItems.length || ''"/>
-                        <t t-esc="section.label"/>
-                    </button>
-                    <div class="dropdown-menu o_dropdown_menu" role="menu">
-                        <t t-foreach="sectionItems" t-as="item" t-key="item.title">
-                            <t t-if="section.name === 'files'">
-                                <t t-set="item.title">
-                                    <b>Attachment : </b><br/>
-                                    <t t-raw="item.name"/>
-                                </t>
-                                <t t-if="item.create_uid and item.create_uid[0]" t-set="item.title">
-                                    <t t-raw="item.title"/><br/>
-                                    <b>Created by : </b><br/>
-                                    <t t-raw="item.create_uid[1]"/>  <t t-esc="item.create_date_string" />
-                                </t>
-                                <t t-if="item.create_uid and item.write_uid and item.create_uid[0] != item.write_uid[0]" t-set="item.title">
-                                    <t t-raw="item.title"/><br/>
-                                    <b>Modified by : </b><br/>
-                                    <t t-raw="item.write_uid[1]"/>  <t t-esc="item.write_date_string"/>
-                                </t>
-                            </t>
-                            <a role="menuitem"
-                                t-attf-class="dropdown-item {{item.classname}}"
-                                t-att-title="item.title or None"
-                                t-att-href="item.url or '#'"
-                                t-on-click="_onDropdownClicked(item)"
-                                >
-                                <t t-raw="item.label"/>
-                                <span t-if="section.name === 'files' and props.editable and !item.callback"
-                                    class="fa fa-trash-o o_sidebar_delete_attachment"
-                                    t-att-data-id="item.id"
-                                    title="Delete this attachment"
-                                    role="img"
-                                    aria-label="Delete this attachment"
-                                />
-                            </a>
-                        </t>
-                        <CustomFileInput
-                            action="'/web/binary/upload_attachment'"
-                            multi_upload="true"
-                            model="props.model"
-                            id="props.activeIds and props.activeIds[0]"
-                            t-on-uploaded="_onFileUploaded"
-                            >
-                            <div t-if="section.name === 'files' and props.editable"
-                                role="menuitem"
-                                class="dropdown-item o_sidebar_add_attachment"
-                                >
-                                <span>Add...</span>
-                            </div>
-                        </CustomFileInput>
-                    </div>
-                </div>
-            </t>
-        </t>
-    </aside>
 </t>
 
 <div t-name="View.NoContentHelper" class="o_view_nocontent" role="alert">
@@ -1379,43 +1536,6 @@
     </div>
 </div>
 
-<t t-name="SearchBar" owl="1">
-    <div class="o_searchview" role="search" aria-autocomplete="list" t-on-keydown="_onKeydown">
-        <t t-if="env.config.device.isMobile">
-            <t t-call="MobileSearchBar"/>
-            <button class="o_toggle_searchview_full o_hidden btn fa fa-filter"/>
-            <button class="o_enable_searchview btn btn-link fa fa-search"/>
-        </t>
-        <t t-else="">
-            <span class="o_searchview_more fa" title="Advanced Search..." role="img" aria-label="Advanced Search..."/>
-        </t>
-        <div class="o_searchview_input_container">
-            <div t-foreach="props.facets" t-as="facet" t-key="facet.id" tabindex="0" class="o_searchview_facet" role="img" aria-label="search">
-                <span t-if="facet.type === 'field'" class="o_searchview_facet_label">
-                    <t t-esc="facet.filters[0].attrs.string"/>
-                </span>
-                <span t-else="1" t-att-class="'fa ' + facet.icon + ' o_searchview_facet_label'"/>
-                <div class="o_facet_values">
-                    <t t-foreach="facet.facetValues" t-as="facetValue">
-                        <span t-if="facetValue_index > 0" class="o_facet_values_sep" t-esc="facet.separator"/> <span t-esc="facetValue"/>
-                    </t>
-                </div>
-                <div class="fa fa-sm fa-remove o_facet_remove" role="img" aria-label="Remove" title="Remove"/>
-            </div>
-            <input type="text"
-                class="o_searchview_input"
-                accesskey="Q"
-                placeholder="Search..."
-                role="searchbox"
-                aria-haspopup="true"
-                t-ref="input"
-                t-on-compositionend="_onCompositionendInput"
-                t-on-compositionstart="_onCompositionstartInput"
-            />
-        </div>
-    </div>
-</t>
-
 <div t-name="SearchView.SearchFacet" tabindex="0" class="o_searchview_facet" role="img" aria-label="search">
     <span t-if="widget.facet.type === 'field'" class="o_searchview_facet_label">
         <t t-esc="widget.facet.filters[0].attrs.string"/>
@@ -1476,20 +1596,6 @@
             <t t-esc="element[1]"/>
         </option>
     </select>
-</t>
-
-<t t-name="MobileSearchBar" owl="1">
-    <div class="o_mobile_search o_hidden">
-        <div class="o_mobile_search_header">
-            <span class="o_mobile_search_close float-left mt16 mb16 mr8 ml16">
-                <i class="fa fa-arrow-left"/>
-                <strong class="float-right ml8">FILTER</strong>
-            </span>
-            <span class="float-right o_mobile_search_clear_facets mt16 mr16">CLEAR</span>
-        </div>
-        <div class="o_mobile_search_filter o_search_options mb8 mt8 ml16 mr16"/>
-        <div class="btn btn-primary o_mobile_search_show_result fixed-bottom">SEE RESULT</div>
-    </div>
 </t>
 
 <div t-name="AddNewFavoriteMenu">
@@ -1623,57 +1729,6 @@
     <button type="button" class="o_icon_button" t-att-title="widget.string" t-att-aria-label="widget.string" aria-pressed="false">
         <i class="far fa-circle" t-att-title="widget.string"/>
     </button>
-</t>
-
-<t t-name="Pager" owl="1">
-    <nav class="o_cp_pager" role="search" aria-label="Pager">
-        <div class="o_pager">
-            <t t-if="props.size and !(props.single_page_hidden and singlePage)">
-                <span class="o_pager_counter">
-                    <span class="o_pager_value" t-on-click.prevent="_onEdit">
-                        <input t-if="state.editing"
-                            class="o_input"
-                            type="text"
-                            t-att-value="value"
-                            t-ref="input"
-                            t-on-click.stop.prevent=""
-                            t-on-blur="_onValueBlur"
-                            t-on-change="_onValueChange"
-                            t-on-keydown.stop="_onValueKeydown"
-                        />
-                        <t t-else="" t-esc="value"/>
-                    </span>
-                    /
-                    <span class="o_pager_limit" t-esc="props.size"/>
-                </span>
-                <span class="btn-group" aria-atomic="true">
-                    <!-- accesskeys not wanted in X2Many widgets -->
-                    <t t-if="props.withAccessKey">
-                        <t t-set="att_prev" t-value="{'accesskey': 'p'}"/>
-                        <t t-set="att_next" t-value="{'accesskey': 'n'}"/>
-                    </t>
-                    <button type="button"
-                        class="fa fa-chevron-left btn btn-secondary o_pager_previous"
-                        t-att-disabled="props.disabled or singlePage"
-                        t-att="att_prev"
-                        aria-label="Previous"
-                        title="Previous"
-                        tabindex="-1"
-                        t-on-click.stop="_onPrevious"
-                    />
-                    <button type="button"
-                        class="fa fa-chevron-right btn btn-secondary o_pager_next"
-                        t-att-disabled="props.disabled or singlePage"
-                        t-att="att_next"
-                        aria-label="Next"
-                        title="Next"
-                        tabindex="-1"
-                        t-on-click.stop="_onNext"
-                    />
-                </span>
-            </t>
-        </div>
-    </nav>
 </t>
 
 <t t-name="AceEditor">

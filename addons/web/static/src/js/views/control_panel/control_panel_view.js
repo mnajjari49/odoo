@@ -1,9 +1,13 @@
 odoo.define('web.ControlPanel', function (require) {
 "use strict";
 
-const ControlPanelController = require('web.ControlPanelController');
-const ControlPanelStore = require('web.ControlPanelStore');
-const ControlPanelRenderer = require('web.ControlPanelRenderer');
+const Breadcrumbs = require('web.Breadcrumbs');
+const Pager = require('web.Pager');
+const SearchBar = require('web.SearchBar');
+const Sidebar = require('web.Sidebar');
+const SearchMenus = require('web.SearchMenus');
+const ViewSwitcher = require('web.ViewSwitcher');
+
 const { DEFAULT_INTERVAL, DEFAULT_PERIOD, INTERVAL_OPTIONS, OPTION_GENERATORS } = require('web.controlPanelViewParameters');
 const { Factory } = require('web.mvc');
 const { loadLibs } = require('web.ajax');
@@ -12,12 +16,15 @@ const pyUtils = require('web.py_utils');
 const Domain = require('web.Domain');
 
 const { Component, hooks } = owl;
-const { useStore } = hooks;
+const { useState, useStore } = hooks;
 
 class ControlPanel extends Component {
     constructor() {
         super(...arguments);
 
+        this.state = useState({
+            submenus: false,
+        });
         this.buttons = useStore(state => state.buttons, { store: this.env.cpstore });
 
         // const viewInfo = this.props.viewInfo || { arch: '<search/>', fields: {} };
@@ -96,6 +103,10 @@ class ControlPanel extends Component {
         // }
         window.top.cp = this;
     }
+
+    exportState() { }
+
+    importState() { }
 
     // async willStart() {
     //     this.env.cpstore.dispatch('load', {
@@ -305,16 +316,11 @@ class ControlPanel extends Component {
     }
 }
 
-ControlPanel.components = {};
+ControlPanel.components = { Breadcrumbs, Pager, SearchBar, Sidebar, SearchMenus, ViewSwitcher };
 // ControlPanel.props = {};
 ControlPanel.template = 'ControlPanel';
 
-const _ControlPanelView = Factory.extend({
-    // config: Object.assign({}, Factory.prototype.config, {
-    //     Controller: ControlPanelController,
-    //     Model: ControlPanelModel,
-    //     Renderer: ControlPanelRenderer,
-    // }),
+var ControlPanelView = Factory.extend({
 
     /**
      * @override
