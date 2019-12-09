@@ -3250,7 +3250,21 @@ class AccountMoveLine(models.Model):
                     move_initial_values[line.move_id.id] = {}
                 move_initial_values[line.move_id.id].update({field: line[field]})
 
-        result = super(AccountMoveLine, self).write(vals)
+        result = True
+        for line in self:
+            to_write = dict(vals)
+            if vals.get('currency_id'):
+                currency = self.env['res.currency'].browse(to_write['currency_id'])
+            else:
+                currency = line.currency_id
+            if currency == line.move_id.company_currency_id:
+                if 'debit' in to_write or 'credit' in to_write:
+                    to_write['amount_currency'] = to_write.get('debit', line.debit) - to_write.get('credit', line.credit)
+                elif 'amount_currency' in to_write:
+                    to_write['debit'] = to_write['amount_currency'] if to_write['amount_currency'] > 0.0 else 0.0
+                    to_write['credit'] = -to_write['amount_currency'] if to_write['amount_currency'] < 0.0 else 0.0
+
+            result |= super(AccountMoveLine, line).write(to_write)
 
         # Create the dict for the message post
         tracking_values = {} # Tracking values to write in the message post
