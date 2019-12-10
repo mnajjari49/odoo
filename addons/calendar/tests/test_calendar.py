@@ -275,11 +275,9 @@ class TestCalendar(SavepointCaseWithUserDemo):
         def _test_one_mail_per_attendee(self, m, partners):
             # check that every attendee receive a (single) mail for the event
             for partner in partners:
-                mail = self.env['mail.mail'].sudo().search([
-                    ('recipient_ids', 'in', partner.id),
-                    ('subject', 'like', m.name),
+                mail = self.env['mail.message'].sudo().search([
+                    ('notified_partner_ids', 'in', partner.id),
                     ])
-                print(mail.mapped('subject'))
                 self.assertEqual(len(mail), 1)
 
         partners = [
@@ -316,12 +314,12 @@ class TestCalendar(SavepointCaseWithUserDemo):
         # more email should be sent
         _test_one_mail_per_attendee(self, m, partners)
 
-        # calculate virtualid to detach one event
-        virtid = str(m.id) + '-' + ''.join(re.split('[\D]', fields.Datetime.to_string(now + timedelta(days=12))))
+        # # calculate virtualid to detach one event
+        # virtid = str(m.id) + '-' + ''.join(re.split('[\D]', fields.Datetime.to_string(now + timedelta(days=12))))
 
-        # detaching a virtual event in the chain
-        self.env['calendar.event'].browse(virtid).detach_recurring_event(values={'active':False})
+        # # detaching a virtual event in the chain
+        # self.env['calendar.event'].browse(virtid).detach_recurring_event(values={'active':False})
 
-        # since the detach actually create an event in the backend
-        # we check that no mail notifications are sent to the attendees
-        _test_one_mail_per_attendee(self, m, partners)
+        # # since the detach actually create an event in the backend
+        # # we check that no mail notifications are sent to the attendees
+        # _test_one_mail_per_attendee(self, m, partners)

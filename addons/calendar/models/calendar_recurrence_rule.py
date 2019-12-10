@@ -92,6 +92,7 @@ class RecurrenceRule(models.Model):
 
     # TODO exdate?
 
+    name = fields.Char(compute='_compute_name', store=True)
     base_calendar_event_id = fields.Many2one('calendar.event', ondelete='set null', copy=False)  # store=False ?
     calendar_event_ids = fields.One2many('calendar.event', 'recurrence_id')
     event_tz = fields.Selection(_tz_get, string='Timezone', default=lambda self: self.env.context.get('tz') or self.env.user.tz)
@@ -115,6 +116,33 @@ class RecurrenceRule(models.Model):
     weekday = fields.Selection(WEEKDAY_SELECTION, string='Weekday')
     byday = fields.Selection(BYDAY_SELECTION, string='By day')  # TODO rename this field
     until = fields.Date('Repeat Until')
+
+    @api.depends('rrule')
+    def _compute_name(self):
+        for recurrence in self:
+            period = dict(RRULE_TYPE_SELECTION)[recurrence.rrule_type]
+            every = _("Every %s %s, ") % (recurrence.interval, period)
+
+            if recurrence.end_type == 'count':
+                end = _("for %s events") % recurrence.count
+            elif recurrence.end_type == 'end_date':
+                end = _("until %s") % recurrence.until
+            else:
+                end = ''
+
+            if recurrence.rrule_type == 'weeky':
+                weekdays = recurrence._get_week_days()
+                fields = (self._fields[weekday_to_field(w)] for w in weekdays)
+                on = _("on %s,") % ", ".join([field.string for field in fields])
+            elif recurrence.rrule_type == 'monthly':
+                if recurrence.month_by == 'day':
+                    weekday_label = dict(BYDAY_SELECTION)[recurrence.byday]
+                    on = _("on the %(position)s %(weekday)s, ") % {'position': recurrence.byday, 'weekday': weekday_label}
+                else:
+                    on = _("day %s, ") % recurrence.day
+            else:
+                on = ''
+            recurrence.name = every + on + end
 
     @api.depends('calendar_event_ids.start')
     def _compute_dtstart(self):

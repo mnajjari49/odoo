@@ -265,6 +265,7 @@ class MailCase(MockEmail):
     @contextmanager
     def mock_bus(self):
         bus_bus_create_origin = ImBus.create
+        self._reset_bus()
         self._init_mock_bus()
 
         def _bus_bus_create(model, *args, **kwargs):
