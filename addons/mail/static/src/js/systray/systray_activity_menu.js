@@ -15,7 +15,6 @@ var ActivityMenu = Widget.extend({
     name: 'activity_menu',
     template:'mail.systray.ActivityMenu',
     events: {
-        'click .o_mail_activity_action': '_onActivityActionClick',
         'click .o_mail_preview': '_onActivityFilterClick',
         'show.bs.dropdown': '_onActivityMenuShow',
     },
@@ -97,32 +96,6 @@ var ActivityMenu = Widget.extend({
     //------------------------------------------------------------
 
     /**
-     * Redirect to specific action given its xml id or to the activity
-     * view of the current model if no xml id is provided
-     *
-     * @private
-     * @param {MouseEvent} ev
-     */
-    _onActivityActionClick: function (ev) {
-        ev.stopPropagation();
-        this.$('.dropdown-toggle').dropdown('toggle');
-        var targetAction = $(ev.currentTarget);
-        var actionXmlid = targetAction.data('action_xmlid');
-        if (actionXmlid) {
-            this.do_action(actionXmlid);
-        } else {
-            this.do_action({
-                type: 'ir.actions.act_window',
-                name: targetAction.data('model_name'),
-                views: [[false, 'activity'], [false, 'kanban'], [false, 'list']],
-                view_mode: 'activity',
-                res_model: targetAction.data('res_model'),
-                domain: [['activity_ids.user_id', '=', session.uid]],
-            });
-        }
-    },
-
-    /**
      * Redirect to particular model view
      * @private
      * @param {MouseEvent} event
@@ -141,7 +114,8 @@ var ActivityMenu = Widget.extend({
             type: 'ir.actions.act_window',
             name: data.model_name,
             res_model:  data.res_model,
-            views: [[false, 'kanban'], [false, 'form']],
+            views: [[false,'calendar'], [false,'activity'], [false, 'kanban'], [false,'list'], [false, 'form']],
+            view_mode: 'calendar',
             search_view_id: [false],
             domain: [['activity_user_id', '=', session.uid]],
             context:context,
