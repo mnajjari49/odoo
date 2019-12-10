@@ -909,6 +909,27 @@ class ChromeBrowser():
         _id = self._websocket_send('Network.deleteCookies', params=params)
         return self._websocket_wait_id(_id)
 
+    def _get_log_content(self, res):
+        logs = res.get('params', {}).get('args')
+        log_type = res.get('params', {}).get('type')
+        content = []
+        for log in logs:
+            text = ''
+            if log.get('type') == 'string':
+                text = str(log.get('value', '`Empty string`'))
+            elif log.get('type') == 'object' and 'Error' in log.get('className', '') and log.get('description'):
+                text = str(log.get('description'))
+            else:
+                type_ = log.get('className') or log.get('type')
+                properties = log.get('preview', {}).get('properties')
+                if log.get('type') == 'object' and properties and all(p.get('name') is not None and p.get('value') is not None for p in properties):
+                    elems = ['%s:%s' % (p.get('name'), "'%s'" % p.get('value') if p.get('type') == 'string' else p.get('value')) for p in properties]
+                    text = "%s\n{%s}" % (type_, ", ".join(elems))
+                else:
+                    text = str(log)
+            content.append(text)
+        return (log_type, " ".join(content))
+
     def _wait_ready(self, ready_code, timeout=60):
         self._logger.info('Evaluate ready code "%s"', ready_code)
         awaited_result = {'result': {'type': 'boolean', 'value': True}}
@@ -930,6 +951,9 @@ class ChromeBrowser():
                 else:
                     last_bad_res = res
                     ready_id = self._websocket_send('Runtime.evaluate', params={'expression': ready_code})
+            elif res and res.get('method') == 'Runtime.consoleAPICalled' and res.get('params', {}).get('type') in ('log', 'error', 'trace'):
+                _, content = self._get_log_content(res)
+                self._logger.info('console log: %s', content)
             tdiff = time.time() - start_time
             if tdiff >= 2 and not has_exceeded:
                 has_exceeded = True
@@ -959,25 +983,7 @@ class ChromeBrowser():
                 self._save_screencast()
                 raise ChromeBrowserException(exception_details)
             elif res and res.get('method') == 'Runtime.consoleAPICalled' and res.get('params', {}).get('type') in ('log', 'error', 'trace'):
-                logs = res.get('params', {}).get('args')
-                log_type = res.get('params', {}).get('type')
-                content = []
-                for log in logs:
-                    text = ''
-                    if log.get('type') == 'string':
-                        text = str(log.get('value', '`Empty string`'))
-                    elif log.get('type') == 'object' and 'Error' in log.get('className', '') and log.get('description'):
-                        text = str(log.get('description'))
-                    else:
-                        type_ = log.get('className') or log.get('type')
-                        properties = log.get('preview', {}).get('properties')
-                        if log.get('type') == 'object' and properties and all(p.get('name') is not None and p.get('value') is not None for p in properties):
-                            elems = ['%s:%s' % (p.get('name'), "'%s'" % p.get('value') if p.get('type') == 'string' else p.get('value')) for p in properties]
-                            text = "%s\n{%s}" % (type_, ", ".join(elems))
-                        else:
-                            text = str(log)
-                    content.append(text)
-                content = " ".join(content)
+                log_type, content = self._get_log_content(res)
                 if log_type == 'error':
                     self.take_screenshot()
                     self._save_screencast()

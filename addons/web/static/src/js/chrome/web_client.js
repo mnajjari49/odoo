@@ -85,6 +85,7 @@ return AbstractWebClient.extend({
             // show the first app if not)
             var state = $.bbq.getState(true);
             if (_.keys(state).length === 1 && _.keys(state)[0] === "cids") {
+                console.log('XXXXXXXXXXXXXXXXXX');
                 return self.menu_dp.add(self._rpc({
                         model: 'res.users',
                         method: 'read',
@@ -92,13 +93,19 @@ return AbstractWebClient.extend({
                     }))
                     .then(function (result) {
                         var data = result[0];
+                        console.log('YYYYYYYYYYYYYYYYYYY');
                         if (data.action_id) {
                             return self.do_action(data.action_id[0]).then(function () {
                                 self.menu.change_menu_section(self.menu.action_id_to_primary_menu_id(data.action_id[0]));
                             });
                         } else {
+                            console.log('ZZZZZZZZZZZZZZZZZZZ');
                             self.menu.openFirstApp();
                         }
+                    }).catch(function(e) {
+                      console.log("--------------------------------------------------------> in the error <--------------------------------------------------------");
+                      console.trace();
+                      console.log(e);
                     });
             } else {
                 return self.on_hashchange();
