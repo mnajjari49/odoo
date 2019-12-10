@@ -17,6 +17,7 @@ function parseAndTransform(htmlString, transformFunction) {
     return _parseAndTransform(children, transformFunction)
                 .replace(new RegExp(openToken, "g"), "&lt;");
 }
+
 function _parseAndTransform(nodes, transformFunction) {
     return _.map(nodes, function (node) {
         return transformFunction(node, function () {
@@ -84,6 +85,38 @@ function parseEmail(text) {
     }
 }
 
+/**
+ * Returns an HTML conversion of a content.
+ *
+ * @param {string} content
+ * @returns {string}
+ */
+function getHtmlContent(content) {
+    //Removing unwanted extra spaces from message
+    let value = _.escape(content).trim();
+    value = value.replace(/(\r|\n){2,}/g, '<br/><br/>');
+    value = value.replace(/(\r|\n)/g, '<br/>');
+
+    // prevent html space collapsing
+    value = value.replace(/ /g, '&nbsp;').replace(/([^>])&nbsp;([^<])/g, '$1 $2');
+    return value;
+}
+
+/**
+ * Replaces the content between selectionStart and selectionEnd positions by an other content.
+ *
+ * @param {string} initialContent
+ * @param {string} addedContent
+ * @param {integer} selectionStart
+ * @param {integer} selectionEnd
+ * @returns {string}
+ */
+function insertTextContent(initialContent, addedContent, selectionStart, selectionEnd) {
+    let partA = initialContent.slice(0, selectionStart);
+    let partB = initialContent.slice(selectionEnd, initialContent.length);
+    return partA + addedContent + partB;
+}
+
 // Replaces textarea text into html text (add <p>, <a>)
 // TDE note : should be done server-side, in Python -> use mail.compose.message ?
 function getTextToHTML(text) {
@@ -118,6 +151,8 @@ return {
     timeFromNow: timeFromNow,
     clearTimeout: o_clearTimeout,
     setTimeout: o_setTimeout,
+    getHtmlContent: getHtmlContent,
+    insertTextContent: insertTextContent,
 };
 
 });

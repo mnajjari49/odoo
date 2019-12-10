@@ -56,7 +56,7 @@
                     t-att-class="{
                         'o_Composer_textInput-mobile': storeProps.isMobile,
                     }"
-                    initialHtmlContent="props.initialTextInputHtmlContent"
+                    composerLocalId="props.composerLocalId"
                     t-on-o-discard.stop="_onDiscardInput"
                     t-on-o-input-composer-text-input="_onInputTextInput"
                     t-on-o-keydown-enter.stop="_onTextInputKeydownEnter"
@@ -78,7 +78,7 @@
                         </t>
                     </div>
                     <t t-if="props.hasSendButton and props.areButtonsInline">
-                        <button class="o_Composer_actionButton o_Composer_button o_Composer_buttonSend btn btn-primary" t-att-class="storeProps.isMobile ? 'fa fa-paper-plane-o' : ''" t-on-click="_onClickSend" t-att-disabled="(!state.hasTextInputContent and storeProps.composer.attachmentLocalIds.length === 0) ? 'disabled' : ''" type="button">
+                        <button class="o_Composer_actionButton o_Composer_button o_Composer_buttonSend btn btn-primary" t-att-class="storeProps.isMobile ? 'fa fa-paper-plane-o' : ''" t-on-click="_onClickSend" t-att-disabled="(!storeProps.composer.textInputContent and storeProps.composer.attachmentLocalIds.length === 0) ? 'disabled' : ''" type="button">
                             <t t-if="!storeProps.isMobile"><t t-if="props.isLog">Log</t><t t-else="">Send</t></t>
                         </button>
                     </t>

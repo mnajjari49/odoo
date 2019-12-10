@@ -469,6 +469,30 @@ const actions = {
         dispatch('_startLoopFetchPartnerImStatus');
     },
     /**
+     *
+     * Inserts an emoji at the position saved in the store.
+     *
+     * @param {Object} param0
+     * @param {Object} param0.state
+     * @param {string} emoji
+     * @param {string} composerLocalId
+     */
+    insertEmoji(
+        { state },
+        emoji,
+        composerLocalId,
+    ) {
+        const composer = state.composers[composerLocalId];
+        Object.assign(composer, {
+            textInputContent: mailUtils.insertTextContent(
+                composer.textInputContent,
+                emoji,
+                composer.textInputCursorStart,
+                composer.textInputCursorEnd,
+            ),
+        });
+    },
+    /**
      * Update existing thread or create a new thread.
      *
      * @param {Object} param0
@@ -801,12 +825,13 @@ const actions = {
             canned_response_ids,
             channel_ids=[],
             context,
-            htmlContent,
+            content,
             isLog=false,
             subject,
             subtype_id,
             // subtype_xmlid='mail.mt_comment',
         } = data;
+        const htmlContent = mailUtils.getHtmlContent(content);
         let body = htmlContent.replace(/&nbsp;/g, ' ').trim();
         // This message will be received from the mail composer as html content
         // subtype but the urls will not be linkified. If the mail composer
@@ -864,6 +889,8 @@ const actions = {
                 res_id: thread.id
             }));
         }
+        dispatch('resetComposer', composerLocalId);
+        dispatch('unlinkAttachmentsFromComposer', composerLocalId);
     },
     /**
      * Handles redirection to a model and id. Try to handle it in the context
@@ -983,6 +1010,19 @@ const actions = {
      * @param {Object} param0
      * @param {function} param0.dispatch
      * @param {Object} param0.state
+     * @param {string} composerLocalId
+     */
+    resetComposer({ dispatch, state }, composerLocalId) {
+        Object.assign(state.composers[composerLocalId], {
+            textInputContent: '',
+            textInputCursorStart: 0,
+            textInputCursorEnd: 0,
+        });
+    },
+    /**
+     * @param {Object} param0
+     * @param {function} param0.dispatch
+     * @param {Object} param0.state
      * @param {string} chatWindowLocalId
      * @param {integer} scrollTop
      */
@@ -992,6 +1032,26 @@ const actions = {
         newChatWindowInitialScrollTops[chatWindowLocalId] = scrollTop;
         dispatch('_updateChatWindowManager', {
             chatWindowInitialScrollTops: newChatWindowInitialScrollTops,
+        });
+    },
+    /**
+     * @param {Object} state
+     * @param {string} composerLocalId
+     * @param {string} textInputContent
+     * @param {integer} textInputCursorStart
+     * @param {integer} textInputCursorEnd
+     */
+    saveComposerContent(
+        { state },
+        composerLocalId,
+        textInputContent,
+        textInputCursorStart,
+        textInputCursorEnd,
+    ) {
+        Object.assign(state.composers[composerLocalId], {
+            textInputContent,
+            textInputCursorStart,
+            textInputCursorEnd,
         });
     },
     /**
@@ -1453,6 +1513,9 @@ const actions = {
             localId: composerLocalId,
             attachmentLocalIds: [],
             threadLocalId,
+            textInputContent: '',
+            textInputCursorStart: 0,
+            textInputCursorEnd: 0,
         };
         if (threadLocalId) {
             const thread = state.threads[threadLocalId];
