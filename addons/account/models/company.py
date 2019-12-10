@@ -4,7 +4,7 @@ from datetime import timedelta, datetime, date
 import calendar
 from dateutil.relativedelta import relativedelta
 
-from odoo import fields, models, api, _
+from odoo import fields, models, api, _, SUPERUSER_ID
 from odoo.exceptions import ValidationError, UserError, RedirectWarning
 from odoo.tools.misc import DEFAULT_SERVER_DATE_FORMAT, format_date
 from odoo.tools.float_utils import float_round, float_is_zero
@@ -302,7 +302,8 @@ class ResCompany(models.Model):
         """
         self.ensure_one()
         if module_ids:
-            module_ids.sudo().with_context({'allowed_company_ids': [self.id]}).button_immediate_install()
+            if self.env.user.id != SUPERUSER_ID:
+                module_ids.sudo().with_context({'allowed_company_ids': [self.id]}).button_immediate_install()
         else:
             chart_template_xml_ids = self.env['ir.model.data'].search([('module', 'in', module_list), ('model', '=', 'account.chart.template')], limit=1)
             if chart_template_xml_ids:
