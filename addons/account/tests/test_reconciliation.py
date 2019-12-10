@@ -110,12 +110,12 @@ class TestReconciliationExec(TestAccountReconciliationCommon):
     def test_statement_eur_invoice_usd_transaction_eur(self):
         customer_move_lines, supplier_move_lines = self.make_customer_and_supplier_flows(self.currency_usd_id, 50, self.bank_journal_euro, 40, 0.0, False)
         self.assertRecordValues(customer_move_lines, [
-            {'debit': 0.0,      'credit': 40.0,     'amount_currency': 0.0, 'currency_id': False},
-            {'debit': 40.0,     'credit': 0.0,      'amount_currency': 0.0, 'currency_id': False},
+            {'debit': 0.0,      'credit': 40.0,     'amount_currency': -40.0,   'currency_id': self.currency_euro_id},
+            {'debit': 40.0,     'credit': 0.0,      'amount_currency': 40.0,    'currency_id': self.currency_euro_id},
         ])
         self.assertRecordValues(supplier_move_lines, [
-            {'debit': 40.0,     'credit': 0.0,      'amount_currency': 0.0, 'currency_id': False},
-            {'debit': 0.0,      'credit': 40.0,     'amount_currency': 0.0, 'currency_id': False},
+            {'debit': 40.0,     'credit': 0.0,      'amount_currency': 40.0,    'currency_id': self.currency_euro_id},
+            {'debit': 0.0,      'credit': 40.0,     'amount_currency': -40.0,   'currency_id': self.currency_euro_id},
         ])
 
     def test_statement_euro_invoice_usd_transaction_chf(self):
@@ -173,9 +173,9 @@ class TestReconciliationExec(TestAccountReconciliationCommon):
             }])
 
         self.assertRecordValues(bank_stmt.move_line_ids, [
-            {'debit': 0.0,      'credit': 7.3,      'amount_currency': 0.0,     'currency_id': False},
-            {'debit': 0.0,      'credit': 32.7,     'amount_currency': 0.0,     'currency_id': False},
-            {'debit': 40.0,     'credit': 0.0,      'amount_currency': 0.0,     'currency_id': False},
+            {'debit': 0.0,      'credit': 7.3,      'amount_currency': -7.3,    'currency_id': self.currency_euro_id},
+            {'debit': 0.0,      'credit': 32.7,     'amount_currency': -32.7,   'currency_id': self.currency_euro_id},
+            {'debit': 40.0,     'credit': 0.0,      'amount_currency': 40.0,    'currency_id': self.currency_euro_id},
         ])
 
         # The invoice should be paid, as the payments totally cover its total
