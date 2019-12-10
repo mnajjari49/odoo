@@ -148,6 +148,30 @@ class StockMove(models.Model):
                 defaults['additional'] = True
         return defaults
 
+    @api.model
+    def create(self, values):
+        if values.get('raw_material_production_id'):
+            mo = self.env['mrp.production'].browse(values['raw_material_production_id'])
+            values.update({
+                'group_id': mo.procurement_group_id.id,
+                'unit_factor': values.get('product_uom_qty', 1) / ((mo.product_qty - mo.qty_produced) or 1),
+                'reference': mo.name
+            })
+        res = super().create(values)
+        if res.raw_material_production_id and res.raw_material_production_id.state == 'confirmed' and not res.bom_line_id:
+            res._adjust_procure_method()
+            res._action_confirm()
+        return res
+
+    def write(self, values):
+        res = super().write(values)
+        if 'product_uom_qty' in values:
+            for move in self:
+                if move.raw_material_production_id:
+                    mo = move.raw_material_production_id
+                    move.unit_factor = (move.product_uom_qty - move.quantity_done) / ((mo.product_qty - mo.qty_produced) or 1)
+        return res
+
     def _action_assign(self):
         res = super(StockMove, self)._action_assign()
         for move in self.filtered(lambda x: x.production_id or x.raw_material_production_id):
