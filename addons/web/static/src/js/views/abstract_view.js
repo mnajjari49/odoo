@@ -27,9 +27,12 @@ var AbstractModel = require('web.AbstractModel');
 var AbstractRenderer = require('web.AbstractRenderer');
 var AbstractController = require('web.AbstractController');
 var ControlPanel = require('web.ControlPanel');
+var getControlPanelStoreConfig = require('web.controlPanelStore');
 var mvc = require('web.mvc');
 var SearchPanel = require('web.SearchPanel');
 var viewUtils = require('web.viewUtils');
+
+const { Store, Component } = owl;
 
 var Factory = mvc.Factory;
 
@@ -174,14 +177,30 @@ var AbstractView = Factory.extend({
             this._updateMVCParams(params.searchQuery);
         }
 
-        this.controlPanelParams = {
+        this.env = Object.assign(Object.create(Component.env), {
+            action: action || {},
+            context: this.loadParams.context || {},
+            domain: this.loadParams.domain || [],
+            modelName: params.modelName,
+        });
+        // TODO: Check useless params
+        this._controlPanelStoreParams = {
+            // control initialization
+            activateDefaultFavorite: params.activateDefaultFavorite,
+            dynamicFilters: params.dynamicFilters,
+            searchMenuTypes: params.searchMenuTypes,
+            breadcrumbs: params.breadcrumbs,
+            viewInfo: params.controlPanelFieldsView,
+            withBreadcrumbs: params.withBreadcrumbs,
+            withSearchBar: params.withSearchBar,
+            // avoid work to initialize
+            state: controllerState.cpState,
+        };
+        this.controlPanelProps = {
             action: action,
             activateDefaultFavorite: params.activateDefaultFavorite,
             dynamicFilters: params.dynamicFilters,
             breadcrumbs: params.breadcrumbs,
-            context: this.loadParams.context,
-            domain: this.loadParams.domain,
-            modelName: params.modelName,
             searchMenuTypes: params.searchMenuTypes,
             state: controllerState.cpState,
             viewInfo: params.controlPanelFieldsView,
@@ -203,13 +222,13 @@ var AbstractView = Factory.extend({
     /**
      * @override
      */
-    getController: function (parent) {
+    getController: async function (parent) {
         var self = this;
         var cpDef = this.withControlPanel && this._createControlPanel(parent);
         var spDef;
         if (this.withSearchPanel) {
             var spProto = this.config.SearchPanel.prototype;
-            var viewInfo = this.controlPanelParams.viewInfo;
+            var viewInfo = this.controlPanelProps.viewInfo;
             var searchPanelParams = spProto.computeSearchPanelParams(viewInfo, this.viewType);
             if (searchPanelParams.sections) {
                 this.searchPanelParams.sections = searchPanelParams.sections;
@@ -262,18 +281,20 @@ var AbstractView = Factory.extend({
     //--------------------------------------------------------------------------
 
     /**
-     * Instantiates and starts a ControlPanelController.
+     * Instantiates and starts a ControlPanel.
      *
      * @private
      * @param {Widget} parent
-     * @returns {Promise<ControlPanelController>} resolved when the controlPanel
+     * @returns {Promise<ControlPanel>} resolved when the controlPanel
      *   is ready
      */
     _createControlPanel: async function (parent) {
-        const controlPanel = new ControlPanel(null, this.controlPanelParams);
+        await this._createControlPanelStore();
+        this.controlPanelProps.controlPanelStore = this.controlPanelStore;
+        const controlPanel = new ControlPanel(null, this.controlPanelProps);
         await controlPanel.mount(document.createDocumentFragment());
         this.controllerParams.controlPanel = controlPanel;
-        this._updateMVCParams(controlPanel.env.cpstore.getters.getQuery());
+        this._updateMVCParams(controlPanel.env.controlPanelStore.getters.getQuery());
         return controlPanel;
     },
     /**
@@ -344,6 +365,15 @@ var AbstractView = Factory.extend({
             withSearchBar: inline ? false : this.withSearchBar,
             withSearchPanel: this.withSearchPanel,
         };
+    },
+    /**
+     * Create the control panel store
+     *
+     * @private
+     */
+    _createControlPanelStore: async function () {
+        const controlPanelStoreConfig = await getControlPanelStoreConfig(this.env, this._controlPanelStoreParams);
+        this.controlPanelStore = new Store(controlPanelStoreConfig);
     },
     /**
      * Processes a fieldsView. In particular, parses its arch.

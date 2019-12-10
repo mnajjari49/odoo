@@ -8,7 +8,7 @@ odoo.define('web.Breadcrumbs', function (require) {
         constructor() {
             super(...arguments);
 
-            this.state = useStore(state => state.breadcrumbs, { store: this.env.cpstore });
+            this.state = useStore(state => state.breadcrumbs, { store: this.env.controlPanelStore });
         }
 
         get breadcrumbs() {

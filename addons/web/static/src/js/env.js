@@ -9,7 +9,6 @@ odoo.define("web.env", function (require) {
     const session = require("web.session");
     const utils = require("web.utils");
 
-
     const qweb = new owl.QWeb({ translateFn: _t });
 
     function ajaxJsonRPC() {

@@ -28,9 +28,9 @@ odoo.define('web.SearchBar', function (require) {
 
             this.inputRef = useRef('input');
 
-            this.filters = useStore(state => state.filters, { store: this.env.cpstore });
-            this.groups = useStore(state => state.groups, { store: this.env.cpstore });
-            this.query = useStore(state => state.query, { store: this.env.cpstore });
+            this.filters = useStore(state => state.filters, { store: this.env.controlPanelStore });
+            this.groups = useStore(state => state.groups, { store: this.env.controlPanelStore });
+            this.query = useStore(state => state.query, { store: this.env.controlPanelStore });
         }
 
         async willStart() {

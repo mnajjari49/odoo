@@ -28,7 +28,7 @@ odoo.define('web.Pager', function (require) {
             super(...arguments);
 
             this.state = useState({ editing: false });
-            this.storeProps = useStore(state => state.pager, { store: this.env.cpstore });
+            this.storeProps = useStore(state => state.pager, { store: this.env.controlPanelStore });
             this.inputRef = useRef('input');
         }
 

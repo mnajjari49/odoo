@@ -225,7 +225,7 @@
                 <div class="o_cp_buttons" role="toolbar" aria-label="Control panel toolbar">
                     <t t-slot="buttons"/>
                 </div>
-                <Sidebar t-if="props.sidebar" t-props="props.sidebar"/>
+                <Sidebar t-if="sidebar" t-props="sidebar"/>
             </div>
             <div class="o_cp_right">
                 <SearchMenus t-if="state.submenus"/>
@@ -467,25 +467,6 @@
         tabindex="-1"
         t-on-click="trigger('switch_view', { view_type: view.type })"
     />
-</t>
-
-<t t-name="ControlPanelController" owl="1">
-    <div class="o_cp_controller" t-att-data-flag="state.updateFlag" t-on-click="_updateControlPanel">
-        <ControlPanelRenderer t-props="rendererProps"
-            t-on-activate_time_range.stop="_onActivate_time_range"
-            t-on-autocompletion_filter.stop="_onAutocompletion_filter"
-            t-on-facet_removed.stop="_onFacet_removed"
-            t-on-get_search_query.stop="_onGet_search_query"
-            t-on-item_option_clicked.stop="_onItem_option_clicked"
-            t-on-item_trashed.stop="_onItem_trashed"
-            t-on-menu_item_clicked.stop="_onMenu_item_clicked"
-            t-on-new_favorite.stop="_onNew_favorite"
-            t-on-new_filters.stop="_onNew_filters"
-            t-on-new_groupBy.stop="_onNew_groupBy"
-            t-on-reload.stop="_onReload"
-            t-on-reset.stop="_onReset"
-        />
-    </div>
 </t>
 
 <t t-name="ControlPanelRenderer" owl="1">

@@ -55,8 +55,6 @@ return core.Class.extend({
             }, this._invalidate.bind(this, this._cache.actions, key));
         }
 
-        console.warning('load_action')
-
         return this._cache.actions[key].then(function (action) {
             return $.extend(true, {}, action);
         });

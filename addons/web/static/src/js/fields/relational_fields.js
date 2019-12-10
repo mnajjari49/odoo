@@ -16,7 +16,7 @@ odoo.define('web.relational_fields', function (require) {
 var AbstractField = require('web.AbstractField');
 var basicFields = require('web.basic_fields');
 var concurrency = require('web.concurrency');
-var ControlPanelRenderer = require('web.ControlPanelRenderer');
+// var ControlPanelRenderer = require('web.ControlPanelRenderer');
 var ControlPanel = require('web.ControlPanel');
 var core = require('web.core');
 var data = require('web.data');

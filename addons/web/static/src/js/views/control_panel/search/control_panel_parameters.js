@@ -1,4 +1,4 @@
-odoo.define('web.controlPanelViewParameters', function (require) {
+odoo.define('web.controlPanelParameters', function (require) {
 "use strict";
 
 var core = require('web.core');

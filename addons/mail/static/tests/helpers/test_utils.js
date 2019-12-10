@@ -9,7 +9,6 @@ var mailUtils = require('mail.utils');
 
 var AbstractStorageService = require('web.AbstractStorageService');
 var Class = require('web.Class');
-var ControlPanelView = require('web.ControlPanelView');
 var RamStorage = require('web.RamStorage');
 var testUtils = require('web.test_utils');
 var Widget = require('web.Widget');

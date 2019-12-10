@@ -309,10 +309,8 @@
         <script type="text/javascript" src="/web/static/src/js/views/basic/basic_view.js"></script>
         <script type="text/javascript" src="/web/static/src/js/views/basic/basic_controller.js"></script>
         <script type="text/javascript" src="/web/static/src/js/views/basic/basic_renderer.js"></script>
-        <script type="text/javascript" src="/web/static/src/js/views/control_panel/control_panel_controller.js"></script>
-        <script type="text/javascript" src="/web/static/src/js/views/control_panel/control_panel_model.js"></script>
-        <script type="text/javascript" src="/web/static/src/js/views/control_panel/control_panel_renderer.js"></script>
-        <script type="text/javascript" src="/web/static/src/js/views/control_panel/control_panel_view.js"></script>
+        <script type="text/javascript" src="/web/static/src/js/views/control_panel/control_panel_store.js"></script>
+        <script type="text/javascript" src="/web/static/src/js/views/control_panel/control_panel.js"></script>
         <script type="text/javascript" src="/web/static/src/js/views/control_panel/mobile_control_panel_controller.js"></script>
         <script type="text/javascript" src="/web/static/src/js/views/control_panel/mobile_control_panel_renderer.js"></script>
         <script type="text/javascript" src="/web/static/src/js/views/control_panel/sidebar.js"></script>
@@ -330,7 +328,7 @@
         <script type="text/javascript" src="/web/static/src/js/views/control_panel/search/time_range_menu.js"></script>
         <script type="text/javascript" src="/web/static/src/js/views/control_panel/search/favorite_menu.js"></script>
         <script type="text/javascript" src="/web/static/src/js/views/control_panel/search/add_new_favorite_menu.js"></script>
-        <script type="text/javascript" src="/web/static/src/js/views/control_panel/search/control_panel_view_parameters.js"></script>
+        <script type="text/javascript" src="/web/static/src/js/views/control_panel/search/control_panel_parameters.js"></script>
         <script type="text/javascript" src="/web/static/src/js/views/control_panel/search/favorites_submenus_registry.js"></script>
         <script type="text/javascript" src="/web/static/src/js/views/control_panel/search/search_filters.js"></script>
         <script type="text/javascript" src="/web/static/src/js/views/control_panel/search/search_filters_registry.js"></script>

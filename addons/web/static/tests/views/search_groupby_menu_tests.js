@@ -3,8 +3,8 @@ odoo.define('web.search_groupby_menu_tests', function (require) {
 
 var GroupByMenu = require('web.GroupByMenu');
 var testUtils = require('web.test_utils');
-var controlPanelViewParameters = require('web.controlPanelViewParameters');
-var INTERVAL_OPTIONS = controlPanelViewParameters.INTERVAL_OPTIONS;
+var controlPanelParameters = require('web.controlPanelParameters');
+var INTERVAL_OPTIONS = controlPanelParameters.INTERVAL_OPTIONS;
 
 function createGroupByMenu(groupBys, fields, params) {
     params = params || {};
@@ -138,8 +138,8 @@ QUnit.module('GroupByMenu', {
                         assert.strictEqual(ev.data.fieldType, 'date');
                         assert.strictEqual(ev.data.type, 'groupBy');
                         assert.strictEqual(ev.data.hasOptions, true);
-                        assert.deepEqual(ev.data.options, controlPanelViewParameters.INTERVAL_OPTIONS);
-                        assert.strictEqual(ev.data.defaultOptionId, controlPanelViewParameters.DEFAULT_INTERVAL);
+                        assert.deepEqual(ev.data.options, controlPanelParameters.INTERVAL_OPTIONS);
+                        assert.strictEqual(ev.data.defaultOptionId, controlPanelParameters.DEFAULT_INTERVAL);
                         assert.strictEqual(ev.data.currentOptionIds.size, 0);
                         groupByMenu.update([{
                             description: 'Super Date',
@@ -147,8 +147,8 @@ QUnit.module('GroupByMenu', {
                             groupNumber: 1,
                             isActive: true,
                             hasOptions: true,
-                            options: controlPanelViewParameters.INTERVAL_OPTIONS,
-                            currentOptionIds: new Set([controlPanelViewParameters.DEFAULT_INTERVAL]),
+                            options: controlPanelParameters.INTERVAL_OPTIONS,
+                            currentOptionIds: new Set([controlPanelParameters.DEFAULT_INTERVAL]),
                         }]);
                     },
                 },

@@ -17,8 +17,8 @@ var PivotRenderer = require('web.PivotRenderer');
 var _t = core._t;
 var _lt = core._lt;
 
-var controlPanelViewParameters = require('web.controlPanelViewParameters');
-var GROUPABLE_TYPES = controlPanelViewParameters.GROUPABLE_TYPES;
+var controlPanelParameters = require('web.controlPanelParameters');
+var GROUPABLE_TYPES = controlPanelParameters.GROUPABLE_TYPES;
 
 var PivotView = AbstractView.extend({
     display_name: _lt('Pivot'),

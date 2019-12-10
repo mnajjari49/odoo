@@ -2,11 +2,11 @@ odoo.define('web.TimeRangeMenu', function (require) {
 "use strict";
 
 var config = require('web.config');
-var controlPanelViewParameters = require('web.controlPanelViewParameters');
+var controlPanelParameters = require('web.controlPanelParameters');
 var Widget = require('web.Widget');
 
-var COMPARISON_TIME_RANGE_OPTIONS = controlPanelViewParameters.COMPARISON_TIME_RANGE_OPTIONS;
-var PERIOD_OPTIONS = controlPanelViewParameters.PERIOD_OPTIONS;
+var COMPARISON_TIME_RANGE_OPTIONS = controlPanelParameters.COMPARISON_TIME_RANGE_OPTIONS;
+var PERIOD_OPTIONS = controlPanelParameters.PERIOD_OPTIONS;
 
 var TimeRangeMenu = Widget.extend({
     template: 'web.TimeRangeMenu',

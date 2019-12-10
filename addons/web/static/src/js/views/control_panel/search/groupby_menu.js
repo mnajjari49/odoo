@@ -2,16 +2,16 @@ odoo.define('web.GroupByMenu', function (require) {
 "use strict";
 
 var config = require('web.config');
-var controlPanelViewParameters = require('web.controlPanelViewParameters');
+var controlPanelParameters = require('web.controlPanelParameters');
 var core = require('web.core');
 var DropdownMenu = require('web.DropdownMenu');
 
 var _t = core._t;
 var QWeb = core.qweb;
 
-var DEFAULT_INTERVAL = controlPanelViewParameters.DEFAULT_INTERVAL;
-var GROUPABLE_TYPES = controlPanelViewParameters.GROUPABLE_TYPES;
-var INTERVAL_OPTIONS = controlPanelViewParameters.INTERVAL_OPTIONS;
+var DEFAULT_INTERVAL = controlPanelParameters.DEFAULT_INTERVAL;
+var GROUPABLE_TYPES = controlPanelParameters.GROUPABLE_TYPES;
+var INTERVAL_OPTIONS = controlPanelParameters.INTERVAL_OPTIONS;
 
 var GroupByMenu = DropdownMenu.extend({
     events: _.extend({}, DropdownMenu.prototype.events, {

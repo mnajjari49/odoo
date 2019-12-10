@@ -10,9 +10,9 @@ var createView = testUtils.createView;
 var patchDate = testUtils.mock.patchDate;
 var session = require('web.session');
 
-var controlPanelViewParameters = require('web.controlPanelViewParameters');
-const PERIOD_OPTIONS_IDS = controlPanelViewParameters.PERIOD_OPTIONS.map(o => o.optionId);
-const OPTION_GENERATOR_IDS = controlPanelViewParameters.OPTION_GENERATORS.map(o => o.optionId);
+var controlPanelParameters = require('web.controlPanelParameters');
+const PERIOD_OPTIONS_IDS = controlPanelParameters.PERIOD_OPTIONS.map(o => o.optionId);
+const OPTION_GENERATOR_IDS = controlPanelParameters.OPTION_GENERATORS.map(o => o.optionId);
 
 QUnit.module('Search View', {
     beforeEach: function () {

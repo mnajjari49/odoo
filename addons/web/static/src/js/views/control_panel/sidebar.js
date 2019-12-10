@@ -13,7 +13,7 @@ odoo.define('web.Sidebar', function (require) {
         constructor() {
             super(...arguments);
 
-            this.state = useStore(state => state.sidebar, { store: this.env.cpstore });
+            this.state = useStore(state => state.sidebar, { store: this.env.controlPanelStore });
         }
 
         mounted() {

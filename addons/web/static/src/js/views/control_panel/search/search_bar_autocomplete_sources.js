@@ -99,6 +99,7 @@ var Field = FilterInterface.extend(ServicesMixin, {
      * @returns {string}
      */
     getDomain: function (values) {
+        debugger
         if (!values.length) { return; }
 
         var valueToDomain;

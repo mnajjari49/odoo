@@ -8,7 +8,7 @@ odoo.define('web.ViewSwitcher', function (require) {
         constructor() {
             super(...arguments);
 
-            this.state = useStore(state => state.viewSwitcher, { store: this.env.cpstore });
+            this.state = useStore(state => state.viewSwitcher, { store: this.env.controlPanelStore });
         }
     }
 
