@@ -52,6 +52,16 @@ class SaleOrder(models.Model):
                 'amount_total': amount_untaxed + amount_tax,
             })
 
+    @api.depends('invoice_ids')
+    def _compute_amount_to_invoice(self):
+        for order in self:
+            if order.invoice_ids:
+                down_payment_amount = sum([invoice.amount_total for invoice in order.invoice_ids.filtered(lambda inv: inv.state != 'cancel')])
+                amount_to_invoice = (order.amount_total - down_payment_amount) if order.amount_total >= down_payment_amount else 0
+            else:
+                amount_to_invoice = order.amount_total
+            order.amount_to_invoice = amount_to_invoice
+
     @api.depends('order_line.invoice_lines')
     def _get_invoiced(self):
         # The invoice_ids are obtained thanks to the invoice lines of the SO
@@ -189,6 +199,7 @@ class SaleOrder(models.Model):
     amount_by_group = fields.Binary(string="Tax amount by group", compute='_amount_by_group', help="type: [(name, amount, base, formated amount, formated base)]")
     amount_tax = fields.Monetary(string='Taxes', store=True, readonly=True, compute='_amount_all')
     amount_total = fields.Monetary(string='Total', store=True, readonly=True, compute='_amount_all', tracking=4)
+    amount_to_invoice = fields.Monetary(string='To Invoice', readonly=True, compute='_compute_amount_to_invoice')
     currency_rate = fields.Float("Currency Rate", compute='_compute_currency_rate', compute_sudo=True, store=True, digits=(12, 6), readonly=True, help='The rate of the currency to the currency of rate 1 applicable at the date of the order')
 
     payment_term_id = fields.Many2one(
