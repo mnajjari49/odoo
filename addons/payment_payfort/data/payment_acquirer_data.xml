@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data noupdate="1">
-        <record id="payment.payment_acquirer_payfort" model="payment.acquirer" forcecreate="True">
+        <record id="payment_acquirer_payfort" model="payment.acquirer">
             <field name="name">Payfort</field>
             <field name="display_as">Credit Card (powered by Payfort)</field>
             <field name="provider">payfort</field>

@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+# Part of Odoo. See LICENSE file for full copyright and licensing details.
+
 PAYFORT_SUCCESS = [
     "02",  # Authorization success
     "04",  # Capture success

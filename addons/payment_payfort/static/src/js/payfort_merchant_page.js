@@ -23,7 +23,7 @@ var publicWidget = require('web.public.widget');
 publicWidget.registry.portalDetails = publicWidget.Widget.extend({
     selector: '#oe_payfort_merchant_page_return',
     events: {
-        'click .oe_payfort_open_3ds': 'authRedirect',
+        'click .oe_payfort_open_3ds': '_authRedirect',
         'click .oe_payfort_close_modal': 'closeModal',
     },
     /**

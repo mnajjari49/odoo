@@ -1,6 +1,8 @@
-# coding: utf-8
+# -*- coding: utf-8 -*-
+# Part of Odoo. See LICENSE file for full copyright and licensing details.
 
 import hashlib
+import hmac
 import json
 import logging
 import pprint
@@ -82,22 +84,22 @@ class AcquirerPayfort(models.Model):
         :return: copy of the submitted dict with sanitized values
         :rtype: dict"""
         sanitized_values = values.copy()
-        if "customer_email" in values:
+        if values.get("customer_email"):
             sanitized_values["customer_email"] = re.sub(
                 r"[^A-Za-z0-9\.\-_@+]+", "", values["customer_email"]
             )
-        if "merchant_reference" in values:
+        if values.get("merchant_reference"):
             sanitized_values["merchant_reference"] = re.sub(
                 r"[^A-Za-z0-9\.\-_]+", "-", values["merchant_reference"]
             )
-        if "customer_name" in values:
+        if values.get("customer_name"):
             sanitized_values["customer_name"] = re.sub(
                 r"[^A-Za-z0-9_\/\\\-\.'\s]+",
                 "",
                 normalize("NFKD", values["customer_name"]),
             )
         # Payfort only has en/ar, let's default to EN
-        if "language" in values:
+        if values.get("language"):
             partner_lang = values.get("language", "en")
             sanitized_values["language"] = (
                 "ar"
@@ -147,19 +149,28 @@ class AcquirerPayfort(models.Model):
         base_url = self.get_base_url()
 
         amount = self._payfort_convert_amount(values["amount"], values["currency"])
-        
-        if not values.get('currency') or not values.get('lang') or not (values.get('partner_email') or values.get('billing_partner_email')): 
-            raise ValidationError(_('Mandatory fields missing for Payfort payment (currency/language/email)'))
+
+        if (
+            not values.get("currency")
+            or not values.get("lang")
+            or not (values.get("partner_email") or values.get("billing_partner_email"))
+        ):
+            raise ValidationError(
+                _(
+                    "Mandatory fields missing for Payfort payment (currency/language/email)"
+                )
+            )
 
         payfort_values = {
             "command": "PURCHASE",
             "access_code": self.payfort_access_code,
             "merchant_identifier": self.payfort_merchant_identifier,
             "merchant_reference": values["reference"],
-            "amount": "%d" % amount,
+            "amount": str(amount),
             "currency": values["currency"].name,
             "language": values["partner_lang"],
-            "customer_email": values.get("partner_email") or values.get("billing_partner_email"),
+            "customer_email": values.get("partner_email")
+            or values.get("billing_partner_email"),
             "customer_name": values.get("partner_name") or "",
             "eci": "ECOMMERCE",
             "return_url": urls.url_join(base_url, PayfortController._return_url),
@@ -169,9 +180,7 @@ class AcquirerPayfort(models.Model):
             "merchant_extra": values["reference"],
         }
         if self.save_token in ["ask", "always"]:
-            payfort_values.update(
-                token_name=self._payfort_generate_token_reference()
-            ) 
+            payfort_values.update(token_name=self._payfort_generate_token_reference())
         payfort_values = self._payfort_sanitize_values(payfort_values)
         payfort_values["signature"] = self._payfort_generate_signature(
             "request", payfort_values
@@ -193,8 +202,10 @@ class AcquirerPayfort(models.Model):
         if not self.provider == "payfort":
             raise ValidationError("This provider does not use Payfort")
         if not partner_id:
-            raise ValidationError(_("A partner must be specified for recurring transactions."))
-        partner = self.env['res.partner'].sudo().browse(partner_id)
+            raise ValidationError(
+                _("A partner must be specified for recurring transactions.")
+            )
+        partner = self.env["res.partner"].sudo().browse(partner_id)
         base_url = self.get_base_url()
         # I would have used a uuid4, but Payfort only accepts 40 letters in
         # the merchant_reference field; using a 10-char long random string
@@ -227,7 +238,9 @@ class AcquirerPayfort(models.Model):
     def payfort_s2s_form_process(self, data):
         self.ensure_one()
         shasign_check = self._payfort_generate_signature("response", data)
-        if to_text(shasign_check) != to_text(data.get("signature")):
+        if not hmac.compare_digest(
+            to_text(shasign_check), to_text(data.get("signature"))
+        ):
             error_msg = _("Payfort: invalid signature, received %s, computed %s") % (
                 data.get("signature"),
                 shasign_check,
@@ -275,7 +288,7 @@ class PaymentTransactionPayfort(models.Model):
             raise ValidationError(error_msg)
 
         tx = self.env["payment.transaction"].search([("reference", "=", reference)])
-        if not tx or len(tx) > 1:
+        if len(tx) != 1:
             error_msg = _("Payfort: received data for reference %s") % (reference)
             if not tx:
                 error_msg += _("; no order found")
@@ -337,8 +350,8 @@ class PaymentTransactionPayfort(models.Model):
                 )
                 ref = Token.create(
                     {
-                        "name": data.get("card_number")
-                        + (" - " + cardholder if cardholder else ""),
+                        "name": "%s - %s"
+                        % (data.get("card_number"), data.get("card_holder_name")),
                         "partner_id": self.partner_id.id,
                         "acquirer_id": self.acquirer_id.id,
                         "acquirer_ref": token,
@@ -398,7 +411,9 @@ class PaymentTransactionPayfort(models.Model):
                 {
                     "remember_me": "YES",
                     # if no request, the call CAME FROM INSIDE THE HOUSE!
-                    "customer_ip": request and request.httprequest.remote_addr or '127.0.0.1',
+                    "customer_ip": request
+                    and request.httprequest.remote_addr
+                    or "127.0.0.1",
                     # for multi-website, we need to make sure that we come back on the same url
                     # otherwise iframe & pop-up cross-communication will be blocked by same-origin
                     "return_url": urls.url_join(

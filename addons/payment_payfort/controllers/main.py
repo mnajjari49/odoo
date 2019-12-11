@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
+# Part of Odoo. See LICENSE file for full copyright and licensing details.
 
 import hashlib
+import hmac
 import json
 import logging
 import pprint
@@ -184,16 +186,17 @@ class PayfortController(http.Controller):
         # to avoid a refresh & resubmit of POST-data, redirect to a landing page & hash
         # the needed info to avoid abuse since the landing controller is publid
         db_secret = (
-            request.env["ir.config_parameter"].sudo().get_param("database.secret")
+            request.env["ir.config_parameter"]
+            .sudo()
+            .get_param("database.secret")
+            .encode()
         )
         params = {
             "token_id": token.id or 0,
             "tx_id": tx.id or 0,
         }
-        signature_params = params.copy()
-        signature_params["secret"] = db_secret
-        signature = hashlib.sha256(
-            json.dumps(signature_params, sort_keys=True).encode()
+        signature = hmac.new(
+            db_secret, json.dumps(params, sort_keys=True).encode()
         ).hexdigest()
         params["signature"] = signature
         url_params = werkzeug.urls.url_encode(params)
@@ -212,14 +215,17 @@ class PayfortController(http.Controller):
         params_check = {
             "token_id": int(token_id),
             "tx_id": int(tx_id),
-            "secret": request.env["ir.config_parameter"]
-            .sudo()
-            .get_param("database.secret"),
         }
-        signature_check = hashlib.sha256(
-            json.dumps(params_check, sort_keys=True).encode()
+        db_secret = (
+            request.env["ir.config_parameter"]
+            .sudo()
+            .get_param("database.secret")
+            .encode()
+        )
+        signature_check = hmac.new(
+            db_secret, json.dumps(params_check, sort_keys=True).encode()
         ).hexdigest()
-        if signature_check != signature:
+        if not hmac.compare_digest(signature_check, signature):
             raise werkzeug.exceptions.BadRequest("signature mismatch")
         token = (
             int(token_id)

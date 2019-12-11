@@ -23,8 +23,8 @@
             <div class="oe_payfort_merchant_page">
                 <!-- will be handled in js -->
                 <p>You will be prompted for your card details upon payment.</p>
-                <small>You may notice may see a small fee on your credit card statement used to
-                validate your card; this fee is immediately refunded upon success.</small>
+                <small>This operation will trigger a small payment on your card that
+                will be refunded immediately.</small>
             </div>
         </template>
     </data>
@@ -44,7 +44,7 @@
                                 <t t-if="validation_tx.html_3ds and not token.verified">
                                     <i class="fa fa-circle-o-notch fa-3x fa-spin"/>
                                     <p>You must authenticate this transaction with your financial institution.</p>
-                                    <p>This window will cloase automatically once you have authenticated in the window that just opened.</p>
+                                    <p>This window will close automatically once you have authenticated in the window that just opened.</p>
                                     <p>If the authentication window did not open, click here:</p>
                                     <button class="oe_payfort_open_3ds btn btn-primary">Authenticate</button>
                                     <p>
