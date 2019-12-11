@@ -6,10 +6,13 @@ var publicWidget = require('web.public.widget');
 var wUtils = require('website.utils');
 var animations = require('website.content.snippets.animation');
 
-const BaseFixedHeaderScroll = animations.Animation.extend({
+const BaseFixedHeader = animations.Animation.extend({
     effects: [{
         startEvents: 'scroll',
-        update: '_onWindowScroll',
+        update: '_updateHeaderOnScroll',
+    }, {
+        startEvents: 'resize',
+        update: '_updateHeaderOnResize',
     }],
 
     /**
@@ -18,7 +21,49 @@ const BaseFixedHeaderScroll = animations.Animation.extend({
     start: function () {
         this.smallLogo = false;
         this.scrolled = false;
+        this.noTransition = false;
+        this.$dropdowns = this.$el.find('.dropdown');
+        this.$dropdownMenus = this.$el.find('.dropdown-menu');
+        this.$navbarCollapses = this.$el.find('.navbar-collapse');
+        // While scrolling through navbar menus on medium devices, body should not be scrolled with it
+        this.$el.find('div.navbar-collapse').on('show.bs.collapse', function () {
+            if ($(window).width() <= 768) {
+                $(document.body).addClass('overflow-hidden');
+            }
+        }).on('hide.bs.collapse', function () {
+            $(document.body).removeClass('overflow-hidden');
+        });
+
         return this._super.apply(this, arguments);
+    },
+    /**
+     * @override
+     */
+    destroy: function () {
+        this._removeFixedHeader();
+        this.$el.removeClass('fixed_logo scrolled');
+        this._super.apply(this, arguments);
+    },
+
+    //--------------------------------------------------------------------------
+    // Private
+    //--------------------------------------------------------------------------
+
+    /**
+     * @private
+     */
+    _initializeFixedHeader: function () {
+        this.headerHeight = this.$el.height();
+        $('main').css('padding-top', this.headerHeight);
+        this.$el.addClass('o_header_affix affixed');
+    },
+
+    /**
+     * @private
+     */
+    _removeFixedHeader: function () {
+        $('main').css('padding-top', '');
+        this.$el.removeClass('o_header_affix affixed');
     },
 
     //--------------------------------------------------------------------------
@@ -31,96 +76,67 @@ const BaseFixedHeaderScroll = animations.Animation.extend({
      * @private
      * @param {integer} scrollTop
      */
-    _onWindowScroll: function (scrollTop) {
-        var scroll = scrollTop;
+    _updateHeaderOnScroll: function (scrollTop) {
+        const scroll = scrollTop;
+        // Change logo size
         if (!this.scrolled) {
             this.$el.addClass('scrolled');
             this.scrolled = true;
+            // disable css transition if refresh with scrollTop > 0
+            if (scrollTop > 0) {
+                this.$el.addClass('no_transition');
+                this.noTransition = true;
+            }
+        } else if (this.noTransition) {
+            this.$el.removeClass('no_transition');
+            this.noTransition = false;
         }
-        if (scroll > 10 && !this.smallLogo) {
+        if (!this.smallLogo && scroll > 1) {
             this.smallLogo = true;
             this.$el.toggleClass('fixed_logo');
-        } else if (scroll <= 10 && this.smallLogo) {
+        } else if (this.smallLogo && scroll <= 1) {
             this.smallLogo = false;
             this.$el.toggleClass('fixed_logo');
+        }
+        // Reset opened menus
+        if (this.$navbarCollapses.hasClass('show')) {
+            return;
+        }
+        this.$dropdowns.add(this.$dropdownMenus).removeClass('show');
+        this.$navbarCollapses.removeClass('show').attr('aria-expanded', false);
+    },
+
+    /**
+     * Called when the window is resized
+     *
+     * @private
+     */
+    _updateHeaderOnResize: function () {
+        if ($(document.body).hasClass('overflow-hidden') && $(window).width() > 768) {
+            $(document.body).removeClass('overflow-hidden');
+            this.$el.find('.navbar-collapse').removeClass('show');
         }
     },
 });
 
-publicWidget.registry.affixMenu = publicWidget.Widget.extend({
-    selector: 'header.o_affix_enabled',
+publicWidget.registry.standardHeader = BaseFixedHeader.extend({
+    selector: 'header.o_header_standard',
 
     /**
      * @override
      */
     start: function () {
-        var def = this._super.apply(this, arguments);
-
-        var self = this;
-        this.$headerClone = this.$target.clone().addClass('o_header_affix affix').removeClass('o_affix_enabled').removeAttr('id');
-        this.$headerClone.insertAfter(this.$target);
-        this.$headers = this.$target.add(this.$headerClone);
-        this.$dropdowns = this.$headers.find('.dropdown');
-        this.$dropdownMenus = this.$headers.find('.dropdown-menu');
-        this.$navbarCollapses = this.$headers.find('.navbar-collapse');
-
-        this._adaptDefaultOffset();
-        wUtils.onceAllImagesLoaded(this.$headerClone).then(function () {
-            self._adaptDefaultOffset();
-        });
-
-        // Handle events for the collapse menus
-        _.each(this.$headerClone.find('[data-toggle="collapse"]'), function (el) {
-            var $source = $(el);
-            var targetIDSelector = $source.attr('data-target');
-            var $target = self.$headerClone.find(targetIDSelector);
-            $source.attr('data-target', targetIDSelector + '_clone');
-            $target.attr('id', targetIDSelector.substr(1) + '_clone');
-        });
-        // While scrolling through navbar menus, body should not be scrolled with it
-        this.$headerClone.find('div.navbar-collapse').on('show.bs.collapse', function () {
-            $(document.body).addClass('overflow-hidden');
-        }).on('hide.bs.collapse', function () {
-            $(document.body).removeClass('overflow-hidden');
-        });
-
-        // Window Handlers
-        $(window).on('resize.affixMenu scroll.affixMenu', _.throttle(this._onWindowUpdate.bind(this), 200));
-        setTimeout(this._onWindowUpdate.bind(this), 0); // setTimeout to allow override with advanced stuff... see themes
-
-        return def.then(function () {
-            self.trigger_up('widgets_start_request', {
-                $target: self.$headerClone,
-            });
-        });
+        this.fixedHeader = false;
+        this.fixedHeaderShow = false;
+        this.headerHeight = this.$el.height();
+        return this._super.apply(this, arguments);
     },
+
     /**
      * @override
      */
     destroy: function () {
-        if (this.$headerClone) {
-            this.$headerClone.remove();
-            $(window).off('.affixMenu');
-        }
         this._super.apply(this, arguments);
-    },
-
-    //--------------------------------------------------------------------------
-    // Private
-    //--------------------------------------------------------------------------
-
-    /**
-     * @private
-     */
-    _adaptDefaultOffset: function () {
-        var bottom = this.$target.offset().top + this._getHeaderHeight();
-        this.$headerClone.css('margin-top', Math.min(-200, -bottom) + 'px');
-    },
-    /**
-     * @private
-     */
-    _getHeaderHeight: function () {
-        return this.$headerClone.outerHeight();
     },
 
     //--------------------------------------------------------------------------
@@ -128,32 +144,36 @@ publicWidget.registry.affixMenu = publicWidget.Widget.extend({
     //--------------------------------------------------------------------------
 
     /**
-     * Called when the window is resized or scrolled -> updates affix status and
-     * automatically closes submenus.
+     * Called when the window is scrolled
+     * 
      *
      * @private
+     * @param {integer} scrollTop
      */
-    _onWindowUpdate: function () {
-        if (this.$navbarCollapses.hasClass('show')) {
-            return;
+    _updateHeaderOnScroll: function (scrollTop) {
+        this._super(...arguments);
+        const scroll = scrollTop;
+        // switch between static/fixed position of the header
+        if (!this.fixedHeader && scroll > this.headerHeight) {
+            this.fixedHeader = true;
+            this.$el.css('transform', 'translate(0, -100%)');
+            this._initializeFixedHeader();
+        } else if (this.fixedHeader && scroll <= this.headerHeight) {
+            this.fixedHeader = false;
+            this._removeFixedHeader();
+            this.$el.css('transform', '');
         }
-
-        var wOffset = $(window).scrollTop();
-        var hOffset = this.$target.scrollTop();
-        this.$headerClone.toggleClass('affixed', wOffset > (hOffset + 300));
-
-        // Reset opened menus
-        this.$dropdowns.add(this.$dropdownMenus).removeClass('show');
-        this.$navbarCollapses.removeClass('show').attr('aria-expanded', false);
+        // show/hide header
+        if (!this.fixedHeaderShow && scroll > (this.headerHeight + 250)) {
+            this.fixedHeaderShow = true;
+            this.$el.css('transform', '');
+        } else if (this.fixedHeaderShow && scroll <= (this.headerHeight + 250)) {
+            this.fixedHeaderShow = false;
+            this.$el.css('transform', 'translate(0, -100%)');
+        }
     },
 });
 
-/**
- * Auto adapt the header layout so that elements are not wrapped on a new line.
- *
- * Note: this works well with the affixMenu... by chance (autohideMenu is called
- * after alphabetically).
- */
 publicWidget.registry.autohideMenu = publicWidget.Widget.extend({
     selector: 'header #top_menu',
 
@@ -277,28 +297,22 @@ publicWidget.registry.menuDirection = publicWidget.Widget.extend({
     },
 });
 
-publicWidget.registry.fixedHeader = BaseFixedHeaderScroll.extend({
-    selector: 'header.o_header_fixed',
+publicWidget.registry.freezeHeader = BaseFixedHeader.extend({
+    selector: 'header.o_header_freeze',
 
     /**
      * @override
      */
     start: function () {
-        var menuLoading = this.$('.o_menu_loading');
+        const menuLoading = this.$('.o_menu_loading');
+        this.headerWidth = this.$el.width();
+        this.mobileView = this.headerWidth <= 768 ? true : false;
         if (!menuLoading.length) {
             this._initializeFixedHeader();
         } else {
             this.$el.one('menu_loaded', () => this._initializeFixedHeader());
         }
         return this._super.apply(this, arguments);
-    },
-    /**
-     * @override
-     */
-    destroy: function () {
-        $('main').css('padding-top', '');
-        this.$el.removeClass('o_header_affix affixed');
-        this._super.apply(this, arguments);
     },
 
     //--------------------------------------------------------------------------
@@ -308,13 +322,37 @@ publicWidget.registry.fixedHeader = BaseFixedHeaderScroll.extend({
     /**
      * @private
      */
-    _initializeFixedHeader: function () {
-        $('main').css('padding-top', this.$el.height());
-        this.$el.addClass('o_header_affix affixed');
+    _refreshPublicWidgets: function () {
+        this.trigger_up('widgets_start_request', {
+            editableMode: false,
+            $target: this.$el,
+        });
+    },
+
+    //--------------------------------------------------------------------------
+    // Handlers
+    //--------------------------------------------------------------------------
+
+    /**
+     * Called when the window is resized: refresh the widgets when switching
+     * mobile/desktop view to keep the right <main> padding-top.
+     *
+     * @private
+     */
+    _updateHeaderOnResize: function () {
+        this._super(...arguments);
+        this.headerWidth = this.$el.width();
+        if (this.headerWidth <= 768 && !this.mobileView) {
+            this.mobileView = true;
+            this._refreshPublicWidgets();
+        } else if (this.headerWidth > 768 && this.mobileView) {
+            this.mobileView = false;
+            this._refreshPublicWidgets();
+        }
     },
 });
 
-const BaseDisappearingHeader = BaseFixedHeaderScroll.extend({
+const BaseDisappearingHeader = BaseFixedHeader.extend({
 
     /**
      * @override
@@ -350,8 +388,8 @@ const BaseDisappearingHeader = BaseFixedHeaderScroll.extend({
      * @private
      * @param {integer} scrollTop
      */
-    _onWindowScroll: function (scrollTop) {
-        var scroll = scrollTop;
+    _updateHeaderOnScroll: function (scrollTop) {
+        const scroll = scrollTop;
         if (scroll > this.position) {
             if (!this.scrollingDownwards) {
                 this.checkPoint = scroll;
@@ -399,7 +437,7 @@ publicWidget.registry.DisappearingHeader = BaseDisappearingHeader.extend({
      * @override
      */
     _showHeader: function () {
-        this.$el.css('transform', 'translate(0, 0)');
+        this.$el.css('transform', '');
     },
 });
 

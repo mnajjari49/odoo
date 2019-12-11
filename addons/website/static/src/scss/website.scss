@@ -1095,25 +1095,24 @@ table.table_desc tr td {
     background: $light;
     margin-top: -999px;
     transition: margin-top 500ms ease 0s, transform 200ms;
-    @include media-breakpoint-down(sm) {
-        .navbar-collapse {
-            @if o-website-value('header-template') != 'space' {
-                max-height: 70vh;
-            }
+
+    .navbar-collapse {
+        max-height: 70vh;
+        &.show {
             overflow-y: auto;
         }
     }
     &.affixed {
         margin-top: 0px !important; // the default margin-top is adapted in JS
     }
-    .navbar-brand {
+    &:not(.o_header_standard) .navbar-brand {
         transition: font-size 200ms, opacity 100ms ease-out;
 
         img {
             transition: height 200ms;
         }
     }
-    &.scrolled + main {
+    &:not(.o_header_standard).scrolled + main {
         transition: padding-top 200ms;
     }
     &.fixed_logo {
@@ -1124,7 +1123,7 @@ table.table_desc tr td {
                 height: $o-theme-navbar-fixed-logo-height;
             }
         }
-        & + main {
+        &:not(.o_header_standard) + main {
             padding-top: $o-theme-navbar-fixed-logo-height !important;
         }
         @include media-breakpoint-up(md) {
@@ -1137,6 +1136,13 @@ table.table_desc tr td {
                     }
                 }
             }
+        }
+    }
+    &.no_transition {
+        transition: none !important;
+
+        &.scrolled + main {
+            transition: none !important;
         }
     }
 }
@@ -1187,10 +1193,6 @@ header {
         @if o-website-value('header-template') == 'space' {
             .o_navbar_toggler_container {
                 direction: rtl;
-            }
-            #top_menu.navbar-nav {
-                height: 90vh;
-                padding-top : 10vh;
             }
             &:not(.fixed_logo) .container {
                 padding-top: $spacer;

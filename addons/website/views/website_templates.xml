@@ -370,9 +370,9 @@
     </xpath>
 </template>
 
-<template id="affix_top_menu" inherit_id="website.layout" name="Fixed Top Menu">
+<template id="header_visibility_standard" inherit_id="website.layout" name="Header Visibility Standard">
     <xpath expr="//header" position="attributes">
-        <attribute name="t-attf-class" add="#{'o_affix_enabled'}" separator=" "/>
+        <attribute name="t-attf-class" add="o_header_standard" separator=" "/>
     </xpath>
 </template>
 
@@ -384,19 +384,19 @@
 
 <template id="header_visibility_freeze" inherit_id="website.layout" name="Header Visibility Freeze" active="False">
     <xpath expr="//header" position="attributes">
-        <attribute name="t-attf-class" add="o_header_fixed" separator=" "/>
+        <attribute name="t-attf-class" add="o_header_freeze" separator=" "/>
     </xpath>
 </template>
 
 <template id="header_visibility_disappears" inherit_id="website.layout" name="Header Visibility Disappears" active="False">
     <xpath expr="//header" position="attributes">
-        <attribute name="t-attf-class" add="o_header_fixed o_header_disappears" separator=" "/>
+        <attribute name="t-attf-class" add="o_header_freeze o_header_disappears" separator=" "/>
     </xpath>
 </template>
 
 <template id="header_visibility_fade_out" inherit_id="website.layout" name="Header Visibility Fade Out" active="False">
     <xpath expr="//header" position="attributes">
-        <attribute name="t-attf-class" add="o_header_fixed o_header_fade_out" separator=" "/>
+        <attribute name="t-attf-class" add="o_header_freeze o_header_fade_out" separator=" "/>
     </xpath>
 </template>
 
@@ -806,7 +806,7 @@
             </list>
             <list id="header_visibilities_list" string="Header Visibility">
                 <selection>
-                    <opt id="option_header_visibility_standard" string="Standard" data-xmlid="website.affix_top_menu" data-reload="/"/>
+                    <opt id="option_header_visibility_standard" string="Standard" data-xmlid="website.header_visibility_standard" data-reload="/"/>
                     <opt id="option_header_visibility_scroll" string="Scroll" data-xmlid="" data-reload="/"/>
                     <opt id="option_header_visibility_freeze" string="Freeze" data-xmlid="website.header_visibility_freeze" data-reload="/"/>
                     <opt id="option_header_visibility_disappears" string="Disappears" data-xmlid="website.header_visibility_disappears" data-reload="/"/>
