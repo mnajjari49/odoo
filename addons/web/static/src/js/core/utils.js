@@ -562,7 +562,7 @@ var utils = {
             });
         }
 
-        return this.unpatch.bind(null, C, patchName);
+        return utils.unpatch.bind(null, C, patchName);
     },
     /**
      * performs a half up rounding with a fixed amount of decimals, correcting for float loss of precision
