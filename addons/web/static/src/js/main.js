@@ -1,4 +1,5 @@
 odoo.define('web.web_client', function (require) {
+    "use strict";
 
     const env = require('web.env');
     const session = require("web.session");
@@ -17,11 +18,10 @@ odoo.define('web.web_client', function (require) {
         env.qweb.addTemplates(session.owlTemplates);
 
         await owl.utils.whenReady();
-        webClient.setElement($(document.body));
-        webClient.start();
+        webClient.mount(document.body, { position: 'self' });
     }
 
     startWebClient();
 
-    return webClient;
+    // return webClient; // FIXME: remove requires
 });

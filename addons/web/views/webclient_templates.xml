@@ -244,6 +244,7 @@
         <script type="text/javascript" src="/web/static/src/js/core/mvc.js"></script>
         <script type="text/javascript" src="/web/static/src/js/core/py_utils.js"></script>
         <script type="text/javascript" src="/web/static/src/js/chrome/abstract_action.js"></script>
+        <script type="text/javascript" src="/web/static/src/js/chrome/action.js"></script>
         <script type="text/javascript" src="/web/static/src/js/chrome/action_manager.js"></script>
         <script type="text/javascript" src="/web/static/src/js/chrome/action_manager_act_window.js"></script>
         <script type="text/javascript" src="/web/static/src/js/chrome/action_manager_report.js"/>
@@ -267,6 +268,7 @@
         <script type="text/javascript" src="/web/static/src/js/tools/test_menus_loader.js"/>
         <script type="text/javascript" src="/web/static/src/js/tools/debug_manager_backend.js"></script>
         <script type="text/javascript" src="/web/static/src/js/tools/tools.js"></script>
+        <script type="text/javascript" src="/web/static/src/js/adapter_component.js"></script>
         <script type="text/javascript" src="/web/static/src/js/env.js"></script>
         <script type="text/javascript" src="/web/static/src/js/widgets/data_export.js"></script>
         <script type="text/javascript" src="/web/static/src/js/widgets/date_picker.js"></script>
@@ -281,7 +283,6 @@
         <script type="text/javascript" src="/web/static/src/js/widgets/switch_company_menu.js"></script>
         <script type="text/javascript" src="/web/static/src/js/chrome/user_menu.js"></script>
         <script type="text/javascript" src="/web/static/src/js/chrome/menu.js"></script>
-        <script type="text/javascript" src="/web/static/src/js/chrome/apps_menu.js"></script>
 
         <script type="text/javascript" src="/web/static/src/js/widgets/dropdown_menu.js"></script>
         <script type="text/javascript" src="/web/static/src/js/widgets/pie_chart.js"></script>
@@ -861,12 +862,6 @@
                 <t t-call-assets="web.assets_common" t-css="false"/>
                 <t t-call-assets="web.assets_backend" t-css="false"/>
                 <t t-call="web.conditional_assets_tests"/>
-
-                <![CDATA[
-                    <!--[if lt IE 10]>
-                        <body class="ie9">
-                    <![endif]-->
-                ]]>
 
                 <script type="text/javascript" src="/web/static/src/js/main.js"></script>
             </t>

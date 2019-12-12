@@ -9,7 +9,7 @@ var AbstractService = Class.extend(Mixins.EventDispatcherMixin, ServicesMixin, {
     dependencies: [],
     init: function (parent) {
         Mixins.EventDispatcherMixin.init.call(this, arguments);
-        this.setParent(parent);
+        this.setParent(parent); // no necessary anymore (and probably EventDispatchedMixin neither)
     },
     /**
      * @abstract

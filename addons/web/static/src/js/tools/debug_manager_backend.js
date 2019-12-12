@@ -681,49 +681,49 @@ var RequestDetails = Widget.extend({
 if (config.isDebug()) {
     SystrayMenu.Items.push(DebugManager);
 
-    WebClient.include({
-        //----------------------------------------------------------------------
-        // Public
-        //----------------------------------------------------------------------
+    // WebClient.include({
+    //     //----------------------------------------------------------------------
+    //     // Public
+    //     //----------------------------------------------------------------------
 
-        /**
-         * @override
-         */
-        current_action_updated: function (action, controller) {
-            this._super.apply(this, arguments);
-            var debugManager = _.find(this.menu.systray_menu.widgets, function(item) {
-                return item instanceof DebugManager;
-            });
-            debugManager.update('action', action, controller && controller.widget);
-        },
-    });
+    //     /**
+    //      * @override
+    //      */
+    //     current_action_updated: function (action, controller) {
+    //         this._super.apply(this, arguments);
+    //         var debugManager = _.find(this.menu.systray_menu.widgets, function(item) {
+    //             return item instanceof DebugManager;
+    //         });
+    //         debugManager.update('action', action, controller && controller.widget);
+    //     },
+    // });
 
-    ActionManager.include({
-        //----------------------------------------------------------------------
-        // Public
-        //----------------------------------------------------------------------
+    // ActionManager.include({
+    //     //----------------------------------------------------------------------
+    //     // Public
+    //     //----------------------------------------------------------------------
 
-        /**
-         * Returns the action of the controller currently opened in a dialog,
-         * i.e. a target='new' action, if any.
-         *
-         * @returns {Object|null}
-         */
-        getCurrentActionInDialog: function () {
-            if (this.currentDialogController) {
-                return this.actions[this.currentDialogController.actionID];
-            }
-            return null;
-        },
-        /**
-         * Returns the controller currently opened in a dialog, if any.
-         *
-         * @returns {Object|null}
-         */
-        getCurrentControllerInDialog: function () {
-            return this.currentDialogController;
-        },
-    });
+    //     /**
+    //      * Returns the action of the controller currently opened in a dialog,
+    //      * i.e. a target='new' action, if any.
+    //      *
+    //      * @returns {Object|null}
+    //      */
+    //     getCurrentActionInDialog: function () {
+    //         if (this.currentDialogController) {
+    //             return this.actions[this.currentDialogController.actionID];
+    //         }
+    //         return null;
+    //     },
+    //     /**
+    //      * Returns the controller currently opened in a dialog, if any.
+    //      *
+    //      * @returns {Object|null}
+    //      */
+    //     getCurrentControllerInDialog: function () {
+    //         return this.currentDialogController;
+    //     },
+    // });
 
     Dialog.include({
         //--------------------------------------------------------------------------

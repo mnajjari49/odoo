@@ -11,13 +11,21 @@ odoo.define('web.test_utils_create', function (require) {
  */
 
 var ActionManager = require('web.ActionManager');
-var config = require('web.config');
+// var config = require('web.config');
 var ControlPanelView = require('web.ControlPanelView');
 var concurrency = require('web.concurrency');
 var DebugManager = require('web.DebugManager.Backend');
 var dom = require('web.dom');
+const makeTestEnvironment = require('web.test_env');
+const MockServer = require('web.MockServer');
 var testUtilsMock = require('web.test_utils_mock');
 var Widget = require('web.Widget');
+
+const AbstractStorageService = require('web.AbstractStorageService');
+const RamStorage = require('web.RamStorage');
+
+
+const { Component, hooks, QWeb, tags } = owl;
 
 /**
  * create and return an instance of ActionManager with all rpcs going through a
@@ -34,46 +42,122 @@ async function createActionManager(params) {
     params = params || {};
     const target = prepareTarget(params.debug);
 
-    var widget = new Widget();
+    // build env and mockServer
+    let Server = MockServer;
+    if (params.mockRPC) {
+        Server = MockServer.extend({ _performRpc: params.mockRPC });
+    }
+    const server = new Server(params.data, {
+        actions: params.actions,
+        archs: params.archs,
+        debug: params.debug,
+    });
+    const RamStorageService = AbstractStorageService.extend({
+        storage: new RamStorage(),
+    });
+    const env = {
+        dataManager: {
+            load_action: (actionID, context) => {
+                return server.performRpc('/web/action/load', {
+                    kwargs: {
+                        action_id: actionID,
+                        additional_context: context,
+                    },
+                });
+            },
+            load_views: (params, options) => {
+                return server.performRpc('/web/dataset/call_kw/' + params.model, {
+                    args: [],
+                    kwargs: {
+                        context: params.context,
+                        options: options,
+                        views: params.views_descr,
+                    },
+                    method: 'load_views',
+                    model: params.model,
+                }).then(function (views) {
+                    return _.mapObject(views, viewParams => {
+                        return testUtilsMock.fieldsViewGet(server, viewParams);
+                    });
+                });
+            },
+            load_filters: params => {
+                if (params.debug) {
+                    console.log('[mock] load_filters', params);
+                }
+                return Promise.resolve([]);
+            },
+        },
+        services: {
+            ajax: {
+                rpc: server.performRpc.bind(server), // for legacy sub widgets
+            },
+            local_storage: new RamStorageService(),
+            session_storage: new RamStorageService(),
+        },
+    };
+    Component.env = makeTestEnvironment(env, server.performRpc.bind(server));
+
+    // define Parent component, embedding an ActionManager
+    class Parent extends Component {
+        constructor() {
+            super(...arguments);
+            this.actionManager = hooks.useRef('actionManager');
+        }
+    }
+    Parent.components = { ActionManager };
+    Parent.template = tags.xml`
+        <div class="o_web_client">
+            <ActionManager t-ref="actionManager"/>
+        </div>`;
+    // FIXME: seeems wrong
+    // if (config.device.isMobile) {
+    //     parent.el.classList.add('o_touch_device');
+    // }
+
+    // instantiation
+    const parent = new Parent();
+    await parent.mount(target);
+    const actionManager = parent.actionManager.comp;
+
+    // patch actionManager's destroy to properly destroy parent
+    const originalDestroy = actionManager.destroy;
+    actionManager.destroy = function () {
+        actionManager.destroy = originalDestroy;
+        parent.destroy();
+    };
+
+    return actionManager;
+
     // when 'document' addon is installed, the sidebar does a 'search_read' on
     // model 'ir_attachment' each time a record is open, so we monkey-patch
     // 'mockRPC' to mute those RPCs, so that the tests can be written uniformly,
     // whether or not 'document' is installed
-    var mockRPC = params.mockRPC;
-    _.extend(params, {
-        mockRPC: function (route, args) {
-            if (args.model === 'ir.attachment') {
-                return Promise.resolve([]);
-            }
-            if (mockRPC) {
-                return mockRPC.apply(this, arguments);
-            }
-            return this._super.apply(this, arguments);
-        },
-    });
-    testUtilsMock.addMockEnvironment(widget, _.defaults(params, { debounce: false }));
-    await widget.prependTo(target);
-    widget.$el.addClass('o_web_client');
-    if (config.device.isMobile) {
-        widget.$el.addClass('o_touch_device');
-    }
+    // var mockRPC = params.mockRPC;
+    // _.extend(params, {
+    //     mockRPC: function (route, args) {
+    //         if (args.model === 'ir.attachment') {
+    //             return Promise.resolve([]);
+    //         }
+    //         if (mockRPC) {
+    //             return mockRPC.apply(this, arguments);
+    //         }
+    //         return this._super.apply(this, arguments);
+    //     },
+    // });
+    // testUtilsMock.addMockEnvironment(widget, _.defaults(params, { debounce: false }));
 
-    var userContext = params.context && params.context.user_context || {};
-    var actionManager = new ActionManager(widget, userContext);
+    // var userContext = params.context && params.context.user_context || {};
+    // var actionManager = new ActionManager(widget, userContext);
 
-    var originalDestroy = ActionManager.prototype.destroy;
-    actionManager.destroy = function () {
-        actionManager.destroy = originalDestroy;
-        widget.destroy();
-    };
-    var fragment = document.createDocumentFragment();
-    return actionManager.appendTo(fragment).then(function () {
-        dom.append(widget.$el, fragment, {
-            callbacks: [{ widget: actionManager }],
-            in_DOM: true,
-        });
-        return actionManager;
-    });
+    // var fragment = document.createDocumentFragment();
+    // return actionManager.appendTo(fragment).then(function () {
+    //     dom.append(widget.$el, fragment, {
+    //         callbacks: [{ widget: actionManager }],
+    //         in_DOM: true,
+    //     });
+    //     return actionManager;
+    // });
 }
 
 /**

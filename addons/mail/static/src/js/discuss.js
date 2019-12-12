@@ -314,10 +314,10 @@ var Discuss = AbstractAction.extend({
     do_show: function () {
         this._super.apply(this, arguments);
         this._updateControlPanel();
-        this.action_manager.do_push_state({
-            action: this.action.id,
-            active_id: this._thread.getID(),
-        });
+        // this.action_manager.do_push_state({
+        //     action: this.action.id,
+        //     active_id: this._thread.getID(),
+        // });
     },
     /**
      * @override
@@ -986,10 +986,10 @@ var Discuss = AbstractAction.extend({
                 $outOfOffice.prependTo(self.$('.o_mail_discuss_content'));
             }
 
-            self.action_manager.do_push_state({
-                action: self.action.id,
-                active_id: self._thread.getID(),
-            });
+            // self.action_manager.do_push_state({
+            //     action: self.action.id,
+            //     active_id: self._thread.getID(),
+            // });
         });
     },
     /**

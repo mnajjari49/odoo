@@ -1,6 +1,29 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates id="template" xml:space="preserve">
 
+<body t-name="web.WebClient" class="o_web_client" owl="1" t-on-do-action.stop="_onDoAction">
+    <Menu menus="menus" initialMenuID="initialMenuID" t-on-open-menu="_onOpenMenu"/>
+    <ActionManager t-ref="actionManager" initialAction="initialAction"/>
+</body>
+<div t-name="web.ActionManager" class="o_action_manager" owl="1"
+    t-on-breadcrumb-clicked.stop="_onBreadcrumbClicked"
+    t-on-switch-view.stop="_onSwitchView"
+    t-on-execute-action.stop="_onExecuteAction">
+    <t t-set="controllerID" t-value="state.pendingStack ? state.pendingStack[state.pendingStack.length - 1] : currentStack[currentStack.length - 1]"/>
+    <t t-if="controllerID">
+        <t t-set="controller" t-value="controllers[controllerID]"/>
+        <LoadingAction t-if="controller.loading"/>
+        <Action t-else="" t-key="controller.jsID"
+                Component="controller.Component"
+                action="actions[controller.actionID]"
+                options="controller.options"/>
+    </t>
+</div>
+
+
+
+
+
 <div t-name="EmptyComponent"/>
 
 <div t-name="Loading" class="o_loading"/>
