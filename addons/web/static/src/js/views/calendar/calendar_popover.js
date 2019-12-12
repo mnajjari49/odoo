@@ -63,7 +63,7 @@ var CalendarPopover = Widget.extend(StandaloneFieldManagerMixin, {
             var field = {
                 name: fieldName,
                 string: displayFieldInfo.attrs.string || fieldInfo.string,
-                value: self.event.record[fieldName],
+                value: self.event.extendedProps.record[fieldName],
                 type: fieldInfo.type,
             };
             if (field.type === 'selection') {
@@ -125,7 +125,7 @@ var CalendarPopover = Widget.extend(StandaloneFieldManagerMixin, {
         ev.preventDefault();
         this.trigger_up('edit_event', {
             id: this.event.id,
-            title: this.event.record.display_name,
+            title: this.event.extendedProps.record.display_name,
         });
     },
     /**
