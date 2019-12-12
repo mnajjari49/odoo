@@ -19,14 +19,14 @@ var AttendeeCalendarPopover = CalendarPopover.extend({
         this._super.apply(this, arguments);
         var session = this.getSession();
         // Show status dropdown if user is in attendees list
-        this.showStatusDropdown = _.contains(this.event.record.partner_ids, session.partner_id);
+        this.showStatusDropdown = _.contains(this.event.extendedProps.record.partner_ids, session.partner_id);
         if (this.showStatusDropdown) {
             this.statusColors = {accepted: 'text-success', declined: 'text-danger', tentative: 'text-muted', needsAction: 'text-dark'};
             this.statusInfo = {};
             _.each(this.fields.attendee_status.selection, function (selection) {
                 self.statusInfo[selection[0]] = {text: selection[1], color: self.statusColors[selection[0]]};
             });
-            this.selectedStatusInfo = this.statusInfo[this.event.record.attendee_status];
+            this.selectedStatusInfo = this.statusInfo[this.event.extendedProps.record.attendee_status];
         }
     },
 
@@ -47,7 +47,7 @@ var AttendeeCalendarPopover = CalendarPopover.extend({
             method: 'change_attendee_status',
             args: [this.event.id, selectedStatus],
         }).then(function () {
-            self.event.record.attendee_status = selectedStatus;  // FIXEME: Maybe we have to reload view
+            self.event.extendedProps.record.attendee_status = selectedStatus;  // FIXEME: Maybe we have to reload view
             self.$('.o-calendar-attendee-status-text').text(self.statusInfo[selectedStatus].text);
             self.$('.o-calendar-attendee-status-icon').removeClass(_.values(self.statusColors).join(' ')).addClass(self.statusInfo[selectedStatus].color);
         });
