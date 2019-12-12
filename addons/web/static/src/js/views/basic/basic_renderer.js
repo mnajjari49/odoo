@@ -11,6 +11,7 @@ var AbstractRenderer = require('web.AbstractRenderer');
 var config = require('web.config');
 var core = require('web.core');
 var dom = require('web.dom');
+var pyUtils = require('web.py_utils');
 var widgetRegistry = require('web.widget_registry');
 
 var qweb = core.qweb;
@@ -622,10 +623,12 @@ var BasicRenderer = AbstractRenderer.extend({
         var modifiers = this._registerModifiers(node, record, null, options);
         // Initialize and register the widget
         // Readonly status is known as the modifiers have just been registered
+        const nodeOptions = node.attrs.options && pyUtils.py_eval(node.attrs.options);
         var Widget = record.fieldsInfo[this.viewType][fieldName].Widget;
         var widget = new Widget(this, fieldName, record, {
             mode: modifiers.readonly ? 'readonly' : mode,
             viewType: this.viewType,
+            nodeOptions: nodeOptions,
         });
 
         // Register the widget so that it can easily be found again

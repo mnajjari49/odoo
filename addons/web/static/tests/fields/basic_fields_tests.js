@@ -198,6 +198,32 @@ QUnit.module('basic_fields', {
         DebouncedField.prototype._setValue = _setValue;
     });
 
+    QUnit.test('multiple field per view options handling', async function (assert) {
+        assert.expect(3);
+
+        var form = await createView({
+            View: FormView,
+            model: 'partner',
+            data: this.data,
+            arch: '<form string="Partners">' +
+                    '<field name="int_field" options="{\'type\': \'number\'}"/>' +
+                    '<field name="int_field"/>' +
+                '</form>',
+            res_id: 1,
+            fieldDebounce: 3,
+            viewOptions: {
+                mode: 'edit',
+            },
+        });
+
+        const intWidgets = form.$el[0].querySelectorAll('.o_field_number');
+        assert.equal(intWidgets.length, 2);
+        assert.equal(intWidgets[0].type, 'number');
+        assert.equal(intWidgets[1].type, 'text');
+
+        form.destroy();
+    });
+
     QUnit.module('FieldBoolean');
 
     QUnit.test('boolean field in form view', async function (assert) {
