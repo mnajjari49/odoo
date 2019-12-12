@@ -212,7 +212,7 @@ class Project(models.Model):
     date = fields.Date(string='Expiration Date', index=True, tracking=True)
     subtask_project_id = fields.Many2one('project.project', string='Sub-task Project', ondelete="restrict",
         help="Project in which sub-tasks of the current project will be created. It can be the current project itself.")
-    allow_subtasks = fields.Boolean('Sub-tasks')
+    allow_subtasks = fields.Boolean('Sub-tasks', default=lambda p: p.user_has_groups('project.group_subtask_project'))
 
     # rating fields
     rating_request_deadline = fields.Datetime(compute='_compute_rating_request_deadline', store=True)

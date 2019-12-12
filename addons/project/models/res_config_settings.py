@@ -17,4 +17,9 @@ class ResConfigSettings(models.TransientModel):
         if self.group_project_rating:
             # Change the rating status on existing projects from 'no' to 'stage'
             self.env['project.project'].search([('rating_status', '=', 'no')]).write({'rating_status': 'stage'}) 
+        if self.group_subtask_project:
+            domain = []
+            if 'is_fsm' in self.env['project.project']._fields:
+                domain = [('is_fsm', '=', False)]
+            self.env['project.project'].search(domain).write({'allow_subtasks': True})
         return res
