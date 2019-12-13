@@ -513,6 +513,7 @@ var PivotModel = AbstractModel.extend({
         };
         if (!raw && state.hasData) {
             state.table = this._getTable();
+            state.tree = this.rowGroupTree;
         }
         return state;
     },
