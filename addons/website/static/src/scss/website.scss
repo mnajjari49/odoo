@@ -1127,7 +1127,7 @@ table.table_desc tr td {
             padding-top: $o-theme-navbar-fixed-logo-height !important;
         }
         @include media-breakpoint-up(md) {
-            @if index(('brand', 'pizza'), o-website-value('header-template')) {
+            @if o-website-value('header-template') == 'header_centered' {
                 .navbar-brand {
                     font-size: 0px;
                     opacity: 0;
@@ -1183,14 +1183,14 @@ header {
             min-width: 0;
         }
     }
-    @if index(('showcase', 'space'), o-website-value('header-template')) {
+    @if o-website-value('header-template') == 'header_hamburger' {
         .navbar-brand, .logo img {
             margin: auto;
         }
         .navbar-nav {
             margin-top: $spacer / 2;
         }
-        @if o-website-value('header-template') == 'space' {
+        @if o-website-value('header-template') == 'navbar_text_center' {
             .o_navbar_toggler_container {
                 direction: rtl;
             }
@@ -1202,7 +1202,7 @@ header {
                 transition: padding 200ms;
             }
         }
-    } @else if index(('brand', 'pizza'), o-website-value('header-template')) {
+    } @else if o-website-value('header-template') == 'header_centered' {
         .navbar-expand-md {
             > .container {
                 flex-wrap: wrap;
@@ -1216,14 +1216,14 @@ header {
         }
         .navbar-brand {
             @include media-breakpoint-up(md) {
-                @if o-website-value('header-template') == 'pizza' {
+                @if o-website-value('header-template') == 'logo_below' {
                     margin-top: $navbar-padding-y;
                 } @else {
                     margin-bottom: $navbar-padding-y;
                 }
             }
         }
-        @if o-website-value('header-template') == 'pizza' {
+        @if o-website-value('header-template') == 'logo_below' {
             .navbar-collapse {
                 @include media-breakpoint-up(md) {
                     order: -1;
@@ -1236,8 +1236,8 @@ header {
 // Footer Templates
 
 #footer {
-    @if o-website-value('footer-template') != 'corporate' {
-        @if o-website-value('footer-template') == 'showcase' {
+    @if o-website-value('footer-template') != 'products_contacts_about_us' {
+        @if o-website-value('footer-template') == 'logo_about_us_below' {
             .o_footer_logo {
                 margin-top: $spacer;
                 margin-bottom: $spacer;
@@ -1245,7 +1245,7 @@ header {
             .o_footer_about_us {
                 margin-bottom: $spacer;
             }
-        } @else if o-website-value('footer-template') == 'brand' {
+        } @else if o-website-value('footer-template') == 'links_address_logo' {
             &, p {
                 text-align: center;
             }
