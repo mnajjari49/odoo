@@ -4,6 +4,7 @@
 import collections
 import datetime
 import errno
+import functools
 import logging
 import os
 import os.path
@@ -349,20 +350,24 @@ class ThreadedServer(CommonServer):
             self.limits_reached_threads.add(threading.currentThread())
 
         for thread in threading.enumerate():
-            if not thread.daemon or getattr(thread, 'type', None) == 'cron':
-                # We apply the limits on cron threads and HTTP requests,
-                # longpolling requests excluded.
-                if getattr(thread, 'start_time', None):
-                    thread_execution_time = time.time() - thread.start_time
-                    thread_limit_time_real = config['limit_time_real']
-                    if (getattr(thread, 'type', None) == 'cron' and
-                            config['limit_time_real_cron'] and config['limit_time_real_cron'] > 0):
-                        thread_limit_time_real = config['limit_time_real_cron']
-                    if thread_limit_time_real and thread_execution_time > thread_limit_time_real:
-                        _logger.info(
-                            'Thread %s virtual real time limit (%d/%ds) reached.',
-                            thread, thread_execution_time, thread_limit_time_real)
-                        self.limits_reached_threads.add(thread)
+            # We apply the limits on cron threads and HTTP requests,
+            # longpolling requests excluded.
+            if (thread.daemon
+                and getattr(thread, 'type', None) not in ('cron', 'async')
+                or not getattr(thread, 'start_time', None)):
+                continue
+
+            execution_time = time.time() - thread.start_time
+            limit_time = config['limit_time_real']
+            if getattr(thread, 'type', None) in ('cron', 'async'):
+                limit_time = config['limit_time_real_%s' % thread.type]
+
+            if limit_time and execution_time > limit_time:
+                _logger.info(
+                    'Thread %s virtual real time limit (%d/%ds) reached.',
+                    thread, execution_time, limit_time)
+                self.limits_reached_threads.add(thread)
+
         # Clean-up threads that are no longer alive
         # e.g. threads that exceeded their real time,
         # but which finished before the server could restart.
@@ -406,6 +411,38 @@ class ThreadedServer(CommonServer):
             t.type = 'cron'
             t.start()
             _logger.debug("cron%d started!" % i)
+
+    def async_thread(self, n):
+        from odoo.addons.base.models.ir_async import ir_async
+        registries = odoo.modules.registry.Registry.registries
+        interval = SLEEP_INTERVAL + n
+        conn = odoo.sql_db.db_connect('postgres')
+
+        with conn.cursor() as cr:
+            pg_conn = cr._cnx
+            cr.execute("LISTEN odoo_async")
+            cr.commit()
+
+            while True:
+                select.select([pg_conn], [], [], interval)
+                pg_conn.poll()
+                notified_dbs = {notify.payload for notify in pg_conn.notifies}
+                pg_conn.notifies.clear()
+                for dbname in notified_dbs:
+                    threading.currentThread().start_time = time.time()
+                    ir_async._process_jobs(dbname)
+                threading.currentThread().start_time = None
+
+    def async_spawn(self):
+        for i in range(odoo.tools.config['max_async_threads']):
+            t = threading.Thread(
+                target=functools.partial(self.async_thread, i),
+                name="odoo.service.async.async%d" % i,
+                daemon=True)
+            t.type = 'async'
+            t.start()
+            _logger.debug("async%d started!", i)
+
 
     def http_thread(self):
         def app(e, s):
@@ -487,6 +524,7 @@ class ThreadedServer(CommonServer):
             return rc
 
         self.cron_spawn()
+        self.async_spawn()
 
         # Wait for a first signal to be handled. (time.sleep will be interrupted
         # by the signal handler)
