@@ -28,6 +28,11 @@
                     />
                 </group>
             </xpath>
+            <xpath expr="//field[@name='capture_manually']" position="after">
+                <div attrs="{'invisible': ['|', '|', ('capture_manually', '=', False), ('provider', '!=', 'payfort'), ('payment_flow', '!=', 's2s')]}" class="alert alert-warning oe_inline" role="alert">
+                    Manual capture will only apply to transactions done through the redirection flow. This setting will have no effect with the currently selected payment flow.
+                </div>
+            </xpath>
         </field>
     </record>
 </odoo>

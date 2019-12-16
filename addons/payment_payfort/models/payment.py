@@ -45,6 +45,7 @@ class AcquirerPayfort(models.Model):
         """Add advanced feature support description for Payfort. """
         res = super(AcquirerPayfort, self)._get_feature_support()
         res["tokenize"].append("payfort")
+        res["authorize"].append("payfort")
         return res
 
     @api.model
@@ -152,7 +153,7 @@ class AcquirerPayfort(models.Model):
 
         if (
             not values.get("currency")
-            or not values.get("lang")
+            or not values.get("partner_lang")
             or not (values.get("partner_email") or values.get("billing_partner_email"))
         ):
             raise ValidationError(
@@ -162,7 +163,7 @@ class AcquirerPayfort(models.Model):
             )
 
         payfort_values = {
-            "command": "PURCHASE",
+            "command": "PURCHASE" if not self.capture_manually else "AUTHORIZATION",
             "access_code": self.payfort_access_code,
             "merchant_identifier": self.payfort_merchant_identifier,
             "merchant_reference": values["reference"],
@@ -338,47 +339,71 @@ class PaymentTransactionPayfort(models.Model):
     def _payfort_form_validate(self, data):
         status = data["status"]
         token = data.get("token_name")
-        # save token is asked
-        if token and self.type == "form_save":
-            Token = self.env["payment.token"]
-            domain = [("acquirer_ref", "=", token)]
-            cardholder = data.get("card_holder_name")
-            if not Token.search_count(domain):
-                _logger.info(
-                    "Payfort: saving alias %s for partner %s"
-                    % (data.get("card_number"), self.partner_id)
-                )
-                ref = Token.create(
-                    {
-                        "name": "%s - %s"
-                        % (data.get("card_number"), data.get("card_holder_name")),
-                        "partner_id": self.partner_id.id,
-                        "acquirer_id": self.acquirer_id.id,
-                        "acquirer_ref": token,
-                        "verified": True,
-                    }
-                )
-                self.write({"payment_token_id": ref.id})
-        self.write(
-            {
-                "acquirer_reference": data.get("fort_id"),
-                "state_message": data.get("response_message"),
-                "html_3ds": data.get("3ds_url"),
-            }
-        )
-        if status in PAYFORT_SUCCESS:
-            if self.payment_token_id:
-                self.payment_token_id.verified = True
-            self._set_transaction_done()
-            self.execute_callback()
-            return True
-        elif status in PAYFORT_ERROR:
-            error_msg = data.get("response_message")
-            self._set_transaction_error(error_msg)
-            return False
-        else:
-            self._set_transaction_pending()
-            return True
+        command = data.get("command")
+        init_state = self.state  # state before processing the response
+        if command in ("AUTHORIZATION", "PURCHASE", "CAPTURE"):
+            # normal transaction
+            # save token if asked
+            if token and self.type == "form_save":
+                Token = self.env["payment.token"]
+                domain = [("acquirer_ref", "=", token)]
+                if not Token.search_count(domain):
+                    _logger.info(
+                        "Payfort: saving alias %s for partner %s"
+                        % (data.get("card_number"), self.partner_id)
+                    )
+                    ref = Token.create(
+                        {
+                            "name": "%s - %s"
+                            % (data.get("card_number"), data.get("card_holder_name")),
+                            "partner_id": self.partner_id.id,
+                            "acquirer_id": self.acquirer_id.id,
+                            "acquirer_ref": token,
+                            "verified": True,
+                        }
+                    )
+                    self.write({"payment_token_id": ref.id})
+            self.write(
+                {
+                    "acquirer_reference": data.get("fort_id"),
+                    "state_message": data.get("response_message"),
+                    "html_3ds": data.get("3ds_url"),
+                }
+            )
+            if status in PAYFORT_SUCCESS:
+                if self.payment_token_id:
+                    self.payment_token_id.verified = True
+                if command == "AUTHORIZATION":
+                    self._set_transaction_authorized()
+                else:
+                    self._set_transaction_done()
+                # only execute callback if previous state is draft
+                # as we might be processing a capture confirmation and the
+                # callback would then already have been called at the auth step
+                if init_state == "draft":
+                    self.execute_callback()
+                return True
+            elif status in PAYFORT_ERROR:
+                error_msg = data.get("response_message")
+                self._set_transaction_error(error_msg)
+                return False
+            else:
+                self._set_transaction_pending()
+                return True
+        elif command == "VOID_AUTHORIZATION":
+            # refund of a tokenization authorization tx ('validation tx')
+            # no need to get values to write on tx, was done previously
+            # just set the tx to the correct status
+            if status in PAYFORT_SUCCESS:
+                self._set_transaction_cancel()
+                return True
+            elif status in PAYFORT_ERROR:
+                error_msg = data.get("response_message")
+                self._set_transaction_error(error_msg)
+                return False
+            else:
+                self._set_transaction_pending()
+                return True
 
     # --------------------------------------------------
     # S2S RELATED METHODS
@@ -409,6 +434,8 @@ class PaymentTransactionPayfort(models.Model):
             base_url = self.acquirer_id.get_base_url()
             payment_values.update(
                 {
+                    "command": "AUTHORIZATION",  # always AUTH for token validation
+                    # that way, if something goes wrong there is nothing to refund to the customer
                     "remember_me": "YES",
                     # if no request, the call CAME FROM INSIDE THE HOUSE!
                     "customer_ip": request
@@ -438,6 +465,14 @@ class PaymentTransactionPayfort(models.Model):
         return self._payfort_form_validate(response.json())
 
     def payfort_s2s_do_refund(self, **kwargs):
+        if self.type == "validation":
+            # a validation tx in payfort is done with an AUTHORIZATION command
+            # to avoid problems in case of an interrupted flow
+            # the validation process does not support this OoB and will always
+            # call the refund method (this one) during the validation flow
+            # refunding an authorized tx does not work, instead reroute the
+            # call to the voiding method, which is appropriate for an authorized tx
+            return self.payfort_s2S_void_transaction(**kwargs)
         environment = "prod" if self.acquirer_id.state == "enabled" else "test"
         endpoint = self.acquirer_id._get_payfort_urls(environment)[
             "payfort_recurring_url"
@@ -464,6 +499,65 @@ class PaymentTransactionPayfort(models.Model):
         response = requests.post(endpoint, json=payment_values)
         _logger.info(
             "Payfort: received s2s refund response with values:\n%s"
+            % pprint.pformat(response.json())
+        )
+        return self._payfort_form_validate(response.json())
+
+    def payfort_s2s_capture_transaction(self, **kwargs):
+        environment = "prod" if self.acquirer_id.state == "enabled" else "test"
+        endpoint = self.acquirer_id._get_payfort_urls(environment)[
+            "payfort_recurring_url"
+        ]
+        amount = self.acquirer_id._payfort_convert_amount(self.amount, self.currency_id)
+        payment_values = {
+            "command": "CAPTURE",
+            "access_code": self.acquirer_id.payfort_access_code,
+            "merchant_identifier": self.acquirer_id.payfort_merchant_identifier,
+            "merchant_reference": self.reference,
+            "fort_id": self.acquirer_reference,
+            "amount": amount,
+            "currency": self.currency_id.name,
+            "language": self.partner_lang,
+        }
+        payment_values = self.acquirer_id._payfort_sanitize_values(payment_values)
+        payment_values["signature"] = self.acquirer_id._payfort_generate_signature(
+            "request", payment_values
+        )
+        _logger.info(
+            "Payfort: sending s2s capture request with values:\n%s"
+            % pprint.pformat(payment_values)
+        )
+        response = requests.post(endpoint, json=payment_values)
+        _logger.info(
+            "Payfort: received s2s capture response with values:\n%s"
+            % pprint.pformat(response.json())
+        )
+        return self._payfort_form_validate(response.json())
+
+    def payfort_s2s_void_transaction(self, **kwargs):
+        environment = "prod" if self.acquirer_id.state == "enabled" else "test"
+        endpoint = self.acquirer_id._get_payfort_urls(environment)[
+            "payfort_recurring_url"
+        ]
+        payment_values = {
+            "command": "VOID_AUTHORIZATION",
+            "access_code": self.acquirer_id.payfort_access_code,
+            "merchant_identifier": self.acquirer_id.payfort_merchant_identifier,
+            "merchant_reference": self.reference,
+            "fort_id": self.acquirer_reference,
+            "language": self.partner_lang,
+        }
+        payment_values = self.acquirer_id._payfort_sanitize_values(payment_values)
+        payment_values["signature"] = self.acquirer_id._payfort_generate_signature(
+            "request", payment_values
+        )
+        _logger.info(
+            "Payfort: sending s2s void request with values:\n%s"
+            % pprint.pformat(payment_values)
+        )
+        response = requests.post(endpoint, json=payment_values)
+        _logger.info(
+            "Payfort: received s2s void response with values:\n%s"
             % pprint.pformat(response.json())
         )
         return self._payfort_form_validate(response.json())

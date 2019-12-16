@@ -84,6 +84,10 @@ class PayfortController(http.Controller):
             "values": acquirer._payfort_generate_s2s_values(partner_id=partner.id),
             "url": acquirer.payfort_get_form_action_url(),  # seems weird, but it's the same url as for forms
         }
+        _logger.info(
+            "Beginning Payfort tokenization process, merchant page POST values:\n%s",
+            pprint.pformat(res),
+        )
         return res
 
     @http.route(
@@ -101,7 +105,7 @@ class PayfortController(http.Controller):
                 otherwise the token won't be saved)
             2/ if that previous step's tx triggered a 3DS verification, the return from the 3DS page will
                 also land in this route; in that case, we should process the validation tx and mark the token
-                as validated, as well as refund the validation tx since it could not be refunded automatically
+                as validated, as well as void the validation tx since it could not be voided automatically
                 by the validation process (because of 3DS)
         In both cases, the rendered page will contain javascript code that will try to communicate to another
         window (or parent frame) to forward the result of the transaction to the initial payment page.
@@ -154,7 +158,7 @@ class PayfortController(http.Controller):
                 # something went wrong, we received a failure response from the tokenization process
                 # empty set, will display an error in frontend iframe and finish payment process
                 tx = Token
-        elif command == "PURCHASE":
+        elif command == "AUTHORIZATION":
             success = (
                 request.env["payment.transaction"].sudo().form_feedback(post, "payfort")
             )  # boolean (and not tx as one might think)
@@ -164,7 +168,9 @@ class PayfortController(http.Controller):
                 ._payfort_form_get_tx_from_data(post)
             )
             if success:
-                tx.s2s_do_refund()
+                # tokenization is always done with AUTHORIZATION command
+                # we need to void - not refund
+                tx.s2s_void_transaction()
                 token = tx.payment_token_id
             else:
                 # the validation transaction failed the 3ds process
@@ -175,7 +181,7 @@ class PayfortController(http.Controller):
                 token = Token
         else:
             raise werkzeug.exceptions.BadRequest(
-                "POST data should contain a `command` or `service_command` param matching either TOKENIZATION or PURCHASE"
+                "POST data should contain a `command` or `service_command` param matching either TOKENIZATION or AUTHORIZATION"
             )
         # the rendered page can exist in 2 different contexts: an iframe (tokenization) or
         # a popup window (3DS - it can't be in an iframe since the headers in Payfort prevent
