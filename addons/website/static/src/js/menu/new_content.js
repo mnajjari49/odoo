@@ -278,7 +278,10 @@ var NewContentMenu = websiteNavbarData.WebsiteNavbarActionWidget.extend({
                     }
 
                     self._install(moduleId).then(function () {
-                        window.location.href = window.location.origin + window.location.pathname + '?' + enableFlag;
+                        var origin = window.location.origin,
+                            redirectURL = $el.find('a').data('url');
+                        // redirect default menu if given, widget wouldn't display after install
+                        window.location.href = redirectURL ? origin + redirectURL : origin + window.location.pathname + '?' + enableFlag;
                     }, function () {
                         $i.removeClass()
                             .addClass('fa fa-exclamation-triangle');
