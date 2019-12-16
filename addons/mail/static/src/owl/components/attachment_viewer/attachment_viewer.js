@@ -1,8 +1,10 @@
 odoo.define('mail.component.AttachmentViewer', function (require) {
 'use strict';
 
+const { useStoreCompareKeys } = require('mail.hooks.useStoreCompareKeys');
+
 const { Component, QWeb, useState } = owl;
-const { useDispatch, useGetters, useRef, useStore } = owl.hooks;
+const { useDispatch, useGetters, useRef } = owl.hooks;
 
 const MIN_SCALE = 0.5;
 const SCROLL_ZOOM_STEP = 0.1;
@@ -34,7 +36,7 @@ class AttachmentViewer extends Component {
         });
         this.storeDispatch = useDispatch();
         this.storeGetters = useGetters();
-        this.storeProps = useStore((state, props) => {
+        this.storeProps = useStoreCompareKeys((state, props) => {
             return {
                 attachment: state.attachments[props.info.attachmentLocalId],
             };

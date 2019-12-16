@@ -3,9 +3,10 @@ odoo.define('mail.component.Thread', function (require) {
 
 const Composer = require('mail.component.Composer');
 const MessageList = require('mail.component.MessageList');
+const { useStoreCompareKeys } = require('mail.hooks.useStoreCompareKeys');
 
 const { Component } = owl;
-const { useDispatch, useRef, useStore } = owl.hooks;
+const { useDispatch, useRef } = owl.hooks;
 
 class Thread extends Component {
 
@@ -22,7 +23,7 @@ class Thread extends Component {
          */
         this.id = _.uniqueId('o_thread_');
         this.storeDispatch = useDispatch();
-        this.storeProps = useStore((state, props) => {
+        this.storeProps = useStoreCompareKeys((state, props) => {
             const thread = state.threads[props.threadLocalId];
             const threadCacheLocalId = thread
                 ? thread.cacheLocalIds[JSON.stringify(props.domain || [])]

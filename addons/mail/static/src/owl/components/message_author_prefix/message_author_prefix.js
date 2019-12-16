@@ -1,8 +1,10 @@
 odoo.define('mail.component.MessageAuthorPrefix', function (require) {
 'use strict';
 
+const { useStoreCompareKeys } = require('mail.hooks.useStoreCompareKeys');
+
 const { Component } = owl;
-const { useGetters, useStore } = owl.hooks;
+const { useGetters } = owl.hooks;
 
 class MessageAuthorPrefix extends Component {
 
@@ -13,7 +15,7 @@ class MessageAuthorPrefix extends Component {
     constructor(...args) {
         super(...args);
         this.storeGetters = useGetters();
-        this.storeProps = useStore((state, props) => {
+        this.storeProps = useStoreCompareKeys((state, props) => {
             const message = state.messages[props.messageLocalId];
             const author = state.partners[message.authorLocalId];
             const thread = props.threadLocalId

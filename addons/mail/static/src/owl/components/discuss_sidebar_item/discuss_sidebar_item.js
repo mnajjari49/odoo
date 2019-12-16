@@ -3,11 +3,12 @@ odoo.define('mail.component.DiscussSidebarItem', function (require) {
 
 const EditableText = require('mail.component.EditableText');
 const Icon = require('mail.component.ThreadIcon');
+const { useStoreCompareKeys } = require('mail.hooks.useStoreCompareKeys');
 
 const Dialog = require('web.Dialog');
 
 const { Component, useState } = owl;
-const { useDispatch, useGetters, useStore } = owl.hooks;
+const { useDispatch, useGetters } = owl.hooks;
 
 class DiscussSidebarItem extends Component {
 
@@ -25,7 +26,7 @@ class DiscussSidebarItem extends Component {
         });
         this.storeDispatch = useDispatch();
         this.storeGetters = useGetters();
-        this.storeProps = useStore((state, props) => {
+        this.storeProps = useStoreCompareKeys((state, props) => {
             const thread = state.threads[props.threadLocalId];
             const directPartner = thread.directPartnerLocalId
                 ? state.partners[thread.directPartnerLocalId]

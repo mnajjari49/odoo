@@ -3,9 +3,10 @@ odoo.define('mail.component.ComposerTextInput', function (require) {
 
 const ajax = require('web.ajax');
 const utils = require('web.utils');
+const { useStoreCompareKeys } = require('mail.hooks.useStoreCompareKeys');
 
 const { Component } = owl;
-const { useDispatch, useGetters, useRef, useStore } = owl.hooks;
+const { useDispatch, useGetters, useRef } = owl.hooks;
 
 /**
  * Enforced empty content of the contenteditable. This is necessary because
@@ -34,7 +35,7 @@ class ComposerTextInput extends Component {
         this.MENTION_THROTTLE = 200;
         this.storeDispatch = useDispatch();
         this.storeGetters = useGetters();
-        this.storeProps = useStore(state => {
+        this.storeProps = useStoreCompareKeys(state => {
             return {
                 isMobile: state.isMobile,
             };

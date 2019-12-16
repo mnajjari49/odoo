@@ -3,9 +3,10 @@ odoo.define('mail.component.MessageList', function (require) {
 
 const Message = require('mail.component.Message');
 const useRefs = require('mail.hooks.useRefs');
+const { useStoreCompareKeys } = require('mail.hooks.useStoreCompareKeys');
 
 const { Component } = owl;
-const { useDispatch, useRef, useStore } = owl.hooks;
+const { useDispatch, useRef } = owl.hooks;
 
 class MessageList extends Component {
 
@@ -17,7 +18,7 @@ class MessageList extends Component {
         super(...args);
         this._getRefs = useRefs();
         this.storeDispatch = useDispatch();
-        this.storeProps = useStore((state, props) => {
+        this.storeProps = useStoreCompareKeys((state, props) => {
             const threadCache = state.threadCaches[props.threadCacheLocalId];
             return {
                 isMobile: state.isMobile,
@@ -27,6 +28,10 @@ class MessageList extends Component {
                 threadCache,
                 threadCacheCurrentPartnerMessagePostCounter: threadCache.currentPartnerMessagePostCounter,
             };
+        }, {
+            compareDepth: {
+                messages: 1,
+            },
         });
         /**
          * Determine whether the auto-scroll on load is active or not. This

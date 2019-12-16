@@ -4,9 +4,10 @@ odoo.define('mail.component.MessagingMenu', function (require) {
 const AutocompleteInput = require('mail.component.AutocompleteInput');
 const MobileNavbar = require('mail.component.MobileMessagingNavbar');
 const ThreadPreviewList = require('mail.component.ThreadPreviewList');
+const { useStoreCompareKeys } = require('mail.hooks.useStoreCompareKeys');
 
 const { Component } = owl;
-const { useDispatch, useGetters, useRef, useStore } = owl.hooks;
+const { useDispatch, useGetters, useRef } = owl.hooks;
 
 class MessagingMenu extends Component {
 
@@ -24,7 +25,7 @@ class MessagingMenu extends Component {
         this.id = _.uniqueId('o_messagingMenu_');
         this.storeDispatch = useDispatch();
         this.storeGetters = useGetters();
-        this.storeProps = useStore(state => {
+        this.storeProps = useStoreCompareKeys(state => {
             return Object.assign({}, state.messagingMenu, {
                 counter: this.storeGetters.globalThreadUnreadCounter(),
                 isDiscussOpen: state.discuss.isOpen,

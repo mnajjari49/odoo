@@ -4,9 +4,10 @@ odoo.define('mail.component.Chatter', function (require) {
 const AttachmentBox = require('mail.component.AttachmentBox');
 const ChatterTopbar = require('mail.component.ChatterTopbar');
 const Thread = require('mail.component.Thread');
+const { useStoreCompareKeys } = require('mail.hooks.useStoreCompareKeys');
 
 const { Component, useState } = owl;
-const { useDispatch, useGetters, useRef, useStore } = owl.hooks;
+const { useDispatch, useGetters, useRef } = owl.hooks;
 
 class Chatter extends Component {
     /**
@@ -17,7 +18,7 @@ class Chatter extends Component {
         this.state = useState({ isAttachmentBoxVisible: false });
         this.storeDispatch = useDispatch();
         this.storeGetters = useGetters();
-        this.storeProps = useStore((state, props) => {
+        this.storeProps = useStoreCompareKeys((state, props) => {
             const thread = this.storeGetters.thread({
                 _model: props.model,
                 id: props.id,

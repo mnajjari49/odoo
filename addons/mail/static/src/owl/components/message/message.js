@@ -4,12 +4,13 @@ odoo.define('mail.component.Message', function (require) {
 const AttachmentList = require('mail.component.AttachmentList');
 const PartnerImStatusIcon = require('mail.component.PartnerImStatusIcon');
 const mailUtils = require('mail.utils');
+const { useStoreCompareKeys } = require('mail.hooks.useStoreCompareKeys');
 
 const core = require('web.core');
 const time = require('web.time');
 
 const { Component, useState } = owl;
-const { useDispatch, useGetters, useRef, useStore } = owl.hooks;
+const { useDispatch, useGetters, useRef } = owl.hooks;
 
 const _lt = core._lt;
 const READ_MORE = _lt("read more");
@@ -36,7 +37,7 @@ class Message extends Component {
         });
         this.storeDispatch = useDispatch();
         this.storeGetters = useGetters();
-        this.storeProps = useStore((state, props) => {
+        this.storeProps = useStoreCompareKeys((state, props) => {
             const message = state.messages[props.messageLocalId];
             const attachmentLocalIds = message.attachmentLocalIds;
             const author = state.partners[message.authorLocalId];

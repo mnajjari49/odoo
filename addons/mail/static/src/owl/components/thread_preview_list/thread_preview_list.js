@@ -2,9 +2,10 @@ odoo.define('mail.component.ThreadPreviewList', function (require) {
 'use strict';
 
 const ThreadPreview = require('mail.component.ThreadPreview');
+const { useStoreCompareKeys } = require('mail.hooks.useStoreCompareKeys');
 
 const { Component } = owl;
-const { useDispatch, useGetters, useStore } = owl.hooks;
+const { useDispatch, useGetters } = owl.hooks;
 
 class ThreadPreviewList extends Component {
 
@@ -16,7 +17,7 @@ class ThreadPreviewList extends Component {
         super(...args);
         this.storeDispatch = useDispatch();
         this.storeGetters = useGetters();
-        this.storeProps = useStore((state, props) => {
+        this.storeProps = useStoreCompareKeys((state, props) => {
             let threadLocalIds;
             if (props.filter === 'mailbox') {
                 threadLocalIds = this.storeGetters.mailboxList().map(mailbox => mailbox.localId);
@@ -32,6 +33,10 @@ class ThreadPreviewList extends Component {
                 isMobile: state.isMobile,
                 threadLocalIds,
             };
+        }, {
+            compareDepth: {
+                threadLocalIds: 1,
+            },
         });
     }
 

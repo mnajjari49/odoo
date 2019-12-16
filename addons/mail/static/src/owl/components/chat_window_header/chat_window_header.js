@@ -2,9 +2,10 @@ odoo.define('mail.component.ChatWindowHeader', function (require) {
 'use strict';
 
 const Icon = require('mail.component.ThreadIcon');
+const { useStoreCompareKeys } = require('mail.hooks.useStoreCompareKeys');
 
 const { Component } = owl;
-const { useDispatch, useGetters, useStore } = owl.hooks;
+const { useDispatch, useGetters } = owl.hooks;
 
 class ChatWindowHeader extends Component {
 
@@ -16,7 +17,7 @@ class ChatWindowHeader extends Component {
         super(...args);
         this.storeDispatch = useDispatch();
         this.storeGetters = useGetters();
-        this.storeProps = useStore((state, props) => {
+        this.storeProps = useStoreCompareKeys((state, props) => {
             const chatWindowLocalId = props.chatWindowLocalId;
             const thread = state.threads[chatWindowLocalId];
             const threadName = thread

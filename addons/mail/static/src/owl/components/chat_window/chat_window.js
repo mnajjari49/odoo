@@ -4,9 +4,10 @@ odoo.define('mail.component.ChatWindow', function (require) {
 const AutocompleteInput = require('mail.component.AutocompleteInput');
 const Header = require('mail.component.ChatWindowHeader');
 const Thread = require('mail.component.Thread');
+const { useStoreCompareKeys } = require('mail.hooks.useStoreCompareKeys');
 
 const { Component, useState } = owl;
-const { useDispatch, useGetters, useRef, useStore } = owl.hooks;
+const { useDispatch, useGetters, useRef } = owl.hooks;
 
 class ChatWindow extends Component {
 
@@ -31,7 +32,7 @@ class ChatWindow extends Component {
         });
         this.storeDispatch = useDispatch();
         this.storeGetters = useGetters();
-        this.storeProps = useStore((state, props) => {
+        this.storeProps = useStoreCompareKeys((state, props) => {
             return {
                 isMobile: state.isMobile,
                 thread: state.threads[props.chatWindowLocalId],

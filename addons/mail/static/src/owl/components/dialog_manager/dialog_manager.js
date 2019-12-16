@@ -2,9 +2,9 @@ odoo.define('mail.component.DialogManager', function (require) {
 'use strict';
 
 const Dialog = require('mail.component.Dialog');
+const { useStoreCompareKeys } = require('mail.hooks.useStoreCompareKeys');
 
 const { Component } = owl;
-const { useStore } = owl.hooks;
 
 class DialogManager extends Component {
 
@@ -14,7 +14,7 @@ class DialogManager extends Component {
      */
     constructor(...args) {
         super(...args);
-        this.storeProps = useStore(state => {
+        this.storeProps = useStoreCompareKeys(state => {
             return Object.assign({}, state.dialogManager);
         });
     }

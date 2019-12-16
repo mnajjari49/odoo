@@ -5,9 +5,10 @@ const AttachmentList = require('mail.component.AttachmentList');
 const DropZone = require('mail.component.DropZone');
 const FileUploader = require('mail.component.FileUploader');
 const useDragVisibleDropZone = require('mail.hooks.useDragVisibleDropZone');
+const { useStoreCompareKeys } = require('mail.hooks.useStoreCompareKeys');
 
 const { Component } = owl;
-const { useDispatch, useRef, useStore } = owl.hooks;
+const { useDispatch, useRef } = owl.hooks;
 
 class AttachmentBox extends Component {
 
@@ -19,7 +20,7 @@ class AttachmentBox extends Component {
         super(...args);
         this.isDropZoneVisible = useDragVisibleDropZone();
         this.storeDispatch = useDispatch();
-        this.storeProps = useStore((state, props) => {
+        this.storeProps = useStoreCompareKeys((state, props) => {
             const thread = state.threads[props.threadLocalId];
             return {
                 attachmentLocalIds: thread ? thread.attachmentLocalIds : []

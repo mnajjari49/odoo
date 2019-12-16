@@ -7,9 +7,10 @@ const EmojisButton = require('mail.component.EmojisButton');
 const FileUploader = require('mail.component.FileUploader');
 const TextInput = require('mail.component.ComposerTextInput');
 const useDragVisibleDropZone = require('mail.hooks.useDragVisibleDropZone');
+const { useStoreCompareKeys } = require('mail.hooks.useStoreCompareKeys');
 
 const { Component } = owl;
-const { useDispatch, useGetters, useRef, useState, useStore } = owl.hooks;
+const { useDispatch, useGetters, useRef, useState } = owl.hooks;
 
 class Composer extends Component {
 
@@ -30,7 +31,7 @@ class Composer extends Component {
         this.isDropZoneVisible = useDragVisibleDropZone();
         this.storeDispatch = useDispatch();
         this.storeGetters = useGetters();
-        this.storeProps = useStore((state, props) => {
+        this.storeProps = useStoreCompareKeys((state, props) => {
             const composer = state.composers[props.composerLocalId];
             return {
                 composer,

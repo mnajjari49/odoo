@@ -1,8 +1,9 @@
 odoo.define('mail.component.ThreadIcon', function (require) {
 'use strict';
 
+const { useStoreCompareKeys } = require('mail.hooks.useStoreCompareKeys');
+
 const { Component } = owl;
-const { useStore } = owl.hooks;
 
 class ThreadIcon extends Component {
 
@@ -12,7 +13,7 @@ class ThreadIcon extends Component {
      */
     constructor(...args) {
         super(...args);
-        this.storeProps = useStore((state, props) => {
+        this.storeProps = useStoreCompareKeys((state, props) => {
             const thread = state.threads[props.threadLocalId];
             const directPartner = thread
                 ? state.partners[thread.directPartnerLocalId]

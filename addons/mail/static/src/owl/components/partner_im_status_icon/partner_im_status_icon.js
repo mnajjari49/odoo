@@ -1,8 +1,9 @@
 odoo.define('mail.component.PartnerImStatusIcon', function (require) {
 'use strict';
 
+const { useStoreCompareKeys } = require('mail.hooks.useStoreCompareKeys');
+
 const { Component } = owl;
-const { useStore } = owl.hooks;
 
 class PartnerImStatusIcon extends Component {
 
@@ -12,7 +13,7 @@ class PartnerImStatusIcon extends Component {
      */
     constructor(...args) {
         super(...args);
-        this.storeProps = useStore((state, props) => {
+        this.storeProps = useStoreCompareKeys((state, props) => {
             return {
                 partner: state.partners[props.partnerLocalId],
             };
