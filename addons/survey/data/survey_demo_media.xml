@@ -1,0 +1,308 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo><data noupdate="0">
+    <record model="survey.survey" id="survey_demo_media">
+        <field name="title">The world and beyond</field>
+        <field name="state">draft</field>
+        <field name="access_mode">public</field>
+        <field name="users_can_go_back" eval="False"/>
+        <field name="scoring_type">scoring_with_answers</field>
+        <field name="scoring_success_min">50</field>
+        <field name="questions_layout">page_per_section</field>
+        <field name="description" type="html">
+            <p>By succeding this test, you are preparing for the world of tomorow. Then... what are you waiting for ?</p>
+        </field>
+    </record>
+
+    <!-- Section 1 : geography knowledge -->
+    <record id="survey_demo_media_p1" model="survey.question">
+        <field name="title">Flags of the world</field>
+        <field name="survey_id" ref="survey_demo_media"/>
+        <field name="sequence">1</field>
+        <field name="question_type" eval="False"/>
+        <field name="is_page" eval="True"/>
+        <field name="description" type="html">
+            <p>First we need to know about your geography skills and what's the best way to do it if it's not by a flag quizz ! Fun with flags !</p>
+        </field>
+    </record>
+
+    <record id="survey_demo_media_p1_q1" model="survey.question">
+        <field name="title">What is the flag of Italy ?</field>
+        <field name="survey_id" ref="survey_demo_media"/>
+        <field name="sequence">2</field>
+        <field name="question_type">simple_choice</field>
+        <field name="display_mode">columns</field>
+        <field name="column_nb">6</field>
+        <field name="answer_image" eval="True"/>
+        <field name="constr_mandatory" eval="True"/>
+    </record>
+    <record id="survey_demo_media_p1_q1_sug1" model="survey.question.answer">
+        <field name="question_id" ref="survey_demo_media_p1_q1"/>
+        <field name="sequence">1</field>
+        <field name="value">Flag n°1</field>
+        <field name="image" type="base64" file="survey/static/img/flag_6.jpg"/>
+    </record>
+    <record id="survey_demo_media_p1_q1_sug2" model="survey.question.answer">
+        <field name="question_id" ref="survey_demo_media_p1_q1"/>
+        <field name="sequence">2</field>
+        <field name="value">Flag n°2</field>
+        <field name="image" type="base64" file="survey/static/img/flag_8.png"/>
+    </record>
+    <record id="survey_demo_media_p1_q1_sug3" model="survey.question.answer">
+        <field name="question_id" ref="survey_demo_media_p1_q1"/>
+        <field name="sequence">3</field>
+        <field name="value">Flag n°3</field>
+        <field name="image" type="base64" file="survey/static/img/flag_9.jpg"/>
+        <field name="is_correct" eval="True"/>
+        <field name="answer_score">20</field>
+    </record>
+    <record id="survey_demo_media_p1_q1_sug4" model="survey.question.answer">
+        <field name="question_id" ref="survey_demo_media_p1_q1"/>
+        <field name="sequence">4</field>
+        <field name="value">Flag n°4</field>
+        <field name="image" type="base64" file="survey/static/img/flag_7.png"/>
+    </record>
+
+    <record id="survey_demo_media_p1_q2" model="survey.question">
+        <field name="title">What is the flag of Paris ?</field>
+        <field name="survey_id" ref="survey_demo_media"/>
+        <field name="sequence">3</field>
+        <field name="question_type">simple_choice</field>
+        <field name="display_mode">columns</field>
+        <field name="column_nb">6</field>
+        <field name="answer_image" eval="True"/>
+        <field name="constr_mandatory" eval="True"/>
+    </record>
+    <record id="survey_demo_media_p1_q2_sug1" model="survey.question.answer">
+        <field name="question_id" ref="survey_demo_media_p1_q2"/>
+        <field name="sequence">1</field>
+        <field name="value">Flag n°1</field>
+        <field name="image" type="base64" file="survey/static/img/flag_city_4.png"/>
+        <field name="is_correct" eval="True"/>
+        <field name="answer_score">20</field>
+    </record>
+    <record id="survey_demo_media_p1_q2_sug2" model="survey.question.answer">
+        <field name="question_id" ref="survey_demo_media_p1_q2"/>
+        <field name="sequence">2</field>
+        <field name="value">Flag n°2</field>
+        <field name="image" type="base64" file="survey/static/img/flag_city_1.png"/>
+    </record>
+    <record id="survey_demo_media_p1_q2_sug3" model="survey.question.answer">
+        <field name="question_id" ref="survey_demo_media_p1_q2"/>
+        <field name="sequence">3</field>
+        <field name="value">Flag n°3</field>
+        <field name="image" type="base64" file="survey/static/img/flag_city_3.png"/>
+    </record>
+    <record id="survey_demo_media_p1_q2_sug4" model="survey.question.answer">
+        <field name="question_id" ref="survey_demo_media_p1_q2"/>
+        <field name="sequence">4</field>
+        <field name="value">Flag n°4</field>
+        <field name="image" type="base64" file="survey/static/img/flag_city_2.png"/>
+    </record>
+
+    <record id="survey_demo_media_p1_q3" model="survey.question">
+        <field name="title">What is the country associated with this flag ?</field>
+        <field name="survey_id" ref="survey_demo_media"/>
+        <field name="sequence">4</field>
+        <field name="question_type">simple_choice</field>
+        <field name="display_mode">columns</field>
+        <field name="column_nb">6</field>
+        <field name="constr_mandatory" eval="True"/>
+        <field name="description" type="html">
+            <p>
+                <img class="img-fluid o_we_custom_image d-block mx-auto"
+                    src="/survey/static/img/flag_1.png"/><br/>
+            </p>
+        </field>
+    </record>
+    <record id="survey_demo_media_p1_q3_sug1" model="survey.question.answer">
+        <field name="question_id" ref="survey_demo_media_p1_q3"/>
+        <field name="sequence">1</field>
+        <field name="value">Brazil</field>
+    </record>
+    <record id="survey_demo_media_p1_q3_sug2" model="survey.question.answer">
+        <field name="question_id" ref="survey_demo_media_p1_q3"/>
+        <field name="sequence">2</field>
+        <field name="value">Greece</field>
+        <field name="is_correct" eval="True"/>
+        <field name="answer_score">10</field>
+    </record>
+    <record id="survey_demo_media_p1_q3_sug3" model="survey.question.answer">
+        <field name="question_id" ref="survey_demo_media_p1_q3"/>
+        <field name="sequence">3</field>
+        <field name="value">Canada</field>
+    </record>
+    <record id="survey_demo_media_p1_q3_sug4" model="survey.question.answer">
+        <field name="question_id" ref="survey_demo_media_p1_q3"/>
+        <field name="sequence">4</field>
+        <field name="value">Croatia</field>
+    </record>
+
+    <record id="survey_demo_media_p1_q4" model="survey.question">
+        <field name="title">In the flags displayed below, how many doens't represent a country ?</field>
+        <field name="survey_id" ref="survey_demo_media"/>
+        <field name="sequence">4</field>
+        <field name="question_type">simple_choice</field>
+        <field name="constr_mandatory" eval="True"/>
+        <field name="description" type="html">
+            <table class="table table-bordered">
+                <tbody>
+                    <tr>
+                        <td>
+                            <p>
+                                <img class="img-fluid o_we_custom_image"
+                                    src="/survey/static/img/flag_2.png"/><br/>
+                            </p>
+                        </td>
+                        <td>
+                            <p>
+                                <img class="img-fluid o_we_custom_image"
+                                    src="/survey/static/img/flag_3.jpg"/><br/>
+                            </p>
+                        </td>
+                        <td>
+                            <p>
+                                <img class="img-fluid o_we_custom_image"
+                                    src="/survey/static/img/flag_4.jpg"/><br/>
+                            </p>
+                        </td>
+                        <td>
+                            <p>
+                                <img class="img-fluid o_we_custom_image"
+                                    src="/survey/static/img/flag_5.png"/><br/>
+                            </p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </field>
+    </record>
+    <record id="survey_demo_media_p1_q4_sug1" model="survey.question.answer">
+        <field name="question_id" ref="survey_demo_media_p1_q4"/>
+        <field name="sequence">1</field>
+        <field name="value">0</field>
+    </record>
+    <record id="survey_demo_media_p1_q4_sug2" model="survey.question.answer">
+        <field name="question_id" ref="survey_demo_media_p1_q4"/>
+        <field name="sequence">2</field>
+        <field name="value">1</field>
+    </record>
+    <record id="survey_demo_media_p1_q4_sug3" model="survey.question.answer">
+        <field name="question_id" ref="survey_demo_media_p1_q4"/>
+        <field name="sequence">3</field>
+        <field name="value">2</field>
+        <field name="is_correct" eval="True"/>
+        <field name="answer_score">20</field>
+    </record>
+    <record id="survey_demo_media_p1_q4_sug4" model="survey.question.answer">
+        <field name="question_id" ref="survey_demo_media_p1_q4"/>
+        <field name="sequence">4</field>
+        <field name="value">3</field>
+    </record>
+    <record id="survey_demo_media_p1_q4_sug5" model="survey.question.answer">
+        <field name="question_id" ref="survey_demo_media_p1_q4"/>
+        <field name="sequence">5</field>
+        <field name="value">4</field>
+    </record>
+
+    <!-- Section 2 : wildlife knowledge -->
+    <record id="survey_demo_media_p2" model="survey.question">
+        <field name="title">Animals of the world</field>
+        <field name="survey_id" ref="survey_demo_media"/>
+        <field name="sequence">5</field>
+        <field name="question_type" eval="False"/>
+        <field name="is_page" eval="True"/>
+        <field name="description" type="html">
+            <p>Now we will be testing your knowledge about the wildlife on this planet.</p>
+        </field>
+    </record>
+
+    <record id="survey_demo_media_p2_q1" model="survey.question">
+        <field name="title">In the list below, select all the mammals.</field>
+        <field name="survey_id" ref="survey_demo_media"/>
+        <field name="sequence">6</field>
+        <field name="question_type">multiple_choice</field>
+        <field name="display_mode">columns</field>
+        <field name="column_nb">6</field>
+        <field name="answer_image" eval="True"/>
+        <field name="constr_mandatory" eval="True"/>
+    </record>
+    <record id="survey_demo_media_p2_q1_sug1" model="survey.question.answer">
+        <field name="question_id" ref="survey_demo_media_p2_q1"/>
+        <field name="sequence">1</field>
+        <field name="value">Cow</field>
+        <field name="image" type="base64" file="survey/static/img/cow.jpg"/>
+        <field name="is_correct" eval="True"/>
+        <field name="answer_score">5</field>
+    </record>
+    <record id="survey_demo_media_p2_q1_sug2" model="survey.question.answer">
+        <field name="question_id" ref="survey_demo_media_p2_q1"/>
+        <field name="sequence">2</field>
+        <field name="value">Rhinoceros</field>
+        <field name="image" type="base64" file="survey/static/img/rhinoceros.jpg"/>
+        <field name="is_correct" eval="True"/>
+        <field name="answer_score">5</field>
+    </record>
+    <record id="survey_demo_media_p2_q1_sug3" model="survey.question.answer">
+        <field name="question_id" ref="survey_demo_media_p2_q1"/>
+        <field name="sequence">3</field>
+        <field name="value">Killer whale</field>
+        <field name="image" type="base64" file="survey/static/img/killer_whale.jpg"/>
+        <field name="is_correct" eval="True"/>
+        <field name="answer_score">5</field>
+    </record>
+    <record id="survey_demo_media_p2_q1_sug4" model="survey.question.answer">
+        <field name="question_id" ref="survey_demo_media_p2_q1"/>
+        <field name="sequence">4</field>
+        <field name="value">Dolphin</field>
+        <field name="image" type="base64" file="survey/static/img/dolphin.jpg"/>
+        <field name="is_correct" eval="True"/>
+        <field name="answer_score">5</field>
+    </record>
+
+    <record id="survey_demo_media_p2_q2" model="survey.question">
+        <field name="title">In the list below, select all the possible preys of the predator presented below.</field>
+        <field name="survey_id" ref="survey_demo_media"/>
+        <field name="sequence">7</field>
+        <field name="question_type">multiple_choice</field>
+        <field name="display_mode">columns</field>
+        <field name="column_nb">6</field>
+        <field name="description" type="html">
+            <p>In the next video you will see one of the greatest predator of the world. Don't be afraid, it will do you no harm.</p>
+        </field>
+        <field name="description" type="html">
+            <p>
+                <div class="media_iframe_video" data-oe-expression="//www.youtube.com/embed/WEkSYw3o5is?autoplay=0&amp;rel=0" style="width: 50%;">
+                    <div class="css_editable_mode_display"/>
+                    <div class="media_iframe_video_size" contenteditable="false"/>
+                    <iframe src="//www.youtube.com/embed/WEkSYw3o5is?autoplay=0&amp;rel=0" frameborder="0" contenteditable="false"></iframe>
+                </div><br/>
+            </p>
+        </field>
+    </record>
+    <record id="survey_demo_media_p2_q2_sug1" model="survey.question.answer">
+        <field name="question_id" ref="survey_demo_media_p2_q2"/>
+        <field name="sequence">1</field>
+        <field name="value">Mouse</field>
+        <field name="is_correct" eval="True"/>
+        <field name="answer_score">5</field>
+    </record>
+    <record id="survey_demo_media_p2_q2_sug2" model="survey.question.answer">
+        <field name="question_id" ref="survey_demo_media_p2_q2"/>
+        <field name="sequence">2</field>
+        <field name="value">Wolf</field>
+    </record>
+    <record id="survey_demo_media_p2_q2_sug3" model="survey.question.answer">
+        <field name="question_id" ref="survey_demo_media_p2_q2"/>
+        <field name="sequence">3</field>
+        <field name="value">Human</field>
+        <field name="is_correct" eval="True"/>
+        <field name="answer_score">5</field>
+    </record>
+    <record id="survey_demo_media_p2_q2_sug4" model="survey.question.answer">
+        <field name="question_id" ref="survey_demo_media_p2_q2"/>
+        <field name="sequence">4</field>
+        <field name="value">Crocodile</field>
+    </record>
+
+</data>
+</odoo>

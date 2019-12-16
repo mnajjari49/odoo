@@ -94,6 +94,11 @@
                             </div>
                         </group>
                     </group>
+                    <div>
+                        <label for="description" string="Description"/> 
+                        <separator />
+                        <field name="description" widget="html"/>
+                    </div>
                     <notebook attrs="{'invisible': [('is_page', '=', True)]}">
                         <page string="Answers" name="answers">
                             <field name="validation_email" attrs="{'invisible': [('question_type', '!=', 'char_box')]}"/>
@@ -109,6 +114,7 @@
                                 <tree editable="bottom">
                                     <field name="sequence" widget="handle"/>
                                     <field name="value" string="Choices"/>
+                                    <field name="image" string="Image" options="{'accepted_file_extensions': 'image/*'}"  attrs="{'column_invisible': [('parent.answer_image', '=', False)]}"/>
                                     <field name="is_correct" attrs="{'column_invisible': ['|', ('parent.scoring_type', '=', 'no_scoring'), ('parent.question_type', '=', 'matrix')]}"/>
                                     <field name="answer_score" attrs="{'column_invisible': ['|', ('parent.scoring_type', '=', 'no_scoring'), ('parent.question_type', '=', 'matrix')]}"/>
                                 </tree>
@@ -148,8 +154,10 @@
                                     <field name="matrix_subtype" attrs="{'invisible':[('question_type','not in',['matrix'])],'required':[('question_type','=','matrix')]}"/>
                                 </group>
                             </group>
-                            <group string="Display" attrs="{'invisible':[('question_type','not in',['simple_choice', 'multiple_choice'])]}">
-                                <field name="column_nb" string="Number of columns"/>
+                            <group string="Display mode" attrs="{'invisible':[('question_type','not in',['simple_choice', 'multiple_choice'])]}">
+                                <field name="display_mode" string="Format" attrs="{'invisible':[('question_type','not in',['simple_choice'])],'required':[('question_type','=','simple_choice')]}"/>
+                                <field name="column_nb" string="Number of columns" attrs="{'invisible':[('display_mode','=','dropdown'), ('question_type','=','simple_choice')]}"/>
+                                <field name="answer_image" string="Allow images on answers" attrs="{'invisible':[('display_mode','=','dropdown'), ('question_type','=','simple_choice')]}"/>
                             </group>
                             <group string="Allow Comments" attrs="{'invisible':[('question_type','not in',['simple_choice','multiple_choice', 'matrix'])]}">
                                 <field name='comments_allowed' />

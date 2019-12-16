@@ -285,6 +285,9 @@
                            t-att-name='question.id'
                            t-att-checked="answer_line and answer_line.suggested_answer_id.id == label.id and 'checked' or None"/>
                     <span t-field='label.value'/>
+                    <div t-if="question.answer_image and label.image" class="d-flex align-items-center mb-2 mt-2 justify-content-center">
+                        <div t-if="label.image" t-field="label.image" class="d-flex align-items-center mb-2 mt-2 justify-content-center h-100" t-options='{"widget": "image", "class": "o_survey_mcq_img", "alt-field": "name", "itemprop": "image"}'/>
+                    </div>
                 </label>
             </div>
             <div t-if='question.comments_allowed and question.comment_count_as_answer' class="js_comments col-lg-12" >
@@ -311,11 +314,16 @@
              t-att-data-question-type="question.question_type">
             <div t-foreach='question.suggested_answer_ids' t-as='label' t-attf-class="col-lg-#{question.column_nb}">
                 <t t-set="answer_line" t-value="answer_lines.filtered(lambda line: line.suggested_answer_id == label)"/>
-                <label t-att-class="' bg-success ' if quizz_correction and label.answer_score > 0.0 else None">
-                    <input type="checkbox" t-att-value='label.id' class="o_survey_form_choice_item"
-                           t-att-name="question.id"
-                           t-att-checked="'checked' if answer_line else None"/>
-                    <span t-field='label.value'/>
+                <label>
+                    <div t-att-class="' bg-success ' if quizz_correction and label.answer_score > 0.0 else None">
+                        <input type="checkbox" t-att-value='label.id' class="o_survey_form_choice_item"
+                            t-att-name="question.id"
+                            t-att-checked="'checked' if answer_line else None"/>
+                        <span t-field='label.value'/>
+                    </div>
+                    <div t-if="question.answer_image and label.image" class="d-flex align-items-center mb-2 mt-2 justify-content-center">
+                        <div t-if="label.image" t-field="label.image" class="d-flex align-items-center mb-2 mt-2 justify-content-center h-100" t-options='{"widget": "image", "class": "o_survey_mcq_img", "alt-field": "name", "itemprop": "image"}'/>
+                    </div>
                 </label>
             </div>
 

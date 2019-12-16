@@ -54,7 +54,7 @@ class SurveyQuestion(models.Model):
 
     # question generic data
     title = fields.Char('Title', required=True, translate=True)
-    description = fields.Html('Description', help="Use this field to add additional explanations about your question", translate=True)
+    description = fields.Html('Description', help="Use this field to add additional explanations about your question or to illustrate it with pictures or a video", translate=True, sanitize=False)
     survey_id = fields.Many2one('survey.survey', string='Survey', ondelete='cascade')
     scoring_type = fields.Selection(related='survey_id.scoring_type', string='Scoring Type', readonly=True)
     sequence = fields.Integer('Sequence', default=10)
@@ -98,6 +98,10 @@ class SurveyQuestion(models.Model):
         ('12', '1'), ('6', '2'), ('4', '3'), ('3', '4'), ('2', '6')],
         string='Number of columns', default='12',
         help='These options refer to col-xx-[12|6|4|3|2] classes in Bootstrap for dropdown-based simple and multiple choice questions.')
+    display_mode = fields.Selection(
+        [('columns', 'Radio Buttons'), ('dropdown', 'Selection Box')],
+        string='Display Mode', default='columns', help='Display mode of simple choice questions.')
+    answer_image = fields.Boolean(default=False)
     # -- comments (simple choice, multiple choice, matrix (without count as an answer))
     comments_allowed = fields.Boolean('Show Comments Field')
     comments_message = fields.Char('Comment Message', translate=True, default=lambda self: _("If other, please specify:"))
@@ -129,6 +133,11 @@ class SurveyQuestion(models.Model):
         ('validation_date', 'CHECK (validation_min_date <= validation_max_date)', 'Max date cannot be smaller than min date!'),
         ('validation_datetime', 'CHECK (validation_min_datetime <= validation_max_datetime)','Max datetime cannot be smaller than min datetime!')
     ]
+
+    @api.onchange('display_mode')
+    def _onchange_display_mode(self):
+        if self.display_mode == 'dropdown':
+            self.answer_image = False
 
     @api.onchange('validation_email')
     def _onchange_validation_email(self):
@@ -447,6 +456,7 @@ class SurveyQuestionAnswer(models.Model):
     matrix_question_id = fields.Many2one('survey.question', string='Question (as matrix row)', ondelete='cascade')
     sequence = fields.Integer('Label Sequence order', default=10)
     value = fields.Char('Suggested value', translate=True, required=True)
+    image = fields.Image('Image', max_width=256, max_height=256)
     is_correct = fields.Boolean('Is a correct answer')
     answer_score = fields.Float('Score for this choice', help="A positive score indicates a correct choice; a negative or null score indicates a wrong answer")
 
