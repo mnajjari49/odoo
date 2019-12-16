@@ -22,6 +22,12 @@ class SeoMetadata(models.AbstractModel):
     website_meta_description = fields.Text("Website meta description", translate=True)
     website_meta_keywords = fields.Char("Website meta keywords", translate=True)
     website_meta_og_img = fields.Char("Website opengraph image")
+    has_default_share_image = fields.Boolean("Use a image by default for sharing", compute='_compute_has_default_share_image')
+
+    def _compute_has_default_share_image(self):
+        website = self.env['website'].get_current_website()
+        for record in self:
+            record.has_default_share_image = bool(website.social_default_image)
 
     def _compute_is_seo_optimized(self):
         for record in self:
@@ -41,7 +47,7 @@ class SeoMetadata(models.AbstractModel):
         title = (request.website or company).name
         if 'name' in self:
             title = '%s | %s' % (self.name, title)
-        if request.website.social_default_image:
+        if self.has_default_share_image:
             img = request.website.image_url(request.website, 'social_default_image')
         else:
             img = request.website.image_url(company, 'logo')
