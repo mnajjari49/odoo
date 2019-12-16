@@ -659,6 +659,9 @@ class PreforkServer(CommonServer):
         self.cron_timeout = config['limit_time_real_cron'] or None
         if self.cron_timeout == -1:
             self.cron_timeout = self.timeout
+        self.async_timeout = config['limit_time_real_async'] or None
+        if self.async_timeout == -1:
+            self.async_timeout = self.timeout
         # working vars
         self.beat = 4
         self.app = app
@@ -666,6 +669,7 @@ class PreforkServer(CommonServer):
         self.socket = None
         self.workers_http = {}
         self.workers_cron = {}
+        self.workers_async = {}
         self.workers = {}
         self.generation = 0
         self.queue = collections.deque()
@@ -723,6 +727,7 @@ class PreforkServer(CommonServer):
             try:
                 self.workers_http.pop(pid, None)
                 self.workers_cron.pop(pid, None)
+                self.workers_async.pop(pid, None)
                 u = self.workers.pop(pid)
                 u.close()
             except OSError:
@@ -793,6 +798,8 @@ class PreforkServer(CommonServer):
                 self.long_polling_spawn()
         while len(self.workers_cron) < config['max_cron_threads']:
             self.worker_spawn(WorkerCron, self.workers_cron)
+        while len(self.workers_async) < config['max_async_threads']:
+            self.worker_spawn(WorkerAsync, self.workers_async)
 
     def sleep(self):
         try:
@@ -1052,16 +1059,104 @@ class WorkerHTTP(Worker):
         Worker.start(self)
         self.server = BaseWSGIServerNoBind(self.multi.app)
 
-class WorkerCron(Worker):
+
+class WorkerJobCommon(Worker):
+    def __init__(self, multi):
+        super(WorkerJobCommon, self).__init__(multi)
+        self.db_index = 0
+
+    def start(self):
+        os.nice(10)     # mommy always told me to be nice with others...
+        super(WorkerJobCommon, self).start()
+        if self.multi.socket:
+            self.multi.socket.close()
+
+    def _db_list(self):
+        if config['db_name']:
+            db_names = config['db_name'].split(',')
+        else:
+            db_names = odoo.service.db.list_dbs(True)
+        return db_names
+
+    def process_work(self):
+        rpc_request = logging.getLogger('odoo.netsvc.rpc.request')
+        rpc_request_flag = rpc_request.isEnabledFor(logging.DEBUG)
+        _logger.debug("%s (%s) polling for jobs", self.__class__.__name__, self.pid)
+
+        db_names = self._db_list()
+        if not db_names:
+            self.db_index = 0
+            return
+
+        db_name = self._next_db()
+        self.setproctitle(db_name)
+        if rpc_request_flag:
+            start_time = time.time()
+            start_memory = memory_info(psutil.Process(os.getpid()))
+
+        self._process_work(db_name)
+        # dont keep cursors in multi database mode
+        if len(db_names) > 1:
+            odoo.sql_db.close_db(db_name)
+
+        if rpc_request_flag:
+            run_time = time.time() - start_time
+            end_memory = memory_info(psutil.Process(os.getpid()))
+            vms_diff = (end_memory - start_memory) / 1024
+            logline = '%s time:%.3fs mem: %sk -> %sk (diff: %sk)' % \
+                (db_name, run_time, start_memory / 1024, end_memory / 1024, vms_diff)
+            _logger.debug("%s (%s) %s", self.__class__.__name__, self.pid, logline)
+
+        self.request_count += 1
+        if self.request_count >= self.request_max and self.request_max < len(db_names):
+            _logger.error("There are more dabatases to process than allowed "
+                          "by the `limit_request` configuration variable: %s more.",
+                          len(db_names) - self.request_max)
+
+    def _process_work(self, db_name):
+        pass
+
+    def _next_db(self):
+        pass
+
+
+class WorkerAsync(WorkerJobCommon):
+    def __init__(self, multi):
+        from odoo.addons.base.models.ir_async import ir_async
+        super(WorkerAsync, self).__init__(multi)
+        self.watchdog_timeout = multi.async_timeout
+        self._process_work = ir_async._process_jobs
+        self.notified_dbs = []
+
+    def sleep(self):
+        if self.db_index == 0:
+            interval = SLEEP_INTERVAL + self.pid % 10
+            conn = odoo.sql_db.db_connect('postgres')
+            with conn.cursor() as cr:
+                pg_conn = cr._cnx
+                cr.execute("LISTEN odoo_async")
+                cr.commit()
+                select.select([pg_conn, self.wakeup_fd_r], [], [], interval)
+                pg_conn.poll()
+                self.notified_dbs = list({notify.payload for notify in pg_conn.notifies})
+                pg_conn.notifies.clear()
+
+    def _next_db(self, _):
+        self.db_index = (self.db_index + 1) % len(self.notified_dbs) if self.notified_dbs else 0
+        return self.notified_dbs.get(self.db_index)
+
+
+class WorkerCron(WorkerJobCommon):
     """ Cron workers """
 
     def __init__(self, multi):
+        from odoo.addons.base.models.ir_cron import ir_cron
         super(WorkerCron, self).__init__(multi)
         # process_work() below process a single database per call.
         # The variable db_index is keeping track of the next database to
         # process.
-        self.db_index = 0
         self.watchdog_timeout = multi.cron_timeout  # Use a distinct value for CRON Worker
+        self._process_work = ir_cron._acquire_job
 
     def sleep(self):
         # Really sleep once all the databases have been processed.
@@ -1077,53 +1172,11 @@ class WorkerCron(Worker):
                 if e.args[0] != errno.EINTR:
                     raise
 
-    def _db_list(self):
-        if config['db_name']:
-            db_names = config['db_name'].split(',')
-        else:
-            db_names = odoo.service.db.list_dbs(True)
-        return db_names
+    def _next_db(self, db_names):
+        self.db_index = (self.db_index + 1) % len(db_names)
+        return db_names[self.db_index]
 
-    def process_work(self):
-        rpc_request = logging.getLogger('odoo.netsvc.rpc.request')
-        rpc_request_flag = rpc_request.isEnabledFor(logging.DEBUG)
-        _logger.debug("WorkerCron (%s) polling for jobs", self.pid)
-        db_names = self._db_list()
-        if len(db_names):
-            self.db_index = (self.db_index + 1) % len(db_names)
-            db_name = db_names[self.db_index]
-            self.setproctitle(db_name)
-            if rpc_request_flag:
-                start_time = time.time()
-                start_memory = memory_info(psutil.Process(os.getpid()))
 
-            from odoo.addons import base
-            base.models.ir_cron.ir_cron._acquire_job(db_name)
-
-            # dont keep cursors in multi database mode
-            if len(db_names) > 1:
-                odoo.sql_db.close_db(db_name)
-            if rpc_request_flag:
-                run_time = time.time() - start_time
-                end_memory = memory_info(psutil.Process(os.getpid()))
-                vms_diff = (end_memory - start_memory) / 1024
-                logline = '%s time:%.3fs mem: %sk -> %sk (diff: %sk)' % \
-                    (db_name, run_time, start_memory / 1024, end_memory / 1024, vms_diff)
-                _logger.debug("WorkerCron (%s) %s", self.pid, logline)
-
-            self.request_count += 1
-            if self.request_count >= self.request_max and self.request_max < len(db_names):
-                _logger.error("There are more dabatases to process than allowed "
-                              "by the `limit_request` configuration variable: %s more.",
-                              len(db_names) - self.request_max)
-        else:
-            self.db_index = 0
-
-    def start(self):
-        os.nice(10)     # mommy always told me to be nice with others...
-        Worker.start(self)
-        if self.multi.socket:
-            self.multi.socket.close()
 
 #----------------------------------------------------------
 # start/stop public api
