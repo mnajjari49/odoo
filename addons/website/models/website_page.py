@@ -146,23 +146,26 @@ class Page(models.Model):
                 new_view = view.copy({'website_id': default.get('website_id')})
                 default['view_id'] = new_view.id
 
-            default['url'] = default.get('url', self.env['website'].get_unique_path(self.url))
+            default['url'] = self.env['website'].get_unique_path(default.get('url', self.url))
         return super(Page, self).copy(default=default)
 
     @api.model
-    def clone_page(self, page_id, clone_menu=True):
+    def clone_page(self, page_id, page_name=None, clone_menu=True):
         """ Clone a page, given its identifier
             :param page_id : website.page identifier
         """
         page = self.browse(int(page_id))
-        new_page = page.copy(dict(name=page.name, website_id=self.env['website'].get_current_website().id))
+        copy_param = dict(name=page_name or page.name, website_id=self.env['website'].get_current_website().id)
+        if page_name:
+            copy_param['url'] = '/' + slugify(page_name, max_length=1024, path=True)
+        new_page = page.copy(copy_param)
         # Should not clone menu if the page was cloned from one website to another
         # Eg: Cloning a generic page (no website) will create a page with a website, we can't clone menu (not same container)
         if clone_menu and new_page.website_id == page.website_id:
             menu = self.env['website.menu'].search([('page_id', '=', page_id)], limit=1)
             if menu:
                 # If the page being cloned has a menu, clone it too
-                menu.copy({'url': new_page.url, 'name': menu.name, 'page_id': new_page.id})
+                menu.copy({'url': new_page.url, 'name': new_page.name, 'page_id': new_page.id})
 
         return new_page.url + '?enable_editor=1'
 

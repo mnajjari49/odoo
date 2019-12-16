@@ -57,6 +57,14 @@ var PagePropertiesDialog = weWidgets.Dialog.extend({
             });
         }
         buttons.push({
+            text: _t("Duplicate Page"),
+            icon: 'fa-clone',
+            classes: 'btn-link float-right',
+            click: function (e) {
+                _clonePage.call(this, self.page_id);
+            },
+        });
+        buttons.push({
             text: _t("Delete Page"),
             icon: 'fa-trash',
             classes: 'btn-link float-right',
@@ -985,13 +993,7 @@ var PageManagement = Widget.extend({
     },
     _onClonePageButtonClick: function (ev) {
         var pageId = $(ev.currentTarget).data('id');
-        this._rpc({
-            model: 'website.page',
-            method: 'clone_page',
-            args: [pageId],
-        }).then(function (path) {
-            window.location.href = path;
-        });
+        _clonePage.call(this, pageId);
     },
     _onDeletePageButtonClick: function (ev) {
         var pageId = $(ev.currentTarget).data('id');
@@ -1038,6 +1040,33 @@ function _deletePage(pageId, fromPageManagement) {
                 window.location.href = '/';
             }
         }, reject);
+    });
+}
+/**
+ * Duplicate the page after showing the wizard to enter new page name.
+ *
+ * @private
+ * @param {integer} pageId - The ID of the page to be duplicate
+ *
+ */
+function _clonePage(pageId) {
+    var self = this;
+    new Promise(function (resolve, reject) {
+        Dialog.confirm(this, undefined, {
+            title: _t("Duplicate Page"),
+            $content: $(qweb.render('website.duplicate_page_action_dialog')),
+            confirm_callback: function () {
+                var new_page_name =  this.$('#page_name').val();
+                return self._rpc({
+                    model: 'website.page',
+                    method: 'clone_page',
+                    args: [pageId, new_page_name],
+                }).then(function (path) {
+                    window.location.href = path;
+                }).guardedCatch(reject);
+            },
+            cancel_callback: reject,
+        }).on('closed', null, reject);
     });
 }
 
