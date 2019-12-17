@@ -143,6 +143,7 @@
                         </group>
                         <group>
                             <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="structure_type_id"/>
                             <field name="job_id"/>
                         </group>
                     </group>
