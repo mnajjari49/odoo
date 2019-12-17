@@ -229,7 +229,7 @@ class Lead(models.Model):
             lead.email_state = email_state
 
     def _compute_meeting_count(self):
-        meeting_data = self.env['calendar.event'].read_group([('opportunity_id', 'in', self.ids)], ['opportunity_id'], ['opportunity_id'])
+        meeting_data = self.env['calendar.event'].sudo().read_group([('opportunity_id', 'in', self.ids)], ['opportunity_id'], ['opportunity_id'])
         mapped_data = {m['opportunity_id'][0]: m['opportunity_id_count'] for m in meeting_data}
         for lead in self:
             lead.meeting_count = mapped_data.get(lead.id, 0)
