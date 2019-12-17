@@ -415,6 +415,7 @@ class SaleOrderLine(models.Model):
         return super(SaleOrderLine, self | related_program_lines).unlink()
 
     def _compute_tax_id(self):
+        # VFE TODO Adapt
         reward_lines = self.filtered('is_reward_line')
         super(SaleOrderLine, self - reward_lines)._compute_tax_id()
         # Discount reward line is split per tax, the discount is set on the line but not on the product

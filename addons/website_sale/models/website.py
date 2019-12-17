@@ -278,6 +278,7 @@ class Website(models.Model):
 
             # set fiscal position
             if request.website.partner_id.id != partner.id:
+                # VFE TODO update
                 sale_order.onchange_partner_shipping_id()
             else: # For public user, fiscal position based on geolocation
                 country_code = request.session['geoip'].get('country_code')
@@ -306,9 +307,7 @@ class Website(models.Model):
 
             # change the partner, and trigger the onchange
             sale_order.write({'partner_id': partner.id})
-            sale_order.onchange_partner_id()
             sale_order.write({'partner_invoice_id': partner.id})
-            sale_order.onchange_partner_shipping_id() # fiscal position
             sale_order['payment_term_id'] = self.sale_get_payment_term(partner)
 
             # check the pricelist : update it if the pricelist is not the 'forced' one
@@ -317,10 +316,6 @@ class Website(models.Model):
                 if sale_order.pricelist_id.id != pricelist_id:
                     values['pricelist_id'] = pricelist_id
                     update_pricelist = True
-
-            # if fiscal position, update the order lines taxes
-            if sale_order.fiscal_position_id:
-                sale_order._compute_tax_id()
 
             # if values, then make the SO update
             if values:

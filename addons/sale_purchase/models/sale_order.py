@@ -95,6 +95,7 @@ class SaleOrderLine(models.Model):
 
     @api.model
     def create(self, values):
+        # VFE TODO make create_multi.
         line = super(SaleOrderLine, self).create(values)
         # Do not generate purchase when expense SO line since the product is already delivered
         if line.state == 'sale' and not line.is_expense:

@@ -163,9 +163,10 @@ class SaleOrderLine(models.Model):
 
         Lines that are delivery lines can be deleted from a confirmed order.
 
-        :rtype: recordset sale.order.line
-        :returns: set of lines that cannot be deleted
+        :rtype: bool
+        :returns: whether there are lines which cannot be deleted in self.
         """
-
-        undeletable_lines = super()._check_line_unlink()
-        return undeletable_lines.filtered(lambda line: not line.is_delivery)
+        return super()._check_line_unlink() or any(
+            line.is_delivery
+            for line in self
+        )

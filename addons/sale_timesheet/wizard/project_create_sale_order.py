@@ -92,8 +92,6 @@ class ProjectCreateSalesOrder(models.TransientModel):
             'client_order_ref': self.project_id.name,
             'company_id': self.project_id.company_id.id,
         })
-        sale_order.onchange_partner_id()
-        sale_order.onchange_partner_shipping_id()
 
         # create the sale lines, the map (optional), and assign existing timesheet to sale lines
         self._make_billable(sale_order)

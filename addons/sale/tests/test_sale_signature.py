@@ -10,17 +10,15 @@ class TestSaleSignature(HttpCaseWithUserPortal):
     def test_01_portal_sale_signature_tour(self):
         """The goal of this test is to make sure the portal user can sign SO."""
 
-        portal_user = self.partner_portal
         # create a SO to be signed
         sales_order = self.env['sale.order'].create({
             'name': 'test SO',
-            'partner_id': portal_user.id,
+            'partner_id': self.partner_portal.id,
             'state': 'sent',
             'require_payment': False,
-        })
-        self.env['sale.order.line'].create({
-            'order_id': sales_order.id,
-            'product_id': self.env['product.product'].create({'name': 'A product'}).id,
+            'order_line': [(0, False, {
+                'product_id': self.env['product.product'].create({'name': 'A product'}).id,
+            })],
         })
 
         # must be sent to the user so he can see it

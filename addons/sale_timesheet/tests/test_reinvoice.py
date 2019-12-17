@@ -58,7 +58,6 @@ class TestReInvoice(TestCommonSaleTimesheetNoChart):
             'price_unit': self.product_ordered_cost.list_price,
             'order_id': self.sale_order.id,
         })
-        sale_order_line1.product_id_change()
         sale_order_line2 = self.env['sale.order.line'].create({
             'name': self.product_deliver_cost.name,
             'product_id': self.product_deliver_cost.id,
@@ -67,10 +66,7 @@ class TestReInvoice(TestCommonSaleTimesheetNoChart):
             'price_unit': self.product_deliver_cost.list_price,
             'order_id': self.sale_order.id,
         })
-        sale_order_line2.product_id_change()
 
-        self.sale_order.onchange_partner_id()
-        self.sale_order._compute_tax_id()
         self.sale_order.action_confirm()
 
         self.assertEqual(sale_order_line1.qty_delivered_method, 'timesheet', "Delivered quantity of 'service' SO line should be computed by timesheet amount")
@@ -160,7 +156,6 @@ class TestReInvoice(TestCommonSaleTimesheetNoChart):
             'price_unit': self.product_deliver_sales_price.list_price,
             'order_id': self.sale_order.id,
         })
-        sale_order_line1.product_id_change()
         sale_order_line2 = self.env['sale.order.line'].create({
             'name': self.product_order_sales_price.name,
             'product_id': self.product_order_sales_price.id,
@@ -170,8 +165,6 @@ class TestReInvoice(TestCommonSaleTimesheetNoChart):
             'price_unit': self.product_order_sales_price.list_price,
             'order_id': self.sale_order.id,
         })
-        sale_order_line2.product_id_change()
-        self.sale_order._compute_tax_id()
         self.sale_order.action_confirm()
 
         # let's log some timesheets (on the project created by sale_order_line1)
@@ -256,7 +249,6 @@ class TestReInvoice(TestCommonSaleTimesheetNoChart):
             'price_unit': self.product_no_expense.list_price,
             'order_id': self.sale_order.id,
         })
-        self.sale_order._compute_tax_id()
         self.sale_order.action_confirm()
 
         # create invoice lines and validate it
