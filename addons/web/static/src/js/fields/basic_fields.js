@@ -1508,6 +1508,7 @@ var UrlWidget = InputField.extend({
     init: function () {
         this._super.apply(this, arguments);
         this.tagName = this.mode === 'readonly' ? 'a' : 'input';
+        this.website_path = this.nodeOptions.website_path || false;
     },
 
     //--------------------------------------------------------------------------
@@ -1535,10 +1536,14 @@ var UrlWidget = InputField.extend({
      * @private
      */
     _renderReadonly: function () {
+        let href = this.value;
+        if (this.value && !this.website_path && !/^(?:[fF]|[hH][tT])[tT][pP][sS]?\:\/\//.test(this.value)) {
+            href = "http://" + href;
+        }
         this.$el.text(this.attrs.text || this.value)
             .addClass('o_form_uri o_text_overflow')
             .attr('target', '_blank')
-            .attr('href', this.value);
+            .attr('href', href);
     },
 
     //--------------------------------------------------------------------------
