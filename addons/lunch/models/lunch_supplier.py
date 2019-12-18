@@ -127,6 +127,7 @@ class LunchSupplier(models.Model):
                         'supplier_id': supplier.partner_id.id,
                         'supplier_name': supplier.name,
                         'email_from': supplier.responsible_id.email_formatted,
+                        'author_id': supplier.responsible_id,
                     }
 
                     _lines = [{

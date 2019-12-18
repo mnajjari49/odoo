@@ -49,6 +49,8 @@
                             </page>
                             <page string="Email Configuration" name="email_configuration">
                                 <group>
+                                    <field name="author_id"
+                                            placeholder="Author of the mail"/>
                                     <field name="email_from"
                                             placeholder="Override author's email"/>
                                     <field name="use_default_to"/>
@@ -100,6 +102,7 @@
                     <field name="name"/>
                     <field name="model_id"/>
                     <field name="subject"/>
+                    <field name="author_id"/>
                     <field name="email_from"/>
                     <field name="email_to"/>
                     <field name="partner_to"/>

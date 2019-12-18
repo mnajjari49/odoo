@@ -8,6 +8,7 @@ import datetime
 import dateutil.relativedelta as relativedelta
 import functools
 import logging
+import re
 
 from werkzeug import urls
 
@@ -105,7 +106,8 @@ class MailTemplate(models.Model):
                                     help="If checked, the user's signature will be appended to the text version "
                                          "of the message")
     subject = fields.Char('Subject', translate=True, help="Subject (placeholders may be used here)")
-    email_from = fields.Char('From',
+    author_id = fields.Char('Author', help="Author of the mail", placeholder="Author of the mail")
+    email_from = fields.Char('From', compute="_compute_email_from", inverse="_inverse_email_from", default=False,
                              help="Sender address (placeholders may be used here). If not set, the default "
                                   "value will be the author's email alias if configured, or email address.")
     use_default_to = fields.Boolean(
@@ -136,6 +138,47 @@ class MailTemplate(models.Model):
     auto_delete = fields.Boolean('Auto Delete', default=True, help="Permanently delete this email after sending it, to save space")
 
     scheduled_date = fields.Char('Scheduled Date', help="If set, the queue manager will send the email after the date. If not set, the email will be send as soon as possible. Jinja2 placeholders may be used.")
+
+    @api.depends('author_id')
+    def _compute_email_from(self):
+        for r in self:
+            if r.author_id:
+                if 'ctx' in r.author_id:
+                    pattern = re.compile(r'author_id')
+                    r.email_from = re.sub(pattern, 'email_from', r.author_id)
+                else:
+                    email_from = r.author_id
+                    pattern = r'(company_id\.id)?(?(1)|company_id[^.])|(organizer_id\.id)?(?(2)|organizer_id[^.])|(create_uid)|(user_id\.id)?(?(4)|user_id[^.])|(partner_id(\(\))?)|(user\.id)?(?(7)|user[^._])'
+                    matches = re.finditer(pattern, email_from)
+                    done = []
+                    for match in matches:
+                        m = match.group()
+                        if m in done:
+                            continue
+                        end = ''
+                        if m[-1:] == ' ' or m[-1:] == '}' or (m[-1:] == ')' and m[-2:] != '()'):
+                            end = m[-1:]
+                            m = m[:-1]
+                        if m[-3:] == '.id':
+                            m = m[:-3]
+                        email_from = re.sub(re.escape(match.group()), m + '.email_formatted' + end, email_from)
+                        done.append(match.group())
+                    r.email_from = email_from
+            else:
+                r.email_from = False
+
+    def _inverse_email_from(self):
+        for r in self:
+            if r.email_from:
+                if 'ctx' in r.email_from:
+                    pattern = re.compile(r'email_from')
+                    r.author_id = re.sub(pattern, 'author_id', r.email_from)
+                else:
+                    pattern = re.compile(r'((\.email)|(\.catchall))(_formatted)?(( )?\|( )?safe)?')
+                    r.author_id = re.sub(pattern, '', r.email_from)
+            else:
+                r.author_id = False
+
 
     @api.onchange('model_id')
     def onchange_model_id(self):
@@ -345,7 +388,7 @@ class MailTemplate(models.Model):
             if template.lang:
                 Template = Template.with_context(lang=template._context.get('lang'))
             for field in fields:
-                Template = Template.with_context(safe=field in {'subject'})
+                Template = Template.with_context(safe=field in {'subject','email_from'})
                 generated_field_values = Template._render_template(
                     getattr(template, field), template.model, template_res_ids,
                     post_process=(field == 'body_html'))
@@ -357,6 +400,15 @@ class MailTemplate(models.Model):
             # update values for all res_ids
             for res_id in template_res_ids:
                 values = results[res_id]
+                if 'author_id' in fields and values.get('author_id'):
+                    if 'res.company' in values['author_id']:
+                        values['author_id'] = self.env['res.company'].browse([int(s) for s in re.findall(r'\d+', values['author_id'])]).partner_id.id
+                    elif 'res.users' in values['author_id']:
+                        values['author_id'] = self.env['res.users'].browse([int(s) for s in re.findall(r'\d+', values['author_id'])]).partner_id.id
+                    elif 'res.partner' in values['author_id']:
+                        values['author_id'] = self.env['res.partner'].browse([int(s) for s in re.findall(r'\d+', values['author_id'])]).id
+                    else:
+                        values['author_id'] = False
                 # body: add user signature, sanitize
                 if 'body_html' in fields and template.user_signature:
                     signature = self.env.user.signature
@@ -430,7 +482,7 @@ class MailTemplate(models.Model):
         Attachment = self.env['ir.attachment']  # TDE FIXME: should remove default_type from context
 
         # create a mail_mail based on values, without attachments
-        values = self.generate_email(res_id, ['subject', 'body_html', 'email_from', 'email_to', 'partner_to', 'email_cc', 'reply_to', 'scheduled_date'])
+        values = self.generate_email(res_id, ['subject', 'body_html', 'author_id', 'email_from', 'email_to', 'partner_to', 'email_cc', 'reply_to', 'scheduled_date'])
         values['recipient_ids'] = [(4, pid) for pid in values.get('partner_ids', list())]
         values['attachment_ids'] = [(4, aid) for aid in values.get('attachment_ids', list())]
         values.update(email_values or {})
@@ -448,7 +500,7 @@ class MailTemplate(models.Model):
             else:
                 record = self.env[self.model].browse(res_id)
                 template_ctx = {
-                    'message': self.env['mail.message'].sudo().new(dict(body=values['body_html'], record_name=record.display_name)),
+                    'message': self.env['mail.message'].sudo().new(dict(body=values['body_html'], record_name=record.display_name, author_id=values['author_id'])),
                     'model_description': self.env['ir.model']._get(record._name).display_name,
                     'company': 'company_id' in record and record['company_id'] or self.env.company,
                     'record': record,
