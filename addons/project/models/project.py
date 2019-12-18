@@ -402,6 +402,14 @@ class Project(models.Model):
         return action
 
 
+    def action_website_go_to(self):
+        #self.website_id._force() #TODO
+        return {
+            'type': 'ir.actions.act_url',
+            'url': '/',
+            'target': 'self',
+        }
+
     # ---------------------------------------------------
     #  Business Methods
     # ---------------------------------------------------
