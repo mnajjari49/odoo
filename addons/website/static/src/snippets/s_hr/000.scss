@@ -1,5 +1,5 @@
 
-.s_hr {
+.s_hr:not([data-vcss]) {
     line-height: 0;
     hr {
         padding: 0;
