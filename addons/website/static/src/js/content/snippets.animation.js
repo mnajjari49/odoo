@@ -909,10 +909,13 @@ registry.anchorSlide = publicWidget.Widget.extend({
      * @private
      * @param {jQuery} $el the element to scroll to.
      */
-    _scrollTo: function ($el) {
+    _scrollTo: function ($el, scrollValue) {
+        let headerHeight = 0;
+        const $navbarFixed = $('.o_navbar_fixed');
+        _.each($navbarFixed, el => headerHeight += $(el).outerHeight());
         $('html, body').animate({
-            scrollTop: $el.offset().top,
-        }, 500);
+            scrollTop: $el.offset().top - headerHeight,
+        }, scrollValue === 'true' ? 500 : 0);
     },
 
     //--------------------------------------------------------------------------
@@ -931,11 +934,12 @@ registry.anchorSlide = publicWidget.Widget.extend({
             return;
         }
         var $anchor = $(hash);
-        if (!$anchor.length || !$anchor.attr('data-anchor')) {
+        const scrollValue = $anchor.attr('data-anchor');
+        if (!$anchor.length || !scrollValue) {
             return;
         }
         ev.preventDefault();
-        this._scrollTo($anchor);
+        this._scrollTo($anchor, scrollValue);
     },
 });
 
@@ -949,7 +953,7 @@ registry.ScrollButton = registry.anchorSlide.extend({
         ev.preventDefault();
         const $nextSection = this.$el.closest('section').next('section');
         if ($nextSection.length) {
-            this._scrollTo($nextSection);
+            this._scrollTo($nextSection, 'true');
         }
     },
 });
