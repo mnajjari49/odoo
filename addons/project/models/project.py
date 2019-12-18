@@ -48,6 +48,7 @@ class ProjectTaskType(models.Model):
         help="Automatically modify the kanban state when the customer replies to the feedback for this stage.\n"
             " * A good feedback from the customer will update the kanban state to 'ready for the new stage' (green bullet).\n"
             " * A medium or a bad feedback will set the kanban state to 'blocked' (red bullet).\n")
+    projects_rating_disabled = fields.Text(compute='_compute_project_rating_disabled_warning')
 
     def unlink(self):
         stages = self
@@ -59,6 +60,12 @@ class ProjectTaskType(models.Model):
                 shared_stages.write({'project_ids': [(3, default_project_id)]})
                 stages = self.filtered(lambda x: x not in shared_stages)
         return super(ProjectTaskType, stages).unlink()
+
+    @api.depends('project_ids','project_ids.rating_active')
+    def _compute_project_rating_disabled_warning(self):
+        for r in self:
+            r.projects_rating_disabled = ''.join(map(lambda p:'- '+str(p.name) + '\n', r.project_ids.search(['&',('rating_active',"=",'False'),('type_ids',"=",r.id)])))
+
 
 
 class Project(models.Model):
@@ -215,14 +222,15 @@ class Project(models.Model):
 
     # rating fields
     rating_request_deadline = fields.Datetime(compute='_compute_rating_request_deadline', store=True)
-    rating_status = fields.Selection([('stage', 'Rating when changing stage'), ('periodic', 'Periodical Rating'), ('no','No rating')], 'Customer Ratings', help="How to get customer feedback?\n"
+    rating_active = fields.Boolean('Customer ratings', default=False)
+    rating_status = fields.Selection([('stage', 'Rating when changing stage'), ('periodic', 'Periodical Rating')], 'Customer Ratings', help="How to get customer feedback?\n"
                     "- Rating when changing stage: an email will be sent when a task is pulled in another stage.\n"
                     "- Periodical Rating: email will be sent periodically.\n\n"
-                    "Don't forget to set up the mail templates on the stages for which you want to get the customer's feedbacks.", default="no", required=True)
+                    "Don't forget to set up the mail templates on the stages for which you want to get the customer's feedbacks.", default="stage", required=True)
     rating_status_period = fields.Selection([
         ('daily', 'Daily'), ('weekly', 'Weekly'), ('bimonthly', 'Twice a Month'),
         ('monthly', 'Once a Month'), ('quarterly', 'Quarterly'), ('yearly', 'Yearly')
-    ], 'Rating Frequency')
+    ], 'Rating Frequency', required=True, default='monthly')
 
     portal_show_rating = fields.Boolean('Rating visible publicly', copy=False)
 
@@ -411,6 +419,14 @@ class Project(models.Model):
         action_context['search_default_parent_res_name'] = self.name
         action_context.pop('group_by', None)
         return dict(action, context=action_context)
+
+    def action_website_go_to(self):
+        #self.website_id._force() #TODO
+        return {
+            'type': 'ir.actions.act_url',
+            'url': '/',
+            'target': 'self',
+        }
 
     # ---------------------------------------------------
     #  Business Methods
