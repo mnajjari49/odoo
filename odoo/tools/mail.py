@@ -254,6 +254,22 @@ def html_sanitize(src, silent=True, sanitize_tags=True, sanitize_attributes=Fals
 # HTML/Text management
 #----------------------------------------------------------
 
+
+def is_html_empty(html_content):
+    """Check if a html field content is empty.
+
+    If there are only formatting tags or Falsy return True.
+
+    :param html_content: content of a html field
+    :type html_content: str or False or None
+    :returns: bool, True if no content html found
+    """
+    if not html_content:
+        return True
+    tag_re = re.compile(r'\<\s*\/?(?:p|div|span|br|b|i)\s*\>')
+    return not bool(re.sub(tag_re, '', html_content).strip())
+
+
 def html_keep_url(text):
     """ Transform the url into clickable link with <a/> tag """
     idx = 0

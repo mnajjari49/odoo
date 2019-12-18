@@ -6,7 +6,7 @@ import re
 
 from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError
-from odoo.tools import remove_accents
+from odoo.tools import remove_accents, is_html_empty
 from odoo.tools.safe_eval import safe_eval
 
 _logger = logging.getLogger(__name__)
@@ -68,6 +68,8 @@ class Alias(models.Model):
              "- everyone: everyone can post\n"
              "- partners: only authenticated partners\n"
              "- followers: only followers of the related document or members of following channels\n")
+    alias_bounced_content = fields.Html("Bounced Mail Content", translate=True,
+                                        help="Mail content received by a unauthorized sender using this alias.")
 
     _sql_constraints = [
         ('alias_unique', 'UNIQUE(alias_name)', 'Unfortunately this email alias is already used, please choose a unique one')
@@ -170,6 +172,26 @@ class Alias(models.Model):
             'res_id': self.alias_parent_thread_id,
             'type': 'ir.actions.act_window',
         }
+
+    def _get_alias_bounced_body(self, message_dict):
+        """Get the body of the email return in case of bounced email.
+
+        :param message_dict: dictionary of mail values
+        """
+        if len(self.ids) == 1 and not is_html_empty(self.alias_bounced_content):  # no self.ensure_one() to avoid raising
+            lang_author = message_dict.get('author_id') and self.env['res.partner'].browse(message_dict.get('author_id')).lang or False
+            if lang_author:
+                self = self.with_context(lang=lang_author)
+            template = self.env.ref('mail.mail_bounce_alias', raise_if_not_found=True)
+            return template.render({
+                'body': self.alias_bounced_content,
+                'company': self.env.company,
+                'message': message_dict
+            }, engine='ir.qweb', minimal_qcontext=True)
+        else:
+            return _("""Hello,</br>
+The following email sent to %s cannot be accepted because this is a private email address.
+Only authorized people can contact us at this address.""") % (message_dict.get('to'))
 
 
 class AliasMixin(models.AbstractModel):

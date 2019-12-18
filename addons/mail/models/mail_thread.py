@@ -29,7 +29,7 @@ from werkzeug import urls
 from odoo import _, api, exceptions, fields, models, tools, registry, SUPERUSER_ID
 from odoo.osv import expression
 
-from odoo.tools import pycompat, ustr
+from odoo.tools import ustr
 from odoo.tools.misc import clean_context, split_every
 from odoo.tools.safe_eval import safe_eval
 
@@ -760,7 +760,6 @@ class MailThread(models.AbstractModel):
                 fallback on a message_new by resetting thread_id
             2 - check that message_update exists if thread_id is set; or at least
                 that message_new exist
-            [ - find author_id if udpate_author is set]
             3 - if there is an alias, check alias_contact:
                 'followers' and thread_id:
                     check on target document that the author is in the followers
@@ -788,12 +787,6 @@ class MailThread(models.AbstractModel):
         model, thread_id, alias = route[0], route[1], route[4]
         record_set = None
 
-        _generic_bounce_body_html = """<div>
-<p>Hello,</p>
-<p>The following email sent to %s cannot be accepted because this is a private email address.
-   Only allowed people can contact us at this address.</p>
-</div><blockquote>%s</blockquote>""" % (message_dict.get('to'), message_dict.get('body'))
-
         # Wrong model
         if not model:
             self._routing_warn(_('target model unspecified'), message_id, route, raise_exception)
@@ -817,7 +810,7 @@ class MailThread(models.AbstractModel):
             self._routing_warn(_('model %s does not accept document creation') % model, message_id, route, raise_exception)
             return ()
 
-        # Update message author if asked. We do it now because we need it for aliases (contact settings)
+        # Update message author. We do it now because we need it for aliases (contact settings)
         if not author_id:
             if record_set:
                 authors = self._mail_find_partner_from_emails([email_from], records=record_set)
@@ -843,7 +836,8 @@ class MailThread(models.AbstractModel):
                 check_result = self.env['mail.alias.mixin']._alias_check_contact_on_record(obj, message, message_dict, alias)
             if check_result is not True:
                 self._routing_warn(_('alias %s: %s') % (alias.alias_name, check_result.get('error_message', _('unknown error'))), message_id, route, False)
-                self._routing_create_bounce_email(email_from, check_result.get('error_template', _generic_bounce_body_html), message)
+                body = alias._get_alias_bounced_body(message_dict)
+                self._routing_create_bounce_email(email_from, body, message, references=message_id)
                 return False
 
         return (model, thread_id, route[2], route[3], route[4])
@@ -982,7 +976,7 @@ class MailThread(models.AbstractModel):
                 body = self.env.ref('mail.mail_bounce_catchall').render({
                     'message': message,
                 }, engine='ir.qweb')
-                self._routing_create_bounce_email(email_from, body, message, reply_to=self.env.company.email)
+                self._routing_create_bounce_email(email_from, body, message, references=message_id, reply_to=self.env.company.email)
                 return []
 
             dest_aliases = self.env['mail.alias'].search([('alias_name', 'in', rcpt_tos_localparts)])
