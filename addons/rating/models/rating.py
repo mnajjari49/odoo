@@ -7,8 +7,8 @@ from odoo import api, fields, models
 
 from odoo.modules.module import get_resource_path
 
-RATING_LIMIT_SATISFIED = 7
-RATING_LIMIT_OK = 3
+RATING_LIMIT_SATISFIED = 4
+RATING_LIMIT_OK = 2
 RATING_LIMIT_MIN = 1
 
 
@@ -18,7 +18,7 @@ class Rating(models.Model):
     _order = 'write_date desc'
     _rec_name = 'res_name'
     _sql_constraints = [
-        ('rating_range', 'check(rating >= 0 and rating <= 10)', 'Rating should be between 0 to 10'),
+        ('rating_range', 'check(rating >= 0 and rating <= 5)', 'Rating should be between 0 to 5'),
     ]
 
     @api.depends('res_model', 'res_id')
@@ -41,7 +41,7 @@ class Rating(models.Model):
     parent_res_id = fields.Integer('Parent Document', index=True)
     rated_partner_id = fields.Many2one('res.partner', string="Rated person", help="Owner of the rated resource")
     partner_id = fields.Many2one('res.partner', string='Customer', help="Author of the rating")
-    rating = fields.Float(string="Rating Number", group_operator="avg", default=0, help="Rating value: 0=Unhappy, 10=Happy")
+    rating = fields.Float(string="Rating Number", group_operator="avg", default=0, help="Rating value: 0=Unhappy, 5=Happy")
     rating_image = fields.Binary('Image', compute='_compute_rating_image')
     rating_text = fields.Selection([
         ('satisfied', 'Satisfied'),
@@ -72,10 +72,10 @@ class Rating(models.Model):
         # Let us have some custom rounding while finding a better solution for images.
         for rating in self:
             rating_for_img = 0
-            if rating.rating >= 8:
-                rating_for_img = 10
-            elif rating.rating > 3:
+            if rating.rating >= 4:
                 rating_for_img = 5
+            elif rating.rating > 2:
+                rating_for_img = 3
             elif rating.rating >= 1:
                 rating_for_img = 1
             try:

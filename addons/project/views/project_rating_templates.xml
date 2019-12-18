@@ -58,13 +58,13 @@
         <!-- Page : Project Rating Page (and widgets) -->
         <template id="portal_project_rating_progressbar">
             <div class="progress o_rating_progress">
-                <t t-set="percent_rating_10" t-value="(stats['rating_10'] / float(stats['total'])) * 100 if stats['total'] else 0.0"/>
-                <div class="progress-bar bg-success" t-attf-style="width: #{percent_rating_10}%;" title="Happy">
-                    <t t-esc="percent_rating_10"/>%
-                </div>
                 <t t-set="percent_rating_5" t-value="(stats['rating_5'] / float(stats['total'])) * 100 if stats['total'] else 0.0"/>
-                <div class="progress-bar bg-warning" t-attf-style="width: #{percent_rating_5}%;" title="Average">
+                <div class="progress-bar bg-success" t-attf-style="width: #{percent_rating_5}%;" title="Happy">
                     <t t-esc="percent_rating_5"/>%
+                </div>
+                <t t-set="percent_rating_3" t-value="(stats['rating_3'] / float(stats['total'])) * 100 if stats['total'] else 0.0"/>
+                <div class="progress-bar bg-warning" t-attf-style="width: #{percent_rating_3}%;" title="Average">
+                    <t t-esc="percent_rating_3"/>%
                 </div>
                 <t t-set="percent_rating_1" t-value="(stats['rating_1'] / float(stats['total'])) * 100 if stats['total'] else 0.0"/>
                 <div class="progress-bar bg-danger" t-attf-style="width: #{percent_rating_1}%;" title="Bad">
@@ -85,23 +85,23 @@
                     </div>
                     <div class="col-md-4 o_smiley_no_padding_right">
                         <div class="col-md-4 o_smiley_no_padding_right o_smiley_no_padding_left">
-                            <span t-if="partner_stat['rating_10']">
-                                <img title="happy" alt="Happy face" class="o_top_partner_rating_image" src='/rating/static/src/img/rating_10.png'/>
-                                <span class="o_rating_count" t-esc="partner_stat['rating_10']"/>
-                            </span>
-                            <span t-if="not partner_stat['rating_10']">
-                                <img title="happy" alt="Happy face" class="o_top_partner_rating_image o_lighter_smileys" src='/rating/static/src/img/rating_10.png'/>
-                                <span class="o_rating_count o_lighter_smileys" t-esc="partner_stat['rating_10']"/>
-                            </span>
-                        </div>
-                        <div class="col-md-4 o_smiley_no_padding_right o_smiley_no_padding_left">
                             <span t-if="partner_stat['rating_5']">
-                                <img title="average" alt="Neutral face" class="o_top_partner_rating_image" src='/rating/static/src/img/rating_5.png'/>
+                                <img title="happy" alt="Happy face" class="o_top_partner_rating_image" src='/rating/static/src/img/rating_5.png'/>
                                 <span class="o_rating_count" t-esc="partner_stat['rating_5']"/>
                             </span>
                             <span t-if="not partner_stat['rating_5']">
-                                <img title="average" alt="Neutral face" class="o_top_partner_rating_image o_lighter_smileys" src='/rating/static/src/img/rating_5.png'/>
+                                <img title="happy" alt="Happy face" class="o_top_partner_rating_image o_lighter_smileys" src='/rating/static/src/img/rating_5.png'/>
                                 <span class="o_rating_count o_lighter_smileys" t-esc="partner_stat['rating_5']"/>
+                            </span>
+                        </div>
+                        <div class="col-md-4 o_smiley_no_padding_right o_smiley_no_padding_left">
+                            <span t-if="partner_stat['rating_3']">
+                                <img title="average" alt="Neutral face" class="o_top_partner_rating_image" src='/rating/static/src/img/rating_3.png'/>
+                                <span class="o_rating_count" t-esc="partner_stat['rating_3']"/>
+                            </span>
+                            <span t-if="not partner_stat['rating_3']">
+                                <img title="average" alt="Neutral face" class="o_top_partner_rating_image o_lighter_smileys" src='/rating/static/src/img/rating_3.png'/>
+                                <span class="o_rating_count o_lighter_smileys" t-esc="partner_stat['rating_3']"/>
                             </span>
                         </div>
                         <div class="col-md-4 o_smiley_no_padding_right o_smiley_no_padding_left">

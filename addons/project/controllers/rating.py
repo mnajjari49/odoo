@@ -36,7 +36,7 @@ class RatingProject(http.Controller):
                     AND res_model = 'project.task'
                     AND rated_partner_id IS NOT NULL
                     AND write_date >= current_date - interval '90' day
-                    AND rating IN (1,5,10)
+                    AND rating IN (1,3,5)
             GROUP BY
                 rated_partner_id, rating, period
         """, (project_id, ))
@@ -44,7 +44,7 @@ class RatingProject(http.Controller):
         raw_data = request.env.cr.dictfetchall()
 
         # periodical statistics
-        default_period_dict = {'rating_10': 0, 'rating_5': 0, 'rating_1': 0, 'total': 0}
+        default_period_dict = {'rating_5': 0, 'rating_3': 0, 'rating_1': 0, 'total': 0}
         period_statistics = {
             'days_06': dict(default_period_dict),
             'days_15': dict(default_period_dict),
@@ -58,7 +58,7 @@ class RatingProject(http.Controller):
                     period_statistics[period_statistics_key]['total'] += row['rating_count']
 
         # partner statistics
-        default_partner_dict = {'rating_10': 0, 'rating_5': 0, 'rating_1': 0, 'total': 0, 'rated_partner': None, 'percentage_happy': 0.0}
+        default_partner_dict = {'rating_5': 0, 'rating_3': 0, 'rating_1': 0, 'total': 0, 'rated_partner': None, 'percentage_happy': 0.0}
         partner_statistics = {}
         for row in raw_data:
             if row['period'] <= 'days_15':
@@ -69,7 +69,7 @@ class RatingProject(http.Controller):
                 partner_statistics[row['rated_partner_id']]['total'] += row['rating_count']
 
         for partner_id, stat_values in partner_statistics.items():
-            stat_values['percentage_happy'] = (stat_values['rating_10'] / float(stat_values['total'])) * 100 if stat_values['total'] else 0.0
+            stat_values['percentage_happy'] = (stat_values['rating_5'] / float(stat_values['total'])) * 100 if stat_values['total'] else 0.0
 
         return {
             'partner_statistics': partner_statistics,
