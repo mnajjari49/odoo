@@ -47,6 +47,7 @@
                     <t t-snippet="website.s_features_grid" t-thumbnail="/website/static/src/img/snippets_thumbs/s_features_grid.png"/>
                     <t t-snippet="website.s_popup" t-thumbnail="/website/static/src/img/snippets_thumbs/s_popup.png"/>
                     <t t-snippet="website.s_tabs" t-thumbnail="/website/static/src/img/snippets_thumbs/s_tabs.png"/>
+                    <t t-snippet="website.s_table_of_content" t-thumbnail="/website/static/src/img/snippets_thumbs/s_table_of_content.png"/>
                     <t t-snippet="website.s_countdown" t-thumbnail="/website/static/src/img/snippets_thumbs/s_countdown.png"/>
                     <t t-snippet="website.s_product_catalog" t-thumbnail="/website/static/src/img/snippets_thumbs/s_product_catalog.png"/>
                 </div>
@@ -301,7 +302,7 @@
 
     <div data-js="sizing_y"
         data-selector="section, .row > div, .parallax, .s_hr, .s_btn, .carousel-item"
-        data-exclude="section:has(> .carousel), .o_gallery .carousel-item"/>
+        data-exclude="section:has(> .carousel), .o_gallery .carousel-item, .s_table_of_content_navbar_wrap"/>
 
     <div data-js="sizing_x"
         data-selector=".row > div"

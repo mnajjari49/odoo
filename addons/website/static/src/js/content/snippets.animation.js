@@ -913,6 +913,15 @@ registry.anchorSlide = publicWidget.Widget.extend({
         let headerHeight = 0;
         const $navbarFixed = $('.o_navbar_fixed');
         _.each($navbarFixed, el => headerHeight += $(el).outerHeight());
+        // look for a sticky horizontal navbar if the link comes from a table of content snippet
+        // and add the height of this navbar if it exists
+        if ($el[0].id.startsWith('table_of_content_heading_')) {
+            const $link = $.find('a[href="#' + $el[0].id + '"]');
+            const tableOfContentNavbarEl = $link[0].closest('.s_table_of_content_horizontal_navbar');
+            if (tableOfContentNavbarEl !== null) {
+                headerHeight += $(tableOfContentNavbarEl).outerHeight();
+            }
+        }
         $('html, body').animate({
             scrollTop: $el.offset().top - headerHeight,
         }, scrollValue === 'true' ? 500 : 0);

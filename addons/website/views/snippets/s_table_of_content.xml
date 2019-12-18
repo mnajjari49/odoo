@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+<template id="s_table_of_content" name="Table of Content">
+    <section class="s_table_of_content pt24 pb24">
+        <div class="container table_of_content">
+            <div class="row s_col_no_resize s_nb_column_fixed">
+                <div class="col-lg-3 s_table_of_content_navbar_wrap s_table_of_content_vertical_navbar d-print-none d-none d-lg-block o_not_editable bg-white" data-name="Navbar">
+                    <div class="s_table_of_content_navbar list-group"/>
+                </div>
+                <div class="col-lg-9 s_table_of_content_main oe_structure oe_empty" data-name="Content">
+                    <t t-call="website.s_text_block">
+                        <t t-set="_table_of_content" t-value="True"/>
+                    </t>
+                </div>
+            </div>
+        </div>
+    </section>
+</template>
+
+<template id="s_table_of_content_options" inherit_id="website.snippet_options">
+    <xpath expr="." position="inside">
+        <div data-js="TableOfContent" data-selector=".s_table_of_content">
+            <we-checkbox string="Animate Scrolling" data-animate-scrolling="true" data-no-preview="true"/>
+            <we-select string="Navbar position">
+                <we-button data-navbar-position="left">Left</we-button>
+                <we-button data-navbar-position="right">Right</we-button>
+                <we-button data-navbar-position="top">Top</we-button>
+            </we-select>
+        </div>
+        <div data-js="TableOfContentNavbar" data-selector=".s_table_of_content_navbar_wrap"/>
+        <div data-js="TableOfContentMain" data-selector=".s_table_of_content_main"/>
+    </xpath>
+</template>
+
+<template id="assets_snippet_s_table_of_content_css_000" inherit_id="website.assets_frontend">
+    <xpath expr="//link[last()]" position="after">
+        <link rel="stylesheet" type="text/scss" href="/website/static/src/snippets/s_table_of_content/000.scss"/>
+    </xpath>
+</template>
+
+<template id="assets_snippet_s_table_of_content_js_000" inherit_id="website.assets_frontend">
+    <xpath expr="//script[last()]" position="after">
+        <script type="text/javascript" src="/website/static/src/snippets/s_table_of_content/000.js"/>
+    </xpath>
+</template>
+
+</odoo>

@@ -2,14 +2,49 @@
 <odoo>
 
 <template id="s_text_block" name="Text block">
-    <section class="s_text_block pt32 pb32">
+    <section class="s_text_block" t-attf-class="#{'pt32 pb32' if not _table_of_content else ''}">
         <div class="container">
             <div class="row">
-                <div class="col-lg-12 pt32 pb32">
-                    <p class="lead">A great way to catch your reader's attention is to tell a story. <br/>Everything you consider writing can be told as a story.</p>
-                    <p><b>Great stories have personality.</b> Consider telling a great story that provides personality. Writing a story with personality for potential clients will assists with making a relationship connection. This shows up in small quirks like word choices or phrases. Write from your point of view, not from someone else's experience.</p>
-                    <p><b>Great stories are for everyone even when only written for just one person.</b> If you try to write with a wide general audience in mind, your story will ring false and be bland. No one will be interested. Write for one person. If it’s genuine for the one, it’s genuine for the rest.</p>
-                </div>
+                <t t-if="_table_of_content">
+                    <div class="col-lg-12 pb16">
+                        <h1 class="text-secondary" data-anchor="true">Intuitive system</h1>
+                        <h4>What you see is what you get</h4>
+                        <p>
+                            Insert text styles like headers, bold, italic, lists and fonts with
+                            a simple WYSIWYG editor. Flexible and easy to use.
+                        </p>
+                        <h4>Customization tool</h4>
+                        <p>
+                            Click and change content directly from the front-end: no complex back
+                            end to deal with.
+                        </p>
+                        <h4>Building blocks system</h4>
+                        <p>
+                            Create your page from scratch by dragging and dropping pre-made,
+                            fully customizable building blocks.
+                        </p>
+                    </div>
+                    <div class="col-lg-12 pb16">
+                        <h1 class="text-secondary" data-anchor="true">Design features</h1>
+                        <h4>Bootstrap based templates</h4>
+                        <p>
+                            Easily design your own Odoo templates thanks to clean HTML
+                            structure and bootstrap CSS.
+                        </p>
+                        <h4>Professional themes</h4>
+                        <p>
+                            Change theme in a few clicks, and browse through Odoo's catalog of
+                            ready-to-use themes available in our app store.
+                        </p>
+                    </div>
+                </t>
+                <t t-else="">
+                    <div class="col-lg-12 pt32 pb32">
+                        <p class="lead">A great way to catch your reader's attention is to tell a story. <br/>Everything you consider writing can be told as a story.</p>
+                        <p><b>Great stories have personality.</b> Consider telling a great story that provides personality. Writing a story with personality for potential clients will assists with making a relationship connection. This shows up in small quirks like word choices or phrases. Write from your point of view, not from someone else's experience.</p>
+                        <p><b>Great stories are for everyone even when only written for just one person.</b> If you try to write with a wide general audience in mind, your story will ring false and be bland. No one will be interested. Write for one person. If it’s genuine for the one, it’s genuine for the rest.</p>
+                    </div>
+                </t>
             </div>
         </div>
     </section>
