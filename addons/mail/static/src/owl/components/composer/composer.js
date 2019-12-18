@@ -329,6 +329,7 @@ class Composer extends Component {
      * @param {CustomEvent} ev
      */
     _onTextInputKeydownEnter(ev) {
+        // TODO SEB this is the same code as _onClickSend
         if (
             this._textInputRef.comp.isEmpty() &&
             this.storeProps.composer.attachmentLocalIds.length === 0

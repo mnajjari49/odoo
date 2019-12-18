@@ -21,6 +21,7 @@ class ChatWindowManager extends Component {
         this._getRefs = useRefs();
         this.storeDispatch = useDispatch();
         this.storeProps = useStoreCompareKeys(state => {
+            // TODO SEB transform into storeProps.chatWindowManager...
             const {
                 autofocusCounter,
                 autofocusChatWindowLocalId,

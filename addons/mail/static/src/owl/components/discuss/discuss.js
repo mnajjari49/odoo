@@ -67,6 +67,7 @@ class Discuss extends Component {
             const activeThreadCache = activeThreadCacheLocalId
                 ? state.threadCaches[activeThreadCacheLocalId]
                 : undefined;
+            // TODO SEB: transform into storeProps.discuss...
             return Object.assign({}, state.discuss, {
                 activeThread,
                 activeThreadCache,

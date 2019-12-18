@@ -15,6 +15,7 @@ class DialogManager extends Component {
     constructor(...args) {
         super(...args);
         this.storeProps = useStoreCompareKeys(state => {
+            // TODO SEB transform into storeProps.dialogManager...
             return Object.assign({}, state.dialogManager);
         });
     }
