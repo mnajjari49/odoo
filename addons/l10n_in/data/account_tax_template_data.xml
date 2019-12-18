@@ -16,6 +16,11 @@
         <field name="sequence">2</field>
         <field name="report_id" ref="tax_report"/>
     </record>
+    <record id="tax_report_line_cess_root" model="account.tax.report.line">
+        <field name="name">CESS</field>
+        <field name="sequence">3</field>
+        <field name="report_id" ref="tax_report"/>
+    </record>
     <record id="tax_report_line_gst_others" model="account.tax.report.line">
         <field name="name">Others</field>
         <field name="sequence">3</field>
@@ -47,7 +52,7 @@
     <record id="tax_report_line_cess" model="account.tax.report.line">
         <field name="name">CESS</field>
         <field name="tag_name">CESS</field>
-        <field name="parent_id" ref="tax_report_line_gst_others"/>
+        <field name="parent_id" ref="tax_report_line_cess_root"/>
         <field name="sequence">4</field>
         <field name="report_id" ref="tax_report"/>
     </record>
@@ -77,11 +82,18 @@
     <record id="tax_report_line_cess_rc" model="account.tax.report.line">
         <field name="name">CESS Reverse Charge</field>
         <field name="tag_name">CESS (RC)</field>
-        <field name="parent_id" ref="tax_report_line_gst_others"/>
+        <field name="parent_id" ref="tax_report_line_cess_root"/>
         <field name="report_id" ref="tax_report"/>
         <field name="sequence">5</field>
     </record>
 
+    <record id="tax_report_line_zero_rate" model="account.tax.report.line">
+        <field name="name">Zero Rated(0%)</field>
+        <field name="tag_name">Exempt</field>
+        <field name="parent_id" ref="tax_report_line_gst_others"/>
+        <field name="sequence">5</field>
+        <field name="report_id" ref="tax_report"/>
+    </record>
     <record id="tax_report_line_exempt" model="account.tax.report.line">
         <field name="name">Exempt</field>
         <field name="tag_name">Exempt</field>
@@ -299,6 +311,41 @@ if tax > result:result=tax</field>
     </record>
 
     <!-- IGST -->
+
+    <record id="igst_sale_0" model="account.tax.template">
+        <field name="name">IGST 0%</field>
+        <field name="description">IGST 0%</field>
+        <field name="type_tax_use">sale</field>
+        <field name="amount_type">percent</field>
+        <field name="amount">0</field>
+        <field name="chart_template_id" ref="indian_chart_template_standard"/>
+        <field name="tax_group_id" ref="igst_group"/>
+        <field name="invoice_repartition_line_ids" eval="[(5, 0, 0),
+            (0,0, {
+                'factor_percent': 100,
+                'repartition_type': 'base',
+                'plus_report_line_ids': [ref('tax_report_line_zero_rate')],
+
+            }),
+            (0,0, {
+                'factor_percent': 100,
+                'repartition_type': 'tax',
+
+            }),
+        ]"/>
+        <field name="refund_repartition_line_ids" eval="[(5, 0, 0),
+            (0,0, {
+                'factor_percent': 100,
+                'repartition_type': 'base',
+                'minus_report_line_ids': [ref('tax_report_line_zero_rate')],
+            }),
+            (0,0, {
+                'factor_percent': 100,
+                'repartition_type': 'tax',
+
+            }),
+        ]"/>
+    </record>
 
     <record id="igst_sale_1" model="account.tax.template">
         <field name="name">IGST 1%</field>
@@ -1202,6 +1249,41 @@ if tax > result:result=tax</field>
     </record>
 
     <!-- IGST -->
+
+    <record id="igst_purchase_0" model="account.tax.template">
+        <field name="name">IGST 0%</field>
+        <field name="description">Nil Rat</field>
+        <field name="type_tax_use">purchase</field>
+        <field name="amount_type">percent</field>
+        <field name="amount">0</field>
+        <field name="chart_template_id" ref="indian_chart_template_standard"/>
+        <field name="tax_group_id" ref="igst_group"/>
+        <field name="invoice_repartition_line_ids" eval="[(5, 0, 0),
+            (0,0, {
+                'factor_percent': 100,
+                'repartition_type': 'base',
+                'minus_report_line_ids': [ref('tax_report_line_zero_rate')],
+
+            }),
+            (0,0, {
+                'factor_percent': 100,
+                'repartition_type': 'tax',
+
+            }),
+        ]"/>
+        <field name="refund_repartition_line_ids" eval="[(5, 0, 0),
+            (0,0, {
+                'factor_percent': 100,
+                'repartition_type': 'base',
+                'plus_report_line_ids': [ref('tax_report_line_zero_rate')],
+            }),
+            (0,0, {
+                'factor_percent': 100,
+                'repartition_type': 'tax',
+
+            }),
+        ]"/>
+    </record>
 
     <record id="igst_purchase_1" model="account.tax.template">
         <field name="name">IGST 1%</field>

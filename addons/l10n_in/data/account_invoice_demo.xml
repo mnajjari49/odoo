@@ -114,7 +114,7 @@
                 'tax_ids': [(6, 0, obj().tax_ids.search([
                     ('type_tax_use', '=', 'sale'),
                     ('amount','=', 18),
-                    ('tax_group_id', '=', obj().env.ref('l10n_in.igst_group').id)], limit=1).ids)]
+                    ('tax_group_id', '=', obj().env.ref('l10n_in.gst_group').id)], limit=1).ids)]
             }),
         ]"/>
     </record>
