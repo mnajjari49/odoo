@@ -7,7 +7,6 @@ from odoo import api, fields, models
 
 from odoo.modules.module import get_resource_path
 
-
 RATING_LIMIT_SATISFIED = 5
 RATING_LIMIT_OK = 3
 RATING_LIMIT_MIN = 1
