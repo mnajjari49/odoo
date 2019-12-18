@@ -121,7 +121,7 @@ class Meeting(models.Model):
     def _get_public_fields(self):
         return self._get_recurrent_fields() | {
             'id', 'active', 'allday', 'start', 'stop', 'display_start',
-            'display_stop', 'duration', 'user_id', 'state', 'interval',
+            'display_stop', 'duration', 'user_id', 'interval',
             'count', 'rrule', 'recurrence_id', 'show_as'}
 
     @api.model
@@ -189,8 +189,7 @@ class Meeting(models.Model):
             for event in self:
                 event.is_highlighted = False
 
-    name = fields.Char('Meeting Subject', required=True, states={'done': [('readonly', True)]})
-    state = fields.Selection([('draft', 'Unconfirmed'), ('open', 'Confirmed')], string='Status', readonly=True, tracking=True, default='draft')
+    name = fields.Char('Meeting Subject', required=True)
 
     is_attendee = fields.Boolean('Attendee', compute='_compute_attendee')
     attendee_status = fields.Selection(Attendee.STATE_SELECTION, string='Attendee Status', compute='_compute_attendee')
@@ -199,17 +198,17 @@ class Meeting(models.Model):
     start = fields.Datetime('Start', required=True, help="Start date of an event, without time for full days events")
     stop = fields.Datetime('Stop', required=True, help="Stop date of an event, without time for full days events")
 
-    allday = fields.Boolean('All Day', states={'done': [('readonly', True)]}, default=False)
-    start_date = fields.Date('Start Date', compute='_compute_dates', inverse='_inverse_dates', store=True, states={'done': [('readonly', True)]}, tracking=True)
-    start_datetime = fields.Datetime('Start DateTime', compute='_compute_dates', inverse='_inverse_dates', store=True, states={'done': [('readonly', True)]}, tracking=True)
-    stop_date = fields.Date('End Date', compute='_compute_dates', inverse='_inverse_dates', store=True, states={'done': [('readonly', True)]}, tracking=True)
-    stop_datetime = fields.Datetime('End Datetime', compute='_compute_dates', inverse='_inverse_dates', store=True, states={'done': [('readonly', True)]}, tracking=True)  # old date_deadline
+    allday = fields.Boolean('All Day', default=False)
+    start_date = fields.Date('Start Date', compute='_compute_dates', inverse='_inverse_dates', store=True, tracking=True)
+    start_datetime = fields.Datetime('Start DateTime', compute='_compute_dates', inverse='_inverse_dates', store=True, tracking=True)
+    stop_date = fields.Date('End Date', compute='_compute_dates', inverse='_inverse_dates', store=True, tracking=True)
+    stop_datetime = fields.Datetime('End Datetime', compute='_compute_dates', inverse='_inverse_dates', store=True, tracking=True)  # old date_deadline
     event_tz = fields.Selection('_event_tz_get', string='Timezone', default=lambda self: self.env.context.get('tz') or self.user_id.tz)
-    duration = fields.Float('Duration', compute='_compute_dates', inverse='_inverse_duration', compute_sudo=True, states={'done': [('readonly', True)]})
-    description = fields.Text('Description', states={'done': [('readonly', True)]})
-    privacy = fields.Selection([('public', 'Everyone'), ('private', 'Only me'), ('confidential', 'Only internal users')], 'Privacy', default='public', states={'done': [('readonly', True)]})
-    location = fields.Char('Location', states={'done': [('readonly', True)]}, tracking=True, help="Location of Event")
-    show_as = fields.Selection([('free', 'Free'), ('busy', 'Busy')], 'Show Time as', states={'done': [('readonly', True)]}, default='busy')
+    duration = fields.Float('Duration', compute='_compute_dates', inverse='_inverse_duration', compute_sudo=True)
+    description = fields.Text('Description')
+    privacy = fields.Selection([('public', 'Everyone'), ('private', 'Only me'), ('confidential', 'Only internal users')], 'Privacy', default='public')
+    location = fields.Char('Location', tracking=True, help="Location of Event")
+    show_as = fields.Selection([('free', 'Free'), ('busy', 'Busy')], 'Show Time as', default='busy')
 
     # linked document
     res_id = fields.Integer('Document ID')
@@ -220,12 +219,12 @@ class Meeting(models.Model):
     #redifine message_ids to remove autojoin to avoid search to crash in get_recurrent_ids
     message_ids = fields.One2many(auto_join=False)
 
-    user_id = fields.Many2one('res.users', 'Owner', states={'done': [('readonly', True)]}, default=lambda self: self.env.user)
+    user_id = fields.Many2one('res.users', 'Owner', default=lambda self: self.env.user)
     partner_id = fields.Many2one('res.partner', string='Responsible', related='user_id.partner_id', readonly=True)
     active = fields.Boolean('Active', default=True, help="If the active field is set to false, it will allow you to hide the event alarm information without removing it.")
     categ_ids = fields.Many2many('calendar.event.type', 'meeting_category_rel', 'event_id', 'type_id', 'Tags')
     attendee_ids = fields.One2many('calendar.attendee', 'event_id', 'Participant', ondelete='cascade')
-    partner_ids = fields.Many2many('res.partner', 'calendar_event_res_partner_rel', string='Attendees', states={'done': [('readonly', True)]}, default=_default_partners)
+    partner_ids = fields.Many2many('res.partner', 'calendar_event_res_partner_rel', string='Attendees', default=_default_partners)
     alarm_ids = fields.Many2many('calendar.alarm', 'calendar_alarm_calendar_event_rel', string='Reminders', ondelete="restrict", copy=False)
     is_highlighted = fields.Boolean(compute='_compute_is_highlighted', string='Is the Event Highlighted')
 
