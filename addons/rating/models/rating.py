@@ -82,8 +82,8 @@ class Rating(models.Model):
     def _compute_rating_image(self):
         for rating in self:
             try:
-                image_path = get_resource_path('rating', 'static/src/img', 'rating_%s.png' % rating.rating_for_image)
-                rating.rating_image = base64.b64encode(open(image_path, 'rb').read())
+                image_path = get_resource_path('rating', 'static/src/img', 'rating_%s.png' % int(rating.rating_for_image))
+                rating.rating_image = base64.b64encode(open(image_path, 'rb').read()) if image_path else False
             except (IOError, OSError):
                 rating.rating_image = False
 
