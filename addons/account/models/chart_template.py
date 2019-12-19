@@ -832,6 +832,7 @@ class AccountTaxTemplate(models.Model):
     name = fields.Char(string='Tax Name', required=True)
     type_tax_use = fields.Selection(TYPE_TAX_USE, string='Tax Scope', required=True, default="sale",
         help="Determines where the tax is selectable. Note : 'None' means a tax can't be used by itself, however it can still be used in a group.")
+    type_tax_use_deux = fields.Selection([('service', 'Service'), ('consu', 'Consumable')], help="Restrict the use of taxes to a type of product.")
     amount_type = fields.Selection(default='percent', string="Tax Computation", required=True,
         selection=[('group', 'Group of Taxes'), ('fixed', 'Fixed'), ('percent', 'Percentage of Price'), ('division', 'Percentage of Price Tax Included')])
     active = fields.Boolean(default=True, help="Set active to false to hide the tax without removing it.")
@@ -866,7 +867,7 @@ class AccountTaxTemplate(models.Model):
         help='Account that will be set on lines created in cash basis journal entry and used to keep track of the tax base amount.')
 
     _sql_constraints = [
-        ('name_company_uniq', 'unique(name, type_tax_use, chart_template_id)', 'Tax names must be unique !'),
+        ('name_company_uniq', 'unique(name, type_tax_use, type_tax_use_deux, chart_template_id)', 'Tax names must be unique !'),
     ]
 
     @api.depends('name', 'description')
@@ -889,6 +890,7 @@ class AccountTaxTemplate(models.Model):
         val = {
             'name': self.name,
             'type_tax_use': self.type_tax_use,
+            'type_tax_use_deux': self.type_tax_use_deux,
             'amount_type': self.amount_type,
             'active': self.active,
             'company_id': company.id,

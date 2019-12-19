@@ -1497,6 +1497,7 @@ class AccountTax(models.Model):
     name = fields.Char(string='Tax Name', required=True)
     type_tax_use = fields.Selection(TYPE_TAX_USE, string='Tax Scope', required=True, default="sale",
         help="Determines where the tax is selectable. Note : 'None' means a tax can't be used by itself, however it can still be used in a group. 'adjustment' is used to perform tax adjustment.")
+    type_tax_use_deux = fields.Selection([('service', 'Service'), ('consu', 'Consumable')], help="Restrict the use of taxes to a type of product.")
     amount_type = fields.Selection(default='percent', string="Tax Computation", required=True,
         selection=[('group', 'Group of Taxes'), ('fixed', 'Fixed'), ('percent', 'Percentage of Price'), ('division', 'Percentage of Price Tax Included')],
         help="""
@@ -1541,7 +1542,7 @@ class AccountTax(models.Model):
     country_id = fields.Many2one(string='Country', comodel_name='res.country', related='company_id.country_id', help="Technical field used to restrict the domain of account tags for tax repartition lines created for this tax.")
 
     _sql_constraints = [
-        ('name_company_uniq', 'unique(name, company_id, type_tax_use)', 'Tax names must be unique !'),
+        ('name_company_uniq', 'unique(name, company_id, type_tax_use, type_tax_use_deux)', 'Tax names must be unique !'),
     ]
 
     @api.model
@@ -1600,7 +1601,9 @@ class AccountTax(models.Model):
             if not tax._check_m2m_recursion('children_tax_ids'):
                 raise ValidationError(_("Recursion found for tax '%s'.") % (tax.name,))
             if not all(child.type_tax_use in ('none', tax.type_tax_use) for child in tax.children_tax_ids):
-                raise ValidationError(_('The application scope of taxes in a group must be either the same as the group or left empty.'))\
+                raise ValidationError(_('The application scope of taxes in a group must be either the same as the group or left empty.'))
+            if not all(child.type_tax_use_deux == tax.type_tax_use_deux for child in tax.children_tax_ids):
+                raise ValidationError(_('The application scope of taxes in a group must be either the same as the group or left empty.'))
 
     @api.constrains('company_id')
     def _check_company_consistency(self):
@@ -1633,10 +1636,17 @@ class AccountTax(models.Model):
         return super(AccountTax, self).copy(default=default)
 
     def name_get(self):
-        if not self._context.get('append_type_to_tax_name'):
-            return super(AccountTax, self).name_get()
+        name_list = []
         tax_type = dict(self._fields['type_tax_use']._description_selection(self.env))
-        return [(tax.id, '%s (%s)' % (tax.name, tax_type.get(tax.type_tax_use))) for tax in self]
+        tax_type_deux = dict(self._fields['type_tax_use_deux']._description_selection(self.env))
+        for record in self:
+            name = record.name
+            if self._context.get('append_type_to_tax_name'):
+                name += ' (%s)' % tax_type.get(record.type_tax_use)
+            if record.type_tax_use_deux:
+                name += ' (%s)' % tax_type_deux.get(record.type_tax_use_deux)
+            name_list += [(record.id, name)]
+        return name_list
 
     @api.model
     def _name_search(self, name, args=None, operator='ilike', limit=100, name_get_uid=None):
@@ -1666,6 +1676,10 @@ class AccountTax(models.Model):
             journal = self.env['account.journal'].browse(context.get('journal_id'))
             if journal.type in ('sale', 'purchase'):
                 args += [('type_tax_use', '=', journal.type)]
+
+        if context.get('product_id'):
+            product = self.env['res.product'].browse(context.get('product_id'))
+            args += ['|', ('type_tax_use_deux', '=', product.type), ('type_tax_use_deux', '=', False)]
 
         return super(AccountTax, self)._search(args, offset, limit, order, count=count, access_rights_uid=access_rights_uid)
 
