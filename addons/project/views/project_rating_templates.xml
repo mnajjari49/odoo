@@ -125,11 +125,11 @@
         <template id="portal_project_rating_popover">
             <div t-attf-id="rating_#{rating.id}" class="container d-none">
                 <div class="row">
-                    <div class="col-lg-2">
-                        <img t-if="rating.partner_id.image_1024" class="o_top_partner_image" t-att-src="image_data_uri(rating.partner_id.image_1024)" alt="Rated partner"/>
-                        <img  t-if="not rating.partner_id.image_1024" class="o_top_partner_image" src='/web/static/src/img/placeholder.png' alt="Placeholder"/>
+                    <div class="col-lg-4">
+                        <img t-if="rating.partner_id.image_1024" class="img-fluid" t-att-src="image_data_uri(rating.partner_id.image_1024)" alt="Rated partner"/>
+                        <img  t-if="not rating.partner_id.image_1024" class="img-fluid" src='/web/static/src/img/placeholder.png' alt="Placeholder"/>
                     </div>
-                    <div class="col-lg-10">
+                    <div class="col-lg-8">
                         <div class="mt4">
                             <strong><t t-esc="rating.rated_partner_id.name"/></strong> - <span class="rating_timeduration"><t t-esc="rating.create_date"/></span>
                         </div>
@@ -156,7 +156,7 @@
                                 <div class="row">
                                     <div class="col-lg-7">
                                         <t t-foreach="ratings" t-as="rating">
-                                            <img t-attf-src='/rating/static/src/img/rating_#{int(rating.rating)}.png'
+                                            <img t-attf-src='/rating/static/src/img/rating_#{int(rating.rating_for_image)}.png'
                                                 class="mt4 o_rating_image"
                                                 t-att-alt="rating.res_name"
                                                 t-att-data-id="rating.id"
