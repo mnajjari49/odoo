@@ -350,6 +350,75 @@ QUnit.module('fields', {}, function () {
             form.destroy();
         });
 
+        QUnit.test('many2many kanban: create/delete action disabled on parent field based condition', async function (assert) {
+            assert.expect(7);
+
+            this.data.partner.records[0].timmy = [12, 14];
+
+            const form = await createView({
+                View: FormView,
+                model: 'partner',
+                data: this.data,
+                arch: `<form string="Partners">
+                    <field name="color"/>
+                    <field name="timmy" options="{'create': [('color', '=', 'red')], 'delete': [('color', '=', 'red')]}">
+                    <kanban>
+                    <field name="display_name"/>
+                    <templates>
+                    <t t-name="kanban-box">
+                    <div class="oe_kanban_global_click">
+                    <span><t t-esc="record.display_name.value"/></span>
+                    </div>
+                    </t>
+                    </templates>
+                    </kanban>
+                    </field>
+                    </form>`,
+                archs: {
+                    'partner_type,false,form': '<form string="Types"><field name="display_name"/></form>',
+                    'partner_type,false,list': '<tree><field name="name"/></tree>',
+                    'partner_type,false,search': '<search>' +
+                        '<field name="display_name" string="Name"/>' +
+                        '</search>',
+                },
+                res_id: 1,
+            });
+
+            assert.containsNone(form, '.o-kanban-button-new',
+                '"Add" button should not be available in readonly');
+
+            await testUtils.form.clickEdit(form);
+            assert.containsOnce(form, '.o-kanban-button-new',
+                '"Add" button should be available in edit');
+
+            await testUtils.dom.click(form.$('.o_kanban_record:contains(silver)'));
+            assert.containsOnce($(document), '.modal .modal-footer .o_btn_remove',
+                'remove button should be visible in modal');
+
+            await testUtils.dom.click($('.modal .modal-footer .o_form_button_cancel'));
+            await testUtils.dom.click(form.$('.o-kanban-button-new'));
+            assert.containsN($(document), '.modal .modal-footer button', 3,
+                'there should be 3 buttons available in the modal');
+
+            await testUtils.dom.click($('.modal .modal-footer .o_form_button_cancel'));
+            await testUtils.fields.editSelect(form.$('select[name="color"]'), '"black"');
+            assert.containsOnce(form, '.o-kanban-button-new',
+                '"Add" button should still be available even after color field changed');
+
+            await testUtils.dom.click(form.$('.o-kanban-button-new'));
+            // only select and cancel button should be available, create
+            // button should be removed based on color field condition
+            assert.containsN($(document), '.modal .modal-footer button', 2,
+                '"Create" button should not be available in the modal after color field changed');
+
+            await testUtils.dom.click($('.modal .modal-footer .o_form_button_cancel'));
+            await testUtils.dom.click(form.$('.o_kanban_record:contains(silver)'));
+            assert.containsNone($(document), '.modal .modal-footer .o_btn_remove',
+                'remove button should be visible in modal');
+
+            form.destroy();
+        });
+
         QUnit.test('many2many list (non editable): edition', async function (assert) {
             assert.expect(29);
 
@@ -638,6 +707,63 @@ QUnit.module('fields', {}, function () {
 
             assert.ok(!form.$('.o_field_x2many_list_row_add').length,
                 '"Add an item" link should not be available in edit either');
+
+            form.destroy();
+        });
+
+        QUnit.test('many2many list: create/delete action disabled on parent field based condition', async function (assert) {
+            assert.expect(8);
+
+            this.data.partner.records[0].timmy = [12, 14];
+
+            const form = await createView({
+                View: FormView,
+                model: 'partner',
+                data: this.data,
+                arch: `<form string="Partners">
+                <field name="color"/>
+                <field name="timmy" options="{'create': [('color', '=', 'red')], 'delete': [('color', '=', 'red')]}">
+                <tree>
+                <field name="name"/>
+                </tree>
+                </field>
+                </form>`,
+                archs: {
+                    'partner_type,false,form': '<form string="Types"><field name="display_name"/></form>',
+                    'partner_type,false,list': '<tree><field name="name"/></tree>',
+                    'partner_type,false,search': '<search>' +
+                        '<field name="display_name" string="Name"/>' +
+                        '</search>',
+                },
+                res_id: 1,
+            });
+
+            assert.containsNone(form, '.o_field_x2many_list_row_add',
+                "should have the 'Add an item' link");
+            assert.containsNone(form, '.o_list_record_remove',
+                "should not have remove icons");
+
+            await testUtils.form.clickEdit(form);
+            assert.containsOnce(form, '.o_field_x2many_list_row_add',
+                "should have the 'Add an item' link");
+            assert.containsN(form, '.o_list_record_remove', 2,
+                "should have two remove icon");
+
+            await testUtils.dom.click(form.$('.o_field_x2many_list_row_add a'));
+            assert.containsN($(document), '.modal .modal-footer button', 3,
+                'there should be 3 buttons available in the modal');
+
+            await testUtils.dom.click($('.modal .modal-footer .o_form_button_cancel'));
+            await testUtils.fields.editSelect(form.$('select[name="color"]'), '"black"');
+            assert.containsNone(form, '.o_list_record_remove', "should have the 'Add an item' link");
+            assert.containsOnce(form, '.o_field_x2many_list_row_add',
+                '"Add a line" button should still be available even after color field changed');
+
+            await testUtils.dom.click(form.$('.o_field_x2many_list_row_add a'));
+            // only select and cancel button should be available, create
+            // button should be removed based on color field condition
+            assert.containsN($(document), '.modal .modal-footer button', 2,
+                '"Create" button should not be available in the modal after color field changed');
 
             form.destroy();
         });

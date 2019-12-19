@@ -64,31 +64,7 @@ ListRenderer.include({
         // all the <create> that are inside <control>
 
         if (this.addCreateLine) {
-            this.creates = [];
-
-            _.each(this.arch.children, function (child) {
-                if (child.tag !== 'control') {
-                    return;
-                }
-
-                _.each(child.children, function (child) {
-                    if (child.tag !== 'create' || child.attrs.invisible) {
-                        return;
-                    }
-
-                    self.creates.push({
-                        context: child.attrs.context,
-                        string: child.attrs.string,
-                    });
-                });
-            });
-
-            // Add the default button if we didn't find any custom button.
-            if (this.creates.length === 0) {
-                this.creates.push({
-                    string: _t("Add a line"),
-                });
-            }
+            this.computeCreates();
         }
 
         // if addTrashIcon is true, there will be a small trash icon at the end
@@ -178,6 +154,34 @@ ListRenderer.include({
         this.$('.o_selected_row .o_data_cell').removeClass('o_invalid_cell');
         this.$('.o_selected_row .o_data_cell:has(> .o_field_invalid)').addClass('o_invalid_cell');
         return fieldNames;
+    },
+    /**
+     * controls allow overriding "add a line" by custom controls,
+     * this method computes controls
+     */
+    computeCreates: function () {
+        this.creates = [];
+        this.arch.children.forEach((child) => {
+            if (child.tag !== 'control') {
+                return;
+            }
+            child.children.forEach((child) => {
+                if (child.tag !== 'create' || child.attrs.invisible) {
+                    return;
+                }
+                this.creates.push({
+                    context: child.attrs.context,
+                    string: child.attrs.string,
+                });
+            });
+        });
+
+        // Add the default button if we didn't find any custom button.
+        if (this.creates.length === 0) {
+            this.creates.push({
+                string: _t("Add a line"),
+            });
+        }
     },
     /**
      * We need to override the confirmChange method from BasicRenderer to
@@ -531,6 +535,16 @@ ListRenderer.include({
             // remove computed modifiers data (as they are obsolete) to force
             // them to be recomputed at next (sub-)rendering
             this.allModifiersData = [];
+        }
+        if ('addTrashIcon' in params) {
+            this.addTrashIcon = params.addTrashIcon;
+        }
+        if ('addCreateLine' in params) {
+            this.addCreateLine = params.addCreateLine;
+            if (this.addCreateLine && !this.creates.length) {
+                // consider the case, while initialize addCreateLine=false and it become true now
+                this.computeCreates();
+            }
         }
         return this._super.apply(this, arguments);
     },
