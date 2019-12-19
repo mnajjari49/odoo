@@ -7,13 +7,8 @@ from odoo import api, fields, models
 
 from odoo.modules.module import get_resource_path
 
-<<<<<<< HEAD
 RATING_LIMIT_SATISFIED = 5
 RATING_LIMIT_OK = 3
-=======
-RATING_LIMIT_SATISFIED = 4
-RATING_LIMIT_OK = 2
->>>>>>> convert ratings scale from 10 to 5
 RATING_LIMIT_MIN = 1
 
 
@@ -47,10 +42,7 @@ class Rating(models.Model):
     rated_partner_id = fields.Many2one('res.partner', string="Rated person", help="Owner of the rated resource")
     partner_id = fields.Many2one('res.partner', string='Customer', help="Author of the rating")
     rating = fields.Float(string="Rating Number", group_operator="avg", default=0, help="Rating value: 0=Unhappy, 5=Happy")
-<<<<<<< HEAD
     rating_for_image = fields.Float(string="Adjusted Rating for Image", compute='_compute_rating_for_image', default=0, help="Rating floored to image value (1-3-5)")
-=======
->>>>>>> convert ratings scale from 10 to 5
     rating_image = fields.Binary('Image', compute='_compute_rating_image')
     rating_text = fields.Selection([
         ('satisfied', 'Satisfied'),
@@ -89,16 +81,6 @@ class Rating(models.Model):
     @api.depends('rating_for_image')
     def _compute_rating_image(self):
         for rating in self:
-<<<<<<< HEAD
-=======
-            rating_for_img = 0
-            if rating.rating >= 4:
-                rating_for_img = 5
-            elif rating.rating > 2:
-                rating_for_img = 3
-            elif rating.rating >= 1:
-                rating_for_img = 1
->>>>>>> convert ratings scale from 10 to 5
             try:
                 image_path = get_resource_path('rating', 'static/src/img', 'rating_%s.png' % int(rating.rating_for_image))
                 rating.rating_image = base64.b64encode(open(image_path, 'rb').read()) if image_path else False
