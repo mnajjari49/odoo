@@ -81,7 +81,9 @@ class Rating(models.Model):
     @api.depends('rating_for_image')
     def _compute_rating_image(self):
         for rating in self:
-            rating_for_img = 0
+            try:
+                image_path = get_resource_path('rating', 'static/src/img', 'rating_%s.png' % rating.rating_for_image)
+                rating.rating_image = base64.b64encode(open(image_path, 'rb').read())
             except (IOError, OSError):
                 rating.rating_image = False
 
