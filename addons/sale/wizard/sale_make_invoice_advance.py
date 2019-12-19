@@ -143,21 +143,25 @@ class SaleAdvancePaymentInv(models.TransientModel):
                 analytic_tag_ids = []
                 for line in order.order_line:
                     analytic_tag_ids = [(4, analytic_tag.id, None) for analytic_tag in line.analytic_tag_ids]
-                so_line = sale_line_obj.create({
-                    'name': _('Down Payment: %s') % (time.strftime('%m %Y'),),
-                    'price_unit': amount,
-                    'product_uom_qty': 0.0,
-                    'order_id': order.id,
-                    'discount': 0.0,
-                    'product_uom': self.product_id.uom_id.id,
-                    'product_id': self.product_id.id,
-                    'analytic_tag_ids': analytic_tag_ids,
-                    'tax_id': [(6, 0, tax_ids)],
-                    'is_downpayment': True,
-                    'sequence': order.order_line[-1].sequence + 1
-                })
-                del context
-                self._create_invoice(order, so_line, amount)
+                # arj todo: fixme when usert upsell with no line and make a downpayment of 0, there is a traceback.
+                try:
+                    so_line = sale_line_obj.create({
+                        'name': _('Down Payment: %s') % (time.strftime('%m %Y'),),
+                        'price_unit': amount,
+                        'product_uom_qty': 0.0,
+                        'order_id': order.id,
+                        'discount': 0.0,
+                        'product_uom': self.product_id.uom_id.id,
+                        'product_id': self.product_id.id,
+                        'analytic_tag_ids': analytic_tag_ids,
+                        'tax_id': [(6, 0, tax_ids)],
+                        'is_downpayment': True,
+                        'sequence': order.order_line[-1].sequence + 1
+                    })
+                    del context
+                    self._create_invoice(order, so_line, amount)
+                except IndexError:
+                    raise UserError(_("You cannot invoice empty Sale Order. Please add some products in your Sale Order."))
         if self._context.get('open_invoices', False):
             return sale_orders.action_view_invoice()
         return {'type': 'ir.actions.act_window_close'}
