@@ -7,13 +7,9 @@ from odoo import api, fields, models
 
 from odoo.modules.module import get_resource_path
 
-<<<<<<< HEAD
+
 RATING_LIMIT_SATISFIED = 5
 RATING_LIMIT_OK = 3
-=======
-RATING_LIMIT_SATISFIED = 4
-RATING_LIMIT_OK = 2
->>>>>>> convert ratings scale from 10 to 5
 RATING_LIMIT_MIN = 1
 
 
@@ -86,19 +82,9 @@ class Rating(models.Model):
     @api.depends('rating_for_image')
     def _compute_rating_image(self):
         for rating in self:
-<<<<<<< HEAD
-=======
-            rating_for_img = 0
-            if rating.rating >= 4:
-                rating_for_img = 5
-            elif rating.rating > 2:
-                rating_for_img = 3
-            elif rating.rating >= 1:
-                rating_for_img = 1
->>>>>>> convert ratings scale from 10 to 5
             try:
-                image_path = get_resource_path('rating', 'static/src/img', 'rating_%s.png' % int(rating.rating_for_image))
-                rating.rating_image = base64.b64encode(open(image_path, 'rb').read()) if image_path else False
+                image_path = get_resource_path('rating', 'static/src/img', 'rating_%s.png' % rating.rating_for_image)
+                rating.rating_image = base64.b64encode(open(image_path, 'rb').read())
             except (IOError, OSError):
                 rating.rating_image = False
 
