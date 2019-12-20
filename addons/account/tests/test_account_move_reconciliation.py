@@ -44,7 +44,7 @@ class TestAccountMoveReconciliation(AccountTestInvoicingCommon):
 
         cls.move_foreign_currency_1 = cls.env['account.move'].create({
             'type': 'entry',
-            'date': fields.Date.from_string('2016-01-01'),
+            'date': fields.Date.from_string('2017-01-01'),
             'line_ids': [(0, None, {
                 'name': 'line_%s' % i,
                 'account_id': cls.company_data['default_account_receivable'].id,
@@ -66,7 +66,7 @@ class TestAccountMoveReconciliation(AccountTestInvoicingCommon):
 
         cls.move_foreign_currency_2 = cls.env['account.move'].create({
             'type': 'entry',
-            'date': fields.Date.from_string('2016-01-01'),
+            'date': fields.Date.from_string('2018-01-01'),
             'line_ids': [(0, None, {
                 'name': 'line_%s' % i,
                 'account_id': cls.company_data['default_account_receivable'].id,
@@ -88,6 +88,10 @@ class TestAccountMoveReconciliation(AccountTestInvoicingCommon):
 
     def _get_line(self, move, index):
         return move.line_ids.filtered(lambda line: line.name == 'line_%s' % index)
+
+    # -------------------------------------------------------------------------
+    # TESTS amount_residual / amount_residual_currency with partials
+    # -------------------------------------------------------------------------
 
     def test_residual_amount_no_reconciliation(self):
         self.assertRecordValues(
@@ -622,6 +626,10 @@ class TestAccountMoveReconciliation(AccountTestInvoicingCommon):
             ]
         )
 
+    # -------------------------------------------------------------------------
+    # TESTS reconciliation
+    # -------------------------------------------------------------------------
+
     def test_reconcile_no_foreign_currency_debit(self):
         ''' Test a simple flow reconciling multiple times a line having a debit amount.
         The reconciliations are all done in single-currency.
@@ -632,7 +640,7 @@ class TestAccountMoveReconciliation(AccountTestInvoicingCommon):
         credit_line_2 = self._get_line(self.move_single_currency_1, 5)
         credit_line_3 = self._get_line(self.move_single_currency_1, 6)
 
-        (debit_line + credit_line_1).reconcile2()
+        res = (debit_line + credit_line_1).reconcile2()
 
         self.assertRecordValues(
             debit_line + credit_line_1,
@@ -642,7 +650,16 @@ class TestAccountMoveReconciliation(AccountTestInvoicingCommon):
             ]
         )
 
-        (debit_line + credit_line_2).reconcile2()
+        self.assertRecordValues(res['partials'], [{
+            'amount': 100.0,
+            'amount_currency': 100.0,
+            'debit_move_id': debit_line.id,
+            'credit_move_id': credit_line_1.id,
+            'currency_id': self.company_data['currency'].id,
+            'full_reconcile_id': False,
+        }])
+
+        res = (debit_line + credit_line_2).reconcile2()
 
         self.assertRecordValues(
             debit_line + credit_line_2,
@@ -652,7 +669,16 @@ class TestAccountMoveReconciliation(AccountTestInvoicingCommon):
             ]
         )
 
-        (debit_line + credit_line_3).reconcile2()
+        self.assertRecordValues(res['partials'], [{
+            'amount': 300.0,
+            'amount_currency': 300.0,
+            'debit_move_id': debit_line.id,
+            'credit_move_id': credit_line_2.id,
+            'currency_id': self.company_data['currency'].id,
+            'full_reconcile_id': False,
+        }])
+
+        res = (debit_line + credit_line_3).reconcile2()
 
         self.assertRecordValues(
             debit_line + credit_line_3,
@@ -661,6 +687,20 @@ class TestAccountMoveReconciliation(AccountTestInvoicingCommon):
                 {'amount_residual': 0.0,        'amount_residual_currency': 0.0,        'reconciled': True},
             ]
         )
+
+        self.assertRecordValues(res['partials'], [{
+            'amount': 600.0,
+            'amount_currency': 600.0,
+            'debit_move_id': debit_line.id,
+            'credit_move_id': credit_line_3.id,
+            'currency_id': self.company_data['currency'].id,
+        }])
+
+        self.assertRecordValues(res['full_reconcile'], [{
+            'exchange_move_id': False,
+            'partial_reconcile_ids': debit_line.matched_credit_ids.ids,
+            'reconciled_line_ids': (debit_line + credit_line_1 + credit_line_2 + credit_line_3).ids,
+        }])
 
     def test_reconcile_no_foreign_currency_credit(self):
         ''' Test a simple flow reconciling multiple times a line having a credit amount.
@@ -672,7 +712,7 @@ class TestAccountMoveReconciliation(AccountTestInvoicingCommon):
         debit_line_2 = self._get_line(self.move_single_currency_1, 1)
         debit_line_3 = self._get_line(self.move_single_currency_1, 2)
 
-        (debit_line_1 + credit_line).reconcile2()
+        res = (debit_line_1 + credit_line).reconcile2()
 
         self.assertRecordValues(
             credit_line + debit_line_1,
@@ -682,7 +722,16 @@ class TestAccountMoveReconciliation(AccountTestInvoicingCommon):
             ]
         )
 
-        (debit_line_2 + credit_line).reconcile2()
+        self.assertRecordValues(res['partials'], [{
+            'amount': 100.0,
+            'amount_currency': 100.0,
+            'debit_move_id': debit_line_1.id,
+            'credit_move_id': credit_line.id,
+            'currency_id': self.company_data['currency'].id,
+            'full_reconcile_id': False,
+        }])
+
+        res = (debit_line_2 + credit_line).reconcile2()
 
         self.assertRecordValues(
             credit_line + debit_line_2,
@@ -692,7 +741,16 @@ class TestAccountMoveReconciliation(AccountTestInvoicingCommon):
             ]
         )
 
-        (debit_line_3 + credit_line).reconcile2()
+        self.assertRecordValues(res['partials'], [{
+            'amount': 300.0,
+            'amount_currency': 300.0,
+            'debit_move_id': debit_line_2.id,
+            'credit_move_id': credit_line.id,
+            'currency_id': self.company_data['currency'].id,
+            'full_reconcile_id': False,
+        }])
+
+        res = (debit_line_3 + credit_line).reconcile2()
 
         self.assertRecordValues(
             credit_line + debit_line_3,
@@ -701,6 +759,20 @@ class TestAccountMoveReconciliation(AccountTestInvoicingCommon):
                 {'amount_residual': 0.0,        'amount_residual_currency': 0.0,        'reconciled': True},
             ]
         )
+
+        self.assertRecordValues(res['partials'], [{
+            'amount': 600.0,
+            'amount_currency': 600.0,
+            'debit_move_id': debit_line_3.id,
+            'credit_move_id': credit_line.id,
+            'currency_id': self.company_data['currency'].id,
+        }])
+
+        self.assertRecordValues(res['full_reconcile'], [{
+            'exchange_move_id': False,
+            'partial_reconcile_ids': credit_line.matched_debit_ids.ids,
+            'reconciled_line_ids': (debit_line_1 + debit_line_2 + debit_line_3 + credit_line).ids,
+        }])
 
     def test_reconcile_same_foreign_currency_debit(self):
         ''' Test a simple flow reconciling multiple times a line having a debit amount.
@@ -712,7 +784,7 @@ class TestAccountMoveReconciliation(AccountTestInvoicingCommon):
         credit_line_2 = self._get_line(self.move_foreign_currency_1, 5)
         credit_line_3 = self._get_line(self.move_foreign_currency_1, 6)
 
-        (debit_line + credit_line_1).reconcile2()
+        res = (debit_line + credit_line_1).reconcile2()
 
         self.assertRecordValues(
             debit_line + credit_line_1,
@@ -722,7 +794,16 @@ class TestAccountMoveReconciliation(AccountTestInvoicingCommon):
             ]
         )
 
-        (debit_line + credit_line_2).reconcile2()
+        self.assertRecordValues(res['partials'], [{
+            'amount': 100.0,
+            'amount_currency': 900.0,
+            'debit_move_id': debit_line.id,
+            'credit_move_id': credit_line_1.id,
+            'currency_id': self.currency_data['currency'].id,
+            'full_reconcile_id': False,
+        }])
+
+        res = (debit_line + credit_line_2).reconcile2()
 
         self.assertRecordValues(
             debit_line + credit_line_2,
@@ -732,7 +813,16 @@ class TestAccountMoveReconciliation(AccountTestInvoicingCommon):
             ]
         )
 
-        (debit_line + credit_line_3).reconcile2()
+        self.assertRecordValues(res['partials'], [{
+            'amount': 300.0,
+            'amount_currency': 900.0,
+            'debit_move_id': debit_line.id,
+            'credit_move_id': credit_line_2.id,
+            'currency_id': self.currency_data['currency'].id,
+            'full_reconcile_id': False,
+        }])
+
+        res = (debit_line + credit_line_3).reconcile2()
 
         self.assertRecordValues(
             debit_line + credit_line_3,
@@ -741,6 +831,20 @@ class TestAccountMoveReconciliation(AccountTestInvoicingCommon):
                 {'amount_residual': 0.0,        'amount_residual_currency': 0.0,        'reconciled': True},
             ]
         )
+
+        self.assertRecordValues(res['partials'], [{
+            'amount': 600.0,
+            'amount_currency': 1200.0,
+            'debit_move_id': debit_line.id,
+            'credit_move_id': credit_line_3.id,
+            'currency_id': self.currency_data['currency'].id,
+        }])
+
+        self.assertRecordValues(res['full_reconcile'], [{
+            'exchange_move_id': False,
+            'partial_reconcile_ids': debit_line.matched_credit_ids.ids,
+            'reconciled_line_ids': (debit_line + credit_line_1 + credit_line_2 + credit_line_3).ids,
+        }])
 
     def test_reconcile_same_foreign_currency_credit(self):
         ''' Test a simple flow reconciling multiple times a line having a credit amount.
@@ -752,7 +856,7 @@ class TestAccountMoveReconciliation(AccountTestInvoicingCommon):
         debit_line_2 = self._get_line(self.move_foreign_currency_1, 1)
         debit_line_3 = self._get_line(self.move_foreign_currency_1, 2)
 
-        (debit_line_1 + credit_line).reconcile2()
+        res = (debit_line_1 + credit_line).reconcile2()
 
         self.assertRecordValues(
             credit_line + debit_line_1,
@@ -762,7 +866,16 @@ class TestAccountMoveReconciliation(AccountTestInvoicingCommon):
             ]
         )
 
-        (debit_line_2 + credit_line).reconcile2()
+        self.assertRecordValues(res['partials'], [{
+            'amount': 100.0,
+            'amount_currency': 900.0,
+            'debit_move_id': debit_line_1.id,
+            'credit_move_id': credit_line.id,
+            'currency_id': self.currency_data['currency'].id,
+            'full_reconcile_id': False,
+        }])
+
+        res = (debit_line_2 + credit_line).reconcile2()
 
         self.assertRecordValues(
             credit_line + debit_line_2,
@@ -772,7 +885,16 @@ class TestAccountMoveReconciliation(AccountTestInvoicingCommon):
             ]
         )
 
-        (debit_line_3 + credit_line).reconcile2()
+        self.assertRecordValues(res['partials'], [{
+            'amount': 300.0,
+            'amount_currency': 900.0,
+            'debit_move_id': debit_line_2.id,
+            'credit_move_id': credit_line.id,
+            'currency_id': self.currency_data['currency'].id,
+            'full_reconcile_id': False,
+        }])
+
+        res = (debit_line_3 + credit_line).reconcile2()
 
         self.assertRecordValues(
             credit_line + debit_line_3,
@@ -781,6 +903,20 @@ class TestAccountMoveReconciliation(AccountTestInvoicingCommon):
                 {'amount_residual': 0.0,        'amount_residual_currency': 0.0,        'reconciled': True},
             ]
         )
+
+        self.assertRecordValues(res['partials'], [{
+            'amount': 600.0,
+            'amount_currency': 1200.0,
+            'debit_move_id': debit_line_3.id,
+            'credit_move_id': credit_line.id,
+            'currency_id': self.currency_data['currency'].id,
+        }])
+
+        self.assertRecordValues(res['full_reconcile'], [{
+            'exchange_move_id': False,
+            'partial_reconcile_ids': credit_line.matched_debit_ids.ids,
+            'reconciled_line_ids': (debit_line_1 + debit_line_2 + debit_line_3 + credit_line).ids,
+        }])
 
     def test_reconcile_mixed_no_and_foreign_currency_debit(self):
         ''' Test a flow reconciling multiple times a line having a debit amount.
@@ -793,7 +929,7 @@ class TestAccountMoveReconciliation(AccountTestInvoicingCommon):
         credit_line_2 = self._get_line(self.move_single_currency_1, 5)
         credit_line_3 = self._get_line(self.move_single_currency_1, 6)
 
-        (debit_line + credit_line_1).reconcile2()
+        res = (debit_line + credit_line_1).reconcile2()
 
         self.assertRecordValues(
             debit_line + credit_line_1,
@@ -803,7 +939,16 @@ class TestAccountMoveReconciliation(AccountTestInvoicingCommon):
             ]
         )
 
-        (debit_line + credit_line_2).reconcile2()
+        self.assertRecordValues(res['partials'], [{
+            'amount': 100.0,
+            'amount_currency': 100.0,
+            'debit_move_id': debit_line.id,
+            'credit_move_id': credit_line_1.id,
+            'currency_id': self.company_data['currency'].id,
+            'full_reconcile_id': False,
+        }])
+
+        res = (debit_line + credit_line_2).reconcile2()
 
         self.assertRecordValues(
             debit_line + credit_line_2,
@@ -813,7 +958,16 @@ class TestAccountMoveReconciliation(AccountTestInvoicingCommon):
             ]
         )
 
-        (debit_line + credit_line_3).reconcile2()
+        self.assertRecordValues(res['partials'], [{
+            'amount': 300.0,
+            'amount_currency': 300.0,
+            'debit_move_id': debit_line.id,
+            'credit_move_id': credit_line_2.id,
+            'currency_id': self.company_data['currency'].id,
+            'full_reconcile_id': False,
+        }])
+
+        res = (debit_line + credit_line_3).reconcile2()
 
         self.assertRecordValues(
             debit_line + credit_line_3,
@@ -822,6 +976,20 @@ class TestAccountMoveReconciliation(AccountTestInvoicingCommon):
                 {'amount_residual': 0.0,        'amount_residual_currency': 0.0,        'reconciled': True},
             ]
         )
+
+        self.assertRecordValues(res['partials'], [{
+            'amount': 600.0,
+            'amount_currency': 600.0,
+            'debit_move_id': debit_line.id,
+            'credit_move_id': credit_line_3.id,
+            'currency_id': self.company_data['currency'].id,
+        }])
+
+        self.assertRecordValues(res['full_reconcile'], [{
+            'exchange_move_id': False,
+            'partial_reconcile_ids': debit_line.matched_credit_ids.ids,
+            'reconciled_line_ids': (debit_line + credit_line_1 + credit_line_2 + credit_line_3).ids,
+        }])
 
     def test_reconcile_mixed_no_and_foreign_currency_credit(self):
         ''' Test a flow reconciling multiple times a line having a credit amount.
@@ -834,7 +1002,7 @@ class TestAccountMoveReconciliation(AccountTestInvoicingCommon):
         debit_line_2 = self._get_line(self.move_single_currency_1, 1)
         debit_line_3 = self._get_line(self.move_single_currency_1, 2)
 
-        (debit_line_1 + credit_line).reconcile2()
+        res = (debit_line_1 + credit_line).reconcile2()
 
         self.assertRecordValues(
             credit_line + debit_line_1,
@@ -844,7 +1012,16 @@ class TestAccountMoveReconciliation(AccountTestInvoicingCommon):
             ]
         )
 
-        (debit_line_2 + credit_line).reconcile2()
+        self.assertRecordValues(res['partials'], [{
+            'amount': 100.0,
+            'amount_currency': 100.0,
+            'debit_move_id': debit_line_1.id,
+            'credit_move_id': credit_line.id,
+            'currency_id': self.company_data['currency'].id,
+            'full_reconcile_id': False,
+        }])
+
+        res = (debit_line_2 + credit_line).reconcile2()
 
         self.assertRecordValues(
             credit_line + debit_line_2,
@@ -854,7 +1031,16 @@ class TestAccountMoveReconciliation(AccountTestInvoicingCommon):
             ]
         )
 
-        (debit_line_3 + credit_line).reconcile2()
+        self.assertRecordValues(res['partials'], [{
+            'amount': 300.0,
+            'amount_currency': 300.0,
+            'debit_move_id': debit_line_2.id,
+            'credit_move_id': credit_line.id,
+            'currency_id': self.company_data['currency'].id,
+            'full_reconcile_id': False,
+        }])
+
+        res = (debit_line_3 + credit_line).reconcile2()
 
         self.assertRecordValues(
             credit_line + debit_line_3,
@@ -863,6 +1049,20 @@ class TestAccountMoveReconciliation(AccountTestInvoicingCommon):
                 {'amount_residual': 0.0,        'amount_residual_currency': 0.0,        'reconciled': True},
             ]
         )
+
+        self.assertRecordValues(res['partials'], [{
+            'amount': 600.0,
+            'amount_currency': 600.0,
+            'debit_move_id': debit_line_3.id,
+            'credit_move_id': credit_line.id,
+            'currency_id': self.company_data['currency'].id,
+        }])
+
+        self.assertRecordValues(res['full_reconcile'], [{
+            'exchange_move_id': False,
+            'partial_reconcile_ids': credit_line.matched_debit_ids.ids,
+            'reconciled_line_ids': (debit_line_1 + debit_line_2 + debit_line_3 + credit_line).ids,
+        }])
 
     def test_reconcile_multiple_foreign_currency_debit(self):
         ''' Test a flow reconciling multiple times a line having a debit amount.
@@ -874,7 +1074,7 @@ class TestAccountMoveReconciliation(AccountTestInvoicingCommon):
         credit_line_2 = self._get_line(self.move_foreign_currency_2, 5)
         credit_line_3 = self._get_line(self.move_foreign_currency_2, 6)
 
-        (debit_line + credit_line_1).reconcile2()
+        res = (debit_line + credit_line_1).reconcile2()
 
         self.assertRecordValues(
             debit_line + credit_line_1,
@@ -884,7 +1084,16 @@ class TestAccountMoveReconciliation(AccountTestInvoicingCommon):
             ]
         )
 
-        (debit_line + credit_line_2).reconcile2()
+        self.assertRecordValues(res['partials'], [{
+            'amount': 100.0,
+            'amount_currency': 100.0,
+            'debit_move_id': debit_line.id,
+            'credit_move_id': credit_line_1.id,
+            'currency_id': self.company_data['currency'].id,
+            'full_reconcile_id': False,
+        }])
+
+        res = (debit_line + credit_line_2).reconcile2()
 
         self.assertRecordValues(
             debit_line + credit_line_2,
@@ -894,7 +1103,16 @@ class TestAccountMoveReconciliation(AccountTestInvoicingCommon):
             ]
         )
 
-        (debit_line + credit_line_3).reconcile2()
+        self.assertRecordValues(res['partials'], [{
+            'amount': 300.0,
+            'amount_currency': 300.0,
+            'debit_move_id': debit_line.id,
+            'credit_move_id': credit_line_2.id,
+            'currency_id': self.company_data['currency'].id,
+            'full_reconcile_id': False,
+        }])
+
+        res = (debit_line + credit_line_3).reconcile2()
 
         self.assertRecordValues(
             debit_line + credit_line_3,
@@ -903,6 +1121,20 @@ class TestAccountMoveReconciliation(AccountTestInvoicingCommon):
                 {'amount_residual': 0.0,        'amount_residual_currency': 0.0,        'reconciled': True},
             ]
         )
+
+        self.assertRecordValues(res['partials'], [{
+            'amount': 600.0,
+            'amount_currency': 600.0,
+            'debit_move_id': debit_line.id,
+            'credit_move_id': credit_line_3.id,
+            'currency_id': self.company_data['currency'].id,
+        }])
+
+        self.assertRecordValues(res['full_reconcile'], [{
+            'exchange_move_id': False,
+            'partial_reconcile_ids': debit_line.matched_credit_ids.ids,
+            'reconciled_line_ids': (debit_line + credit_line_1 + credit_line_2 + credit_line_3).ids,
+        }])
 
     def test_reconcile_multiple_foreign_currency_credit(self):
         ''' Test a flow reconciling multiple times a line having a credit amount.
@@ -914,7 +1146,7 @@ class TestAccountMoveReconciliation(AccountTestInvoicingCommon):
         debit_line_2 = self._get_line(self.move_foreign_currency_2, 1)
         debit_line_3 = self._get_line(self.move_foreign_currency_2, 2)
 
-        (debit_line_1 + credit_line).reconcile2()
+        res = (debit_line_1 + credit_line).reconcile2()
 
         self.assertRecordValues(
             credit_line + debit_line_1,
@@ -924,7 +1156,16 @@ class TestAccountMoveReconciliation(AccountTestInvoicingCommon):
             ]
         )
 
-        (debit_line_2 + credit_line).reconcile2()
+        self.assertRecordValues(res['partials'], [{
+            'amount': 100.0,
+            'amount_currency': 100.0,
+            'debit_move_id': debit_line_1.id,
+            'credit_move_id': credit_line.id,
+            'currency_id': self.company_data['currency'].id,
+            'full_reconcile_id': False,
+        }])
+
+        res = (debit_line_2 + credit_line).reconcile2()
 
         self.assertRecordValues(
             credit_line + debit_line_2,
@@ -934,7 +1175,16 @@ class TestAccountMoveReconciliation(AccountTestInvoicingCommon):
             ]
         )
 
-        (debit_line_3 + credit_line).reconcile2()
+        self.assertRecordValues(res['partials'], [{
+            'amount': 300.0,
+            'amount_currency': 300.0,
+            'debit_move_id': debit_line_2.id,
+            'credit_move_id': credit_line.id,
+            'currency_id': self.company_data['currency'].id,
+            'full_reconcile_id': False,
+        }])
+
+        res = (debit_line_3 + credit_line).reconcile2()
 
         self.assertRecordValues(
             credit_line + debit_line_3,
@@ -943,3 +1193,75 @@ class TestAccountMoveReconciliation(AccountTestInvoicingCommon):
                 {'amount_residual': 0.0,        'amount_residual_currency': 0.0,        'reconciled': True},
             ]
         )
+
+        self.assertRecordValues(res['partials'], [{
+            'amount': 600.0,
+            'amount_currency': 600.0,
+            'debit_move_id': debit_line_3.id,
+            'credit_move_id': credit_line.id,
+            'currency_id': self.company_data['currency'].id,
+        }])
+
+        self.assertRecordValues(res['full_reconcile'], [{
+            'exchange_move_id': False,
+            'partial_reconcile_ids': credit_line.matched_debit_ids.ids,
+            'reconciled_line_ids': (debit_line_1 + debit_line_2 + debit_line_3 + credit_line).ids,
+        }])
+
+    # -------------------------------------------------------------------------
+    # TESTS exchange difference
+    # -------------------------------------------------------------------------
+
+    def test_exchange_difference_fixing_foreign_currency(self):
+        ''' The exchange difference is made using the company's currency but the exchange
+        difference entry is generated to fix the amounts in foreign currency.
+        '''
+
+        debit_line = self._get_line(self.move_single_currency_1, 3)
+        credit_line_1 = self._get_line(self.move_single_currency_1, 4)
+        credit_line_2 = self._get_line(self.move_foreign_currency_1, 5)
+        credit_line_3 = self._get_line(self.move_foreign_currency_2, 6)
+
+        res = (debit_line + credit_line_1 + credit_line_2 + credit_line_3).reconcile2()
+
+        self.assertRecordValues(res['partials'].sorted('amount'), [
+            {
+                'amount': 100.0,
+                'amount_currency': 100.0,
+                'debit_move_id': debit_line.id,
+                'credit_move_id': credit_line_1.id,
+                'currency_id': self.company_data['currency'].id,
+            },
+            {
+                'amount': 300.0,
+                'amount_currency': 300.0,
+                'debit_move_id': debit_line.id,
+                'credit_move_id': credit_line_2.id,
+                'currency_id': self.company_data['currency'].id,
+            },
+            {
+                'amount': 600.0,
+                'amount_currency': 600.0,
+                'debit_move_id': debit_line.id,
+                'credit_move_id': credit_line_3.id,
+                'currency_id': self.company_data['currency'].id,
+            },
+        ])
+
+        self.assertRecordValues(res['full_reconcile'], [{
+            'partial_reconcile_ids': res['partials'].ids,
+            'reconciled_line_ids': (debit_line + credit_line_1 + credit_line_2 + credit_line_3).ids,
+        }])
+
+        self.assertRecordValues(res['full_reconcile'].exchange_move_id, [{
+            'date': fields.Date.from_string('2018-01-01'),
+            'journal_id': self.company_data['company'].currency_exchange_journal_id.id,
+        }])
+
+
+
+
+
+
+
+

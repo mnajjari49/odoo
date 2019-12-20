@@ -3691,13 +3691,16 @@ class AccountMoveLine(models.Model):
         return True
 
     def reconcile2(self):
+        results = {}
+
         if not self:
-            return {}
+            return results
 
         # ==== Check the lines can be reconciled together ====
         company = None
         account = None
         currency = None
+        max_date = date.min
         for line in self:
             if line.reconciled:
                 raise UserError(_("You are trying to reconcile some entries that are already reconciled."))
@@ -3720,10 +3723,25 @@ class AccountMoveLine(models.Model):
             elif line.currency_id != currency:
                 currency = line.company_currency_id
 
-        # ==== Create partials ====
+            max_date = max(line.date, max_date)
+
         company_currency = company.currency_id
         residual_currency_field = 'amount_residual' if currency == company_currency else 'amount_residual_currency'
         sorted_lines = self.sorted(key=lambda aml: (aml.date_maturity or aml.date, aml.currency_id))
+
+        # ==== Collect all involved lines through the existing reconciliation ====
+
+        involved_lines = sorted_lines
+        involved_partials = self.env['account.partial.reconcile']
+        current_lines = involved_lines
+        current_partials = involved_partials
+        while current_lines:
+            current_partials = (current_lines.mapped('matched_debit_ids') + current_lines.mapped('matched_credit_ids')) - current_partials
+            involved_partials += current_partials
+            current_lines = (current_partials.mapped('debit_move_id') + current_partials.mapped('credit_move_id')) - current_lines
+            involved_lines += current_lines
+
+        # ==== Create partials ====
 
         debit_lines = iter(sorted_lines.filtered('debit'))
         credit_lines = iter(sorted_lines.filtered('credit'))
@@ -3767,36 +3785,108 @@ class AccountMoveLine(models.Model):
                 'credit_move_id': credit_line.id,
             })
 
-        # ==== Create full reconcile ====
+        results['partials'] = self.env['account.partial.reconcile'].create(partials_to_create)
 
-        # Collect all involved lines through the existing reconciliation.
-        involved_lines = sorted_lines
-        current_batch = involved_lines
-        while current_batch:
-            new_batch = current_batch.mapped('matched_debit_ids.debit_move_id') + current_batch.mapped('matched_debit_ids.credit_move_id')
-            new_batch -= current_batch
-            involved_lines += new_batch
-            current_batch = new_batch
+        if all(currency.is_zero(line[residual_currency_field]) for line in involved_lines):
 
-        # Create partials after seeking for involved lines recursively to avoid useless overhead.
-        partials = self.env['account.partial.reconcile'].create(partials_to_create)
+            # ==== Create the exchange difference move ====
 
-        # # Create the exchange difference move.
-        # exchange_difference_date = date.min
-        # exchange_difference_lines_to_create = []
-        # for line in involved_lines:
-        #
-        #     exchange_difference_date = max(exchange_difference_date, line.date)
-        #
-        #
-        #
-        #     lines_groupby_currencies.setdefault(line.currency_id, self.env['account.move.line'])
-        #     lines_groupby_currencies[line.currency_id] += line
+            journal = company.currency_exchange_journal_id
 
+            # Check the configuration of the exchange difference journal.
+            if not journal:
+                raise UserError(_("You should configure the 'Exchange Rate Journal' in the accounting settings, to manage automatically the booking of accounting entries related to differences between exchange rates."))
+            if not company.income_currency_exchange_account_id.id:
+                raise UserError(_("You should configure the 'Gain Exchange Rate Account' in the accounting settings, to manage automatically the booking of accounting entries related to differences between exchange rates."))
+            if not company.expense_currency_exchange_account_id.id:
+                raise UserError(_("You should configure the 'Loss Exchange Rate Account' in the accounting settings, to manage automatically the booking of accounting entries related to differences between exchange rates."))
 
-        return {
-            'partials': partials,
-        }
+            exchange_difference_move_vals = {
+                'date': max(company._get_user_fiscal_lock_date(), max_date),
+                'journal_id': journal.id,
+                'line_ids': [],
+            }
+
+            # Custom sequence on generated lines in order to retrieve them after all to create
+            # the partials.
+            sequence = 10
+
+            # Iterate all lines and prepare the exchange difference journal items.
+            lines_to_process = self.env['account.move.line']
+            for line in involved_lines:
+
+                exchange_difference_move_vals['date'] = max(exchange_difference_move_vals['date'], line.date)
+
+                if line.company_currency_id.is_zero(line.amount_residual) and line.currency_id.is_zero(line.amount_residual_currency):
+                    continue
+
+                exchange_difference_move_vals['line_ids'] += [
+                    (0, 0, {
+                        'name': _('Currency exchange rate difference'),
+                        'debit': -line.amount_residual if line.residual < 0.0 else 0.0,
+                        'credit': line.amount_residual if line.residual > 0.0 else 0.0,
+                        'amount_currency': -line.amount_residual_currency,
+                        'account_id': line.account_id.id,
+                        'currency_id': line.currency_id.id,
+                        'partner_id': line.partner_id.id,
+                        'sequence': sequence,
+                    }),
+                    (0, 0, {
+                        'name': _('Currency exchange rate difference'),
+                        'debit': line.amount_residual if line.residual > 0.0 else 0.0,
+                        'credit': -line.amount_residual if line.residual < 0.0 else 0.0,
+                        'amount_currency': line.amount_residual_currency,
+                        'account_id': journal.default_debit_account_id.id if line.amount_residual > 0.0 else journal.default_credit_account_id.id,
+                        'currency_id': line.currency_id.id,
+                        'partner_id': line.partner_id.id,
+                        'sequence': sequence + 1,
+                    }),
+                ]
+
+                lines_to_process += line
+                sequence += 2
+
+            if lines_to_process:
+                exchange_move = self.env['account.move'].create(exchange_difference_move_vals)
+
+                # Track also the lines created by the exchange difference journal entry.
+                involved_lines += exchange_move.line_ids
+            else:
+                exchange_move = None
+
+            # Reconcile lines to the newly created exchange difference journal entry by creating more partials.
+            partials_to_create = []
+            for index in range(len(lines_to_process)):
+                source_line = lines_to_process[index]
+                exchange_diff_line = exchange_move.line_ids[index * 2]
+
+                if source_line.debit > 0.0:
+                    debit_line = source_line
+                    credit_line = exchange_diff_line
+                else:
+                    credit_line = source_line
+                    debit_line = exchange_diff_line
+
+                partials_to_create.append({
+                    'amount': abs(exchange_diff_line.amount_residual),
+                    'amount_currency': abs(exchange_diff_line.amount_residual_currency),
+                    'currency_id': source_line.currency_id.id,
+                    'debit_move_id': debit_line.id,
+                    'credit_move_id': credit_line.id,
+                })
+
+            results['partials'] += self.env['account.partial.reconcile'].create(partials_to_create)
+            involved_partials += results['partials']
+
+            # ==== Create the full reconcile ====
+
+            results['full_reconcile'] = self.env['account.full.reconcile'].create({
+                'exchange_move_id': exchange_move and exchange_move.id,
+                'partial_reconcile_ids': [(6, 0, involved_partials.ids)],
+                'reconciled_line_ids': [(6, 0, involved_lines.ids)],
+            })
+
+        return results
 
     def _create_writeoff(self, writeoff_vals):
         """ Create a writeoff move per journal for the account.move.lines in self. If debit/credit is not specified in vals,
