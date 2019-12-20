@@ -2516,20 +2516,40 @@ class AccountMoveLine(models.Model):
             'check_amount_currency_balance_sign',
             '''CHECK(
                 (
-                    (currency_id != company_currency_id)
-                    AND
                     (
-                        (debit - credit > 0 AND amount_currency > 0)
-                        OR (debit - credit <= 0 AND amount_currency <= 0)
-                        OR (debit - credit >= 0 AND amount_currency >= 0)
+                        (currency_id != company_currency_id)
+                        AND
+                        (
+                            (debit - credit <= 0 AND amount_currency <= 0)
+                            OR
+                            (debit - credit >= 0 AND amount_currency >= 0)
+                        )
+                    )
+                    OR
+                    (
+                        currency_id = company_currency_id
+                        AND
+                        debit - credit = amount_currency
+                    )                
+                )
+                AND
+                (
+                    (
+                        debit - credit >= 0
+                        AND
+                        amount_residual >= 0
+                        AND
+                        amount_residual_currency >= 0
+                    )
+                    OR
+                    (
+                        debit - credit <= 0
+                        AND
+                        amount_residual <= 0
+                        AND
+                        amount_residual_currency <= 0
                     )
                 )
-                OR
-                (
-                    currency_id = company_currency_id
-                    AND
-                    debit - credit = amount_currency
-                )                
             )''',
             "The amount expressed in the secondary currency must be positive when account is debited and negative when account is credited."
             "If the currency is the same as the company one, this amount must strictly be equal to the balance."
@@ -3761,17 +3781,17 @@ class AccountMoveLine(models.Model):
         # Create partials after seeking for involved lines recursively to avoid useless overhead.
         partials = self.env['account.partial.reconcile'].create(partials_to_create)
 
-        # Create the exchange difference move.
-        exchange_difference_date = date.min
-        exchange_difference_lines_to_create = []
-        for line in involved_lines:
-
-            exchange_difference_date = max(exchange_difference_date, line.date)
-
-
-
-            lines_groupby_currencies.setdefault(line.currency_id, self.env['account.move.line'])
-            lines_groupby_currencies[line.currency_id] += line
+        # # Create the exchange difference move.
+        # exchange_difference_date = date.min
+        # exchange_difference_lines_to_create = []
+        # for line in involved_lines:
+        #
+        #     exchange_difference_date = max(exchange_difference_date, line.date)
+        #
+        #
+        #
+        #     lines_groupby_currencies.setdefault(line.currency_id, self.env['account.move.line'])
+        #     lines_groupby_currencies[line.currency_id] += line
 
 
         return {
