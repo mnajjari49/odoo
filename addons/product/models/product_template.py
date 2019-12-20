@@ -281,7 +281,7 @@ class ProductTemplate(models.Model):
 
     def _set_barcode(self):
         if len(self.product_variant_ids) == 1:
-            self.with_context(active_test=False).product_variant_ids.barcode = self.barcode
+            self.product_variant_ids.barcode = self.barcode
 
     @api.model
     def _get_weight_uom_id_from_ir_config_parameter(self):
