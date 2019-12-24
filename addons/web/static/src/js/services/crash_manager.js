@@ -38,6 +38,7 @@ var CrashManagerDialog = Dialog.extend({
         this._super.apply(this, [parent, options]);
         this.message = error.message;
         this.traceback = error.traceback;
+        this.options = error.options;
     },
 });
 
@@ -253,6 +254,7 @@ var CrashManager = AbstractService.extend({
         }, {
             message: error.message,
             traceback: error.data.debug,
+            options: error.data.options,
         });
 
 
