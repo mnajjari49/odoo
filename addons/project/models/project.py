@@ -401,7 +401,6 @@ class Project(models.Model):
         action['domain'] = [('account_id', '=', self.analytic_account_id.id)]
         return action
 
-
     def action_website_go_to(self):
         #self.website_id._force() #TODO
         return {
