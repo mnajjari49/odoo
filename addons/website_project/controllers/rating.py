@@ -13,7 +13,7 @@ class RatingProject(http.Controller):
     def index(self, **kw):
         projects = request.env['project.project'].sudo().search([('rating_active', '=', 'True'), ('portal_show_rating', '=', True)])
         values = {'projects': projects}
-        return request.render('project.rating_index', values)
+        return request.render('website_project.rating_index', values)
 
     def _calculate_period_partner_stats(self, project_id):
         # get raw data: number of rating by rated partner, by rating value, by period
@@ -85,7 +85,7 @@ class RatingProject(http.Controller):
         if not (project.rating_active and project.portal_show_rating) and not user.with_user(user).has_group('project.group_project_manager'):
             raise NotFound()
 
-        return request.render('project.rating_project_rating_page', {
+        return request.render('website_project.rating_project_rating_page', {
             'project': project,
             'ratings': request.env['rating.rating'].sudo().search([
                 ('consumed', '=', True),

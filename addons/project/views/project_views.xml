@@ -242,7 +242,7 @@
                             name="%(act_project_project_2_project_task_all)d" icon="fa-tasks">
                             <field string="Tasks" name="task_count" widget="statinfo" options="{'label_field': 'label_tasks'}"/>
                         </button>
-                        <button name="action_view_all_rating" type="object" attrs="{'invisible': ['|', '|', ('rating_active', '=', 'False'), ('rating_percentage_satisfaction', '=', -1)]}" class="oe_stat_button oe_percent" icon="fa-smile-o" groups="project.group_project_rating">
+                        <button name="customer_satisfaction_button" attrs="{'invisible': ['|', '|', ('rating_active', '=', 'False'), ('rating_percentage_satisfaction', '=', -1)]}" class="oe_stat_button oe_percent" icon="fa-smile-o" groups="project.group_project_rating">
                             <div class="o_field_widget o_stat_info">
                                 <span class="o_stat_value">
                                     <field name="rating_percentage_satisfaction" nolabel="1"/>
@@ -252,11 +252,7 @@
                                     Customer Satisfaction
                                 </span>
                             </div>
-                        </button>
-                        <button class="oe_stat_button" type="object" name="action_view_all_rating" icon="fa-globe" groups="project.group_project_rating" string="Go to Website" attrs="{'invisible':[('portal_show_rating','!=',True)]}">
-                        
-                        </button>
-                            
+                        </button>                            
                     </div>
                     <widget name="web_ribbon" title="Archived" bg_color="bg-danger" attrs="{'invisible': [('active', '=', True)]}"/>
                     <div class="oe_title">
