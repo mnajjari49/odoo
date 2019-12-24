@@ -651,6 +651,9 @@ var SnippetEditor = Widget.extend({
      * @private
      */
     _onOptionsSectionMouseOver: function (ev) {
+        if (!this.$target.is(':visible')) {
+            return;
+        }
         this.trigger_up('activate_snippet', {
             $snippet: this.$target,
             previewMode: true,
@@ -796,6 +799,7 @@ var SnippetsMenu = Widget.extend({
         'snippet_removed': '_onSnippetRemoved',
         'snippet_cloned': '_onSnippetCloned',
         'snippet_option_visibility_update': '_onSnippetOptionVisibilityUpdate',
+        'reload_request': '_onReloadRequest',
         'reload_snippet_dropzones': '_disableUndroppableSnippets',
         'update_customize_elements': '_onUpdateCustomizeElements',
         'hide_overlay': '_onHideOverlay',
@@ -1241,9 +1245,12 @@ var SnippetsMenu = Widget.extend({
      * @returns {Promise<SnippetEditor>}
      *          (might be async when an editor must be created)
      */
-    _activateSnippet: function ($snippet, previewMode, ifInactiveOptions) {
+    _activateSnippet: async function ($snippet, previewMode, ifInactiveOptions) {
         if (this._blockPreviewOverlays && previewMode) {
-            return Promise.resolve();
+            return;
+        }
+        if ($snippet && !$snippet.is(':visible')) {
+            return;
         }
         return this._mutex.exec(() => {
             return new Promise(resolve => {
@@ -1807,6 +1814,15 @@ var SnippetsMenu = Widget.extend({
             }).parent().addClass('o_default_snippet_text');
     },
     /**
+     * @private
+     * @returns {Promise}
+     */
+    _reload: function () {
+        return this._mutex.getUnlockedDef().then(() => {
+            window.location.href = window.location.origin + window.location.pathname + '?enable_editor=1';
+        });
+    },
+    /**
      * Changes the content of the left panel and selects a tab.
      *
      * @private
@@ -1958,9 +1974,7 @@ var SnippetsMenu = Widget.extend({
                     }).then(() => {
                         self.trigger_up('request_save', {
                             reload: false,
-                            onSuccess: function () {
-                                window.location.href = window.location.origin + window.location.pathname + '?enable_editor=1';
-                            },
+                            onSuccess: () => self._reload(),
                         });
                     }).guardedCatch(reason => {
                         reason.event.preventDefault();
@@ -2020,6 +2034,12 @@ var SnippetsMenu = Widget.extend({
      */
     _onUnblockPreviewOverlays: function (ev) {
         this._blockPreviewOverlays = false;
+    },
+    /**
+     * @private
+     */
+    _onReloadRequest: function () {
+        this._reload();
     },
     /**
      * @private

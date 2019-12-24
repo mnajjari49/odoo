@@ -1,21 +1,235 @@
 odoo.define('website.editor.snippets.options', function (require) {
 'use strict';
 
+const ColorpickerDialog = require('web.ColorpickerDialog');
+const config = require('web.config');
 var core = require('web.core');
 var Dialog = require('web.Dialog');
-var weWidgets = require('wysiwyg.widgets');
 const wUtils = require('website.utils');
 var options = require('web_editor.snippets.options');
 
 var _t = core._t;
 var qweb = core.qweb;
 
+let customizeThemeReloadAccepted = false;
+
 options.Class.include({
+
+    //--------------------------------------------------------------------------
+    // Options
+    //--------------------------------------------------------------------------
+
+    /**
+     * @see this.selectClass for parameters
+     */
+    customizeTheme: async function (previewMode, widgetValue, params) {
+        // Never allow previews for theme customizations
+        if (previewMode) {
+            return;
+        }
+
+        // First check if the change requires a reload. If it is the case, warns
+        // the user and ask if he agrees to save its current changes. If not,
+        // just do nothing. If yes, save the current changes and continue.
+        const requiresReload = (params.reload || config.isDebug('assets'));
+        if (requiresReload) {
+            // If multiple customizeTheme are enabled at the same time (thanks
+            // to dependencies), only ask for reload once and only save once
+            // if the user accepts.
+            // FIXME: if two options are dependant but only one of them requires
+            // a reload, the non-reload one will always be enabled at once
+            // even if the user answers no to the reload dialog.
+            if (!customizeThemeReloadAccepted) {
+                const save = await new Promise(resolve => {
+                    const confirm = Dialog.confirm(this, _t("This change needs to reload the page, this will save all your changes and reload the page, are you sure you want to proceed?") +
+                        (config.isDebug('assets') ? _t(" It appears you are in debug=assets mode, all theme customization options require a page reload in this mode.") : ''), {
+                        confirm_callback: () => resolve(true),
+                    });
+                    confirm.on('closed', this, () => resolve(false));
+                });
+                if (!save) {
+                    return;
+                }
+                await new Promise(resolve => {
+                    this.trigger_up('request_save', {
+                        reload: false,
+                        onSuccess: () => resolve(),
+                    });
+                });
+            }
+            customizeThemeReloadAccepted = true;
+        }
+
+        if (params.color) {
+            await this._customizeThemeColor(widgetValue, params);
+        } else if (params.variable) {
+            await this._customizeThemeVariable(widgetValue, params);
+        } else {
+            await this._customizeThemeViews(widgetValue, params);
+        }
+
+        if (requiresReload) {
+            // Cannot reload directly here as we have to wait for all
+            // dependencies options to be toggled, so we only ask for a reload.
+            this.trigger_up('reload_request');
+            return;
+        }
+
+        // Finally, only update the bundles as no reload is required
+        const bundles = await this._rpc({
+            route: '/website/theme_customize_bundle_reload',
+        });
+        var $allLinks = $();
+        var proms = _.map(bundles, function (bundleURLs, bundleName) {
+            var $links = $('link[href*="' + bundleName + '"]');
+            $allLinks = $allLinks.add($links);
+            var $newLinks = $();
+            _.each(bundleURLs, function (url) {
+                $newLinks = $newLinks.add($('<link/>', {
+                    type: 'text/css',
+                    rel: 'stylesheet',
+                    href: url,
+                }));
+            });
+
+            var linksLoaded = new Promise(function (resolve, reject) {
+                var nbLoaded = 0;
+                $newLinks.on('load', function () {
+                    if (++nbLoaded >= $newLinks.length) {
+                        resolve();
+                    }
+                });
+                // If we have an error, just ignore it
+                $newLinks.on('error', () => resolve());
+            });
+            $links.last().after($newLinks);
+            return linksLoaded;
+        });
+        await Promise.all(proms).then(function () {
+            $allLinks.remove();
+        });
+
+        // Some public widgets may depend on the variables that were
+        // customized, so we have to restart them *all*.
+        await new Promise((resolve, reject) => {
+            this.trigger_up('widgets_start_request', {
+                editableMode: true,
+                onSuccess: resolve,
+                onFailure: reject,
+            });
+        });
+    },
 
     //--------------------------------------------------------------------------
     // Private
     //--------------------------------------------------------------------------
 
+    /**
+     * @override
+     */
+    _computeWidgetState: async function (methodName, params) {
+        if (methodName === 'customizeTheme') {
+            if (params.color) {
+                const style = window.getComputedStyle(document.documentElement);
+                const color = style.getPropertyValue('--' + params.color).trim();
+                return ColorpickerDialog.normalizeCSSColor(color);
+            }
+            if (params.variable) {
+                const style = window.getComputedStyle(document.documentElement);
+                return style.getPropertyValue('--' + params.variable).trim();
+            }
+
+            const allXmlIDs = this._getXMLIDsFromPossibleValues(params.possibleValues);
+            const data = await this._rpc({
+                route: '/website/theme_customize_get',
+                params: {
+                    'xml_ids': allXmlIDs,
+                },
+            });
+            let mostXmlIDsStr = '';
+            let mostXmlIDsNb = 0;
+            for (const xmlIDsStr of params.possibleValues) {
+                const enableXmlIDs = xmlIDsStr.split(/\s*,\s*/);
+                if (enableXmlIDs.length > mostXmlIDsNb
+                        && enableXmlIDs.every(xmlID => data.enabled.includes(xmlID))) {
+                    mostXmlIDsStr = xmlIDsStr;
+                    mostXmlIDsNb = enableXmlIDs.length;
+                }
+            }
+            return mostXmlIDsStr; // Need to return the exact same string as in possibleValues
+        }
+        return this._super(...arguments);
+    },
+    /**
+     * @private
+     */
+    _customizeThemeColor: async function (color, params) {
+        const baseURL = '/website/static/src/scss/options/colors/';
+        const colorType = params.colorType ? (params.colorType + '_') : '';
+        const url = `${baseURL}user_${colorType}color_palette.scss`;
+
+        if (!ColorpickerDialog.isCSSColor(color)) {
+            const style = window.getComputedStyle(document.documentElement);
+            color = style.getPropertyValue('--' + color).trim();
+            color = ColorpickerDialog.normalizeCSSColor(color);
+        }
+        const colors = {};
+        colors[params.color] = color;
+        if (params.color === 'alpha') {
+            colors['beta'] = null;
+            colors['gamma'] = null;
+            colors['delta'] = null;
+            colors['epsilon'] = null;
+        }
+
+        return this._makeSCSSCusto(url, colors);
+    },
+    /**
+     * @private
+     */
+    _customizeThemeVariable: async function (value, params) {
+        const values = {};
+        values[params.variable] = value;
+        return this._makeSCSSCusto('/website/static/src/scss/options/user_values.scss', values);
+    },
+    /**
+     * @private
+     */
+    _customizeThemeViews: async function (xmlID, params) {
+        const allXmlIDs = this._getXMLIDsFromPossibleValues(params.possibleValues);
+        const enableXmlIDs = xmlID.split(/\s*,\s*/);
+        const disableXmlIDs = allXmlIDs.filter(xmlID => !enableXmlIDs.includes(xmlID));
+
+        return this._rpc({
+            route: '/website/theme_customize',
+            params: {
+                'enable': enableXmlIDs,
+                'disable': disableXmlIDs,
+            },
+        });
+    },
+    /**
+     * @private
+     */
+    _getXMLIDsFromPossibleValues: function (possibleValues) {
+        const allXmlIDs = [];
+        for (const xmlIDsStr of possibleValues) {
+            allXmlIDs.push(...xmlIDsStr.split(/\s*,\s*/));
+        }
+        return allXmlIDs.filter((v, i, arr) => arr.indexOf(v) === i);
+    },
+    /**
+     * @private
+     */
+    _makeSCSSCusto: async function (url, values) {
+        return this._rpc({
+            route: '/website/make_scss_custo',
+            params: {
+                'url': url,
+                'values': _.mapObject(values, v => v || 'null'),
+            },
+        });
+    },
     /**
      * Refreshes all public widgets related to the given element.
      *
@@ -23,7 +237,7 @@ options.Class.include({
      * @param {jQuery} [$el=this.$target]
      * @returns {Promise}
      */
-    _refreshPublicWidgets: function ($el) {
+    _refreshPublicWidgets: async function ($el) {
         return new Promise((resolve, reject) => {
             this.trigger_up('widgets_start_request', {
                 editableMode: true,

@@ -451,5 +451,79 @@
                 data-name="scroll_button_opt"/>
         </we-row>
     </div>
+
+    <!-- Theme options -->
+    <div data-selector="theme" data-no-check="true">
+        <we-title style="text-decoration: underline;">Main Colors</we-title>
+        <we-colorpicker string="Primary" data-customize-theme="" data-color-type="theme" data-color="primary"/>
+        <we-colorpicker string="Secondary" data-customize-theme="" data-color-type="theme" data-color="secondary"/>
+        <we-colorpicker string="Primary" data-customize-theme="" data-color-type="theme" data-color="alpha"/>
+        <we-colorpicker string="Secondary" data-customize-theme="" data-color-type="theme" data-color="beta"/>
+        <we-colorpicker string="Extra Color" data-customize-theme="" data-color-type="theme" data-color="gamma"/>
+        <we-colorpicker string="Extra Color" data-customize-theme="" data-color-type="theme" data-color="delta"/>
+        <we-colorpicker string="Extra Color" data-customize-theme="" data-color-type="theme" data-color="epsilon"/>
+
+        <we-title style="text-decoration: underline;">Status Colors</we-title>
+        <we-colorpicker string="Success" data-customize-theme="" data-color-type="theme" data-color="success"/>
+        <we-colorpicker string="Info" data-customize-theme="" data-color-type="theme" data-color="info"/>
+        <we-colorpicker string="Warning" data-customize-theme="" data-color-type="theme" data-color="warning"/>
+        <we-colorpicker string="Error" data-customize-theme="" data-color-type="theme" data-color="danger"/>
+
+        <we-title style="text-decoration: underline;">Text Colors</we-title>
+        <we-colorpicker string="Text" data-customize-theme="" data-color="text"/>
+        <we-colorpicker string="Headings 1" data-customize-theme="" data-color="h1"/>
+        <we-colorpicker string="Headings 2" data-customize-theme="" data-color="h2"/>
+        <we-colorpicker string="Headings 3" data-customize-theme="" data-color="h3"/>
+        <we-colorpicker string="Headings 4" data-customize-theme="" data-color="h4"/>
+        <we-colorpicker string="Headings 5" data-customize-theme="" data-color="h5"/>
+        <we-colorpicker string="Headings 6" data-customize-theme="" data-color="h6"/>
+
+        <we-title style="text-decoration: underline;">Background Colors</we-title>
+        <we-colorpicker string="Body" data-customize-theme="" data-color="body"/>
+        <we-colorpicker string="Menus" data-customize-theme="" data-color="menu"/>
+        <we-colorpicker string="Footer" data-customize-theme="" data-color="footer"/>
+
+        <we-title style="text-decoration: underline;">Navbar Layout</we-title>
+        <we-checkbox string="Fixed Top Menu" data-customize-theme="website.affix_top_menu" data-reload="/"/>
+        <we-checkbox string="Show Sign In" data-customize-theme="portal.portal_show_sign_in" data-reload="/"/>
+        <we-input string="Font Size" class="o_we_inline" data-customize-theme="null" data-variable="header-font-size" data-unit="px" data-save-unit="rem"/>
+
+        <we-title style="text-decoration: underline;">Navbar Logo</we-title>
+        <we-checkbox string="Show" data-customize-theme="website.layout_logo_show" data-reload="/"/>
+        <we-input string="Height" class="o_we_inline" data-customize-theme="null" data-variable="logo-height" data-unit="px" data-save-unit="rem"/>
+
+        <we-title style="text-decoration: underline;">Main Layout</we-title>
+        <we-select string="Layout" class="o_we_inline">
+            <we-button data-customize-theme="">Full</we-button>
+            <we-button data-customize-theme="website.option_layout_boxed_variables" id="option_layout_boxed">Boxed</we-button>
+        </we-select>
+
+        <!--
+        <content id="theme_customize_content_switch_theme">
+             <a class="btn btn-primary" href="/web#action=website_theme_install.theme_install_kanban_action">Switch theme</a>
+        </content>
+        <content id="theme_customize_content_layout" string="Layout">
+            <list string="Background">
+                <opt id="option_no_background" string="None" data-xmlid=""/>
+                <opt string="Choose an image" data-xmlid="website.option_custom_body_image"/>
+                <opt string="Choose a pattern" data-xmlid="website.option_custom_body_image, website.option_custom_body_pattern"/>
+            </list>
+        </content>
+        <content id="theme_customize_content_fonts" string="Fonts">
+            <list string="Title">
+                <fontselection data-variable="headings-font-number"/>
+            </list>
+            <list string="Body">
+                <fontselection data-variable="font-number"/>
+            </list>
+            <list string="Button">
+                <fontselection data-variable="buttons-font-number"/>
+            </list>
+            <list string="Navbar">
+                <fontselection data-variable="navbar-font-number"/>
+            </list>
+        </content>
+        -->
+    </div>
 </template>
 </odoo>

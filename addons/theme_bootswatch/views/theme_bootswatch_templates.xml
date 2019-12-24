@@ -12,7 +12,7 @@
                 <content data-string="Themes" data-title="Bootswatch Themes">
                     <opt data-xmlid="" data-icon="/theme_bootswatch/static/src/img/bootswatch_default_thumbnail.png"/>
                     <opt data-xmlid="theme_bootswatch.theme_cerulean_bs_variables,theme_bootswatch.theme_cerulean" data-icon="/theme_bootswatch/static/src/img/cerulean_thumbnail.png"/>
-                    <opt data-xmlid="theme_bootswatch.theme_cosmo_bs_variables,theme_bootswatch.theme_cosmo" data-disable="ee" data-icon="/theme_bootswatch/static/src/img/cosmo_thumbnail.png"/>
+                    <opt data-xmlid="theme_bootswatch.theme_cosmo_bs_variables,theme_bootswatch.theme_cosmo" data-icon="/theme_bootswatch/static/src/img/cosmo_thumbnail.png"/>
                     <opt data-xmlid="theme_bootswatch.theme_cyborg_bs_variables,theme_bootswatch.theme_cyborg" data-icon="/theme_bootswatch/static/src/img/cyborg_thumbnail.png"/>
                     <opt data-xmlid="theme_bootswatch.theme_flatly_bs_variables,theme_bootswatch.theme_flatly" data-icon="/theme_bootswatch/static/src/img/flatly_thumbnail.png"/>
                     <opt data-xmlid="theme_bootswatch.theme_journal_bs_variables,theme_bootswatch.theme_journal" data-icon="/theme_bootswatch/static/src/img/journal_thumbnail.png"/>
