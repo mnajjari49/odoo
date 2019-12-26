@@ -64,6 +64,7 @@ class StockMoveLine(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
+        # import ipdb; ipdb.set_trace()
         lines = super(StockMoveLine, self).create(vals_list)
         for line in lines:
             move = line.move_id
@@ -87,6 +88,7 @@ class StockMoveLine(models.Model):
         we decrease the value with the last fifo price.
         """
         if 'qty_done' in vals:
+            # import ipdb; ipdb.set_trace()
             moves_to_update = {}
             for move_line in self.filtered(lambda ml: ml.state == 'done' and (ml.move_id._is_in() or ml.move_id._is_out())):
                 rounding = move_line.product_uom_id.rounding
@@ -657,6 +659,7 @@ class StockMove(models.Model):
         self.ensure_one()
         AccountMove = self.env['account.move']
         quantity = self.env.context.get('forced_quantity', self.product_qty)
+        import ipdb; ipdb.set_trace()
         quantity = quantity if self._is_in() else -1 * quantity
 
         # Make an informative `ref` on the created account move to differentiate between classic

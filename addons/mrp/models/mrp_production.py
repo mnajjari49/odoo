@@ -673,6 +673,7 @@ class MrpProduction(models.Model):
 
     @api.multi
     def post_inventory(self):
+        # import ipdb; ipdb.set_trace()
         for order in self:
             moves_not_to_do = order.move_raw_ids.filtered(lambda x: x.state == 'done')
             moves_to_do = order.move_raw_ids.filtered(lambda x: x.state not in ('done', 'cancel'))
@@ -682,6 +683,7 @@ class MrpProduction(models.Model):
             moves_to_do = order.move_raw_ids.filtered(lambda x: x.state == 'done') - moves_not_to_do
             order._cal_price(moves_to_do)
             moves_to_finish = order.move_finished_ids.filtered(lambda x: x.state not in ('done','cancel'))
+            import ipdb; ipdb.set_trace()
             moves_to_finish._action_done()
             order.action_assign()
             consume_move_lines = moves_to_do.mapped('active_move_line_ids')
@@ -695,6 +697,7 @@ class MrpProduction(models.Model):
                 else:
                     # Link with everything
                     moveline.write({'consume_line_ids': [(6, 0, [x for x in consume_move_lines.ids])]})
+        import ipdb; ipdb.set_trace()
         return True
 
     @api.multi

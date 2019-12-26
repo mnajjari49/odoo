@@ -3300,6 +3300,9 @@ class BaseModel(MetaModel('DummyModel', (object,), {'_register': False})):
             _logger.warning("%s.write() with unknown fields: %s",
                             self._name, ', '.join(sorted(unknown_names)))
 
+        # if self._name == 'stock.move':
+        #     import ipdb; ipdb.set_trace()
+
         with self.env.protecting(protected_fields, self):
             # update references to parents
             ref_store_vals = {k: store_vals[k] for k in self._inherits.values() if k in store_vals}
@@ -3511,6 +3514,9 @@ class BaseModel(MetaModel('DummyModel', (object,), {'_register': False})):
         # classify fields for each record
         data_list = []
         inversed_fields = set()
+
+        # if self._name == 'account.move.line':
+        #     import ipdb; ipdb.set_trace()
 
         for vals in vals_list:
             # add missing defaults
