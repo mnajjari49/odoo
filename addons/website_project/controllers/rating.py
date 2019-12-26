@@ -11,11 +11,7 @@ class RatingProject(http.Controller):
 
     @http.route(['/project/rating'], type='http', auth="public", website=True, sitemap=True)
     def index(self, **kw):
-<<<<<<< HEAD:addons/website_project/controllers/rating.py
-        projects = request.env['project.project'].sudo().search([('rating_active', '=', True), ('is_published','=',True)])
-=======
-        projects = request.env['project.project'].sudo().search([('rating_active', '=', 'True'), ('portal_show_rating', '=', True)])
->>>>>>> Done everything except published button on ratings page:addons/project/controllers/rating.py
+        projects = request.env['project.project'].sudo().search([('rating_active', '=', True), ('is_published', '=', True)])
         values = {'projects': projects}
         return request.render('website_project.rating_index', values)
 
