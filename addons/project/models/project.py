@@ -232,8 +232,6 @@ class Project(models.Model):
         ('monthly', 'Once a Month'), ('quarterly', 'Quarterly'), ('yearly', 'Yearly')
     ], 'Rating Frequency', required=True, default='monthly')
 
-    portal_show_rating = fields.Boolean('Rating visible publicly', copy=False)
-
     _sql_constraints = [
         ('project_date_greater', 'check(date >= date_start)', 'Error! project start-date must be lower than project end-date.')
     ]

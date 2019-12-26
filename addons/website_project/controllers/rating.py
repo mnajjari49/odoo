@@ -11,7 +11,7 @@ class RatingProject(http.Controller):
 
     @http.route(['/project/rating'], type='http', auth="public", website=True, sitemap=True)
     def index(self, **kw):
-        projects = request.env['project.project'].sudo().search([('rating_active', '=', 'True'), ('portal_show_rating', '=', True)])
+        projects = request.env['project.project'].sudo().search([('rating_active', '=', True), ('is_published','=',True)])
         values = {'projects': projects}
         return request.render('website_project.rating_index', values)
 
@@ -82,7 +82,7 @@ class RatingProject(http.Controller):
         project = request.env['project.project'].sudo().browse(project_id)
         # to avoid giving any access rights on projects to the public user, let's use sudo
         # and check if the user should be able to view the project (project managers only if it's unpublished or has no rating)
-        if not (project.rating_active and project.portal_show_rating) and not user.with_user(user).has_group('project.group_project_manager'):
+        if not (project.rating_active and project.is_published) and not user.with_user(user).has_group('project.group_project_manager'):
             raise NotFound()
 
         return request.render('website_project.rating_project_rating_page', {

@@ -6,10 +6,7 @@
         <field name="inherit_id" ref="project.edit_project"/>
         <field name="arch" type="xml">
             <xpath expr="//div[@name='button_box']" position="inside">
-                <field name="portal_show_rating" invisible='True'/>
-                <button class="oe_stat_button" type="object" name="action_view_all_rating" icon="fa-globe" groups="project.group_project_rating" string="Go to Website" >
-                        
-                </button>
+                <field name="is_published" widget="website_redirect_button" groups="project.group_project_rating" attrs="{'invisible': [('rating_active', '=', False)]}"/>
             </xpath>
         </field>
     </record>

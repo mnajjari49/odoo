@@ -152,7 +152,15 @@
                         <h2 t-esc="project.name"/>
                         <div class="row mb32">
                             <div class="col-lg-12">
-                                <h3 class="o_page_header">Customer Ratings</h3>
+                                <div class="o_page_header">
+                                    <div class="justify-content-end" groups="project.group_project_manager">
+                                        <t t-call="website.publish_management">
+                                            <t t-set="object" t-value="project"/>
+                                            <t t-set="publish_edit" t-value="True"/>
+                                        </t>
+                                    </div>
+                                    <h3>Customer Ratings</h3>
+                                </div>
                                 <div class="row">
                                     <div class="col-lg-7">
                                         <t t-foreach="ratings" t-as="rating">
