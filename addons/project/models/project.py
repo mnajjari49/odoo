@@ -64,7 +64,7 @@ class ProjectTaskType(models.Model):
     @api.depends('project_ids','project_ids.rating_active')
     def _compute_project_rating_disabled_warning(self):
         for r in self:
-            r.projects_rating_disabled = ''.join(map(lambda p:'- '+str(p.name) + '\n', r.project_ids.search(['&',('rating_active',"=",'False'),('type_ids',"=",r.id)])))
+            r.projects_rating_disabled = ''.join(map(lambda p:'- '+str(p.name) + '\n', r.project_ids.search(['&',('rating_active',"=", False),('type_ids',"=",r.id)])))
 
 
 
