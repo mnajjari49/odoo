@@ -256,12 +256,12 @@ class HrEmployeePrivate(models.Model):
             vals['name'] = vals.get('name', user.name)
         employee = super(HrEmployeePrivate, self).create(vals)
         if not employee.address_home_id:
-            employee.address_home_id = self.env['res.partner'].create({
+            employee.address_home_id = self.env['res.partner'].sudo().create({
                 **private_fields_vals,
                 **{'name': '%s (private)' % employee.name, 'type': 'private'}
             })
         else:
-            employee.address_home_id.write(private_fields_vals)
+            employee.address_home_id.sudo().write(private_fields_vals)
         url = '/web#%s' % url_encode({'action': 'hr.plan_wizard_action', 'active_id': employee.id, 'active_model': 'hr.employee'})
         employee._message_log(body=_('<b>Congratulations!</b> May I recommend you to setup an <a href="%s">onboarding plan?</a>') % (url))
         if employee.department_id:
@@ -282,12 +282,12 @@ class HrEmployeePrivate(models.Model):
         res = super(HrEmployeePrivate, self).write(vals)
         for employee in self:
             if not employee.address_home_id:
-                employee.address_home_id = self.env['res.partner'].create({
+                employee.address_home_id = self.env['res.partner'].sudo().create({
                     **private_fields_vals,
                     **{'name': '%s (private)' % employee.name, 'type': 'private'}
                 })
             else:
-                employee.address_home_id.write(private_fields_vals)
+                employee.address_home_id.sudo().write(private_fields_vals)
         if vals.get('department_id') or vals.get('user_id'):
             department_id = vals['department_id'] if vals.get('department_id') else self[:1].department_id.id
             # When added to a department or changing user, subscribe to the channels auto-subscribed by department

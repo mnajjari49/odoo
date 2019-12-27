@@ -93,7 +93,6 @@ class User(models.Model):
 
         hr_writable_fields = [
             'additional_note',
-            'address_home_id',
             'address_id',
             'barcode',
             'birthday',
