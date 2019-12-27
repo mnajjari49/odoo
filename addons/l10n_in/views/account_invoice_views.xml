@@ -17,10 +17,10 @@
                     <label for="l10n_in_place_of_supply_id"
                         attrs="{'invisible':['|',('l10n_in_company_country_code','!=','IN'),'|',('type', 'in',['in_invoice','in_refund','entry']),('l10n_in_gst_treatment','=','overseas')]}"/>
                     <label for="l10n_in_place_of_supply_id" string="Destination of Supply"
-                        attrs="{'invisible':['|',('l10n_in_company_country_code','!=','IN'),'|',('type','not in',['in_invoice','in_refund']),('l10n_in_gst_treatment','=','overseas')]}"/>
+                        attrs="{'invisible':['|',('l10n_in_company_country_code','!=','IN'),('type','not in',['in_invoice','in_refund'])]}"/>
                 </div>
                 <field name="l10n_in_place_of_supply_id" nolabel="1"
-                    attrs="{'invisible':['|',('l10n_in_company_country_code','!=','IN'),'|',('type', '=', 'entry'),('l10n_in_gst_treatment','=','overseas')],'required':[('l10n_in_gst_treatment','!=','overseas'),('l10n_in_company_country_code','=','IN'),('type','!=','entry')]}"
+                    attrs="{'invisible':['|',('l10n_in_company_country_code','!=','IN'),'|',('type', '=', 'entry'),'&amp;',('l10n_in_gst_treatment','=','overseas'),('type','not in',['in_invoice','in_refund'])], 'required':[('l10n_in_company_country_code','=','IN'),('type','!=','entry'),'|',('l10n_in_gst_treatment','!=','overseas'),('type','in',['in_invoice','in_refund'])]}"
                     options='{"no_create_edit": True, "no_open": True}'/>
             </xpath>
             <xpath expr="//page[@id='other_tab']/group[@id='other_tab_group']/group[@name='payments_info_group']" position="after">
