@@ -137,15 +137,15 @@
                                             invisible="1"/>
                                         <label for="address_home_id" string="Private Address"/>
                                         <div class="o_address_format">
-                                            <field name="private_street" placeholder="Street..." class="o_address_street"/>
-                                            <field name="private_street2" placeholder="Street 2..." class="o_address_street"/>
-                                            <field name="private_city" placeholder="City" class="o_address_city"/>
-                                            <field name="private_state_id" class="o_address_state" placeholder="State" options="{'no_open': True}"/>
-                                            <field name="private_zip" placeholder="ZIP" class="o_address_zip"/>
-                                            <field name="private_country_id" placeholder="Country" class="o_address_country" options="{'no_open': True, 'no_create': True}"/>
+                                            <field name="private_street" placeholder="Street..." class="o_address_street" attrs="{'readonly': [('can_edit', '=', False)]}"/>
+                                            <field name="private_street2" placeholder="Street 2..." class="o_address_street" attrs="{'readonly': [('can_edit', '=', False)]}"/>
+                                            <field name="private_city" placeholder="City" class="o_address_city" attrs="{'readonly': [('can_edit', '=', False)]}"/>
+                                            <field name="private_state_id" class="o_address_state" placeholder="State" options="{'no_open': True}" attrs="{'readonly': [('can_edit', '=', False)]}"/>
+                                            <field name="private_zip" placeholder="ZIP" class="o_address_zip" attrs="{'readonly': [('can_edit', '=', False)]}"/>
+                                            <field name="private_country_id" placeholder="Country" class="o_address_country" options="{'no_open': True, 'no_create': True}" attrs="{'readonly': [('can_edit', '=', False)]}"/>
                                         </div>
-                                        <field name="private_email" string="Email"/>
-                                        <field name="private_phone" string="Phone"/>
+                                        <field name="private_email" string="Email" attrs="{'readonly': [('can_edit', '=', False)]}"/>
+                                        <field name="private_phone" string="Phone" attrs="{'readonly': [('can_edit', '=', False)]}"/>
                                         <field name="employee_bank_account_id" attrs="{'readonly': [('can_edit', '=', False)]}"/>
                                         <field name="km_home_work" attrs="{'readonly': [('can_edit', '=', False)]}"/>
                                     </group>

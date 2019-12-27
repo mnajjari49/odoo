@@ -23,7 +23,6 @@ class TestSelfAccessProfile(TestHrCommon):
         view = self.env.ref('hr.res_users_view_form_profile')
         view_infos = james.fields_view_get(view_id=view.id)
         fields = view_infos['fields'].keys()
-        import pdb; pdb.set_trace()
         james.read(fields)
 
     def test_readonly_fields(self):
