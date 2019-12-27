@@ -347,14 +347,19 @@ class WebsiteSlides(WebsiteProfile):
         '/slides/<model("slide.channel"):channel>/page/<int:page>',
         '/slides/<model("slide.channel"):channel>/tag/<model("slide.tag"):tag>',
         '/slides/<model("slide.channel"):channel>/tag/<model("slide.tag"):tag>/page/<int:page>',
-        '/slides/<model("slide.channel"):channel>/category/<model("slide.slide"):category>',
-        '/slides/<model("slide.channel"):channel>/category/<model("slide.slide"):category>/page/<int:page>'
+        '/slides/<model("slide.channel"):channel>/category/<int:category_id>',
+        '/slides/<model("slide.channel"):channel>/category/<int:category_id>/page/<int:page>',
     ], type='http', auth="public", website=True, sitemap=sitemap_slide)
-    def channel(self, channel, category=None, tag=None, page=1, slide_type=None, uncategorized=False, sorting=None, search=None, **kw):
+    def channel(self, channel, category_id=0, tag=None, page=1, slide_type=None, sorting=None, search=None, **kw):
+        """ Will return all necessary data to display the requested slide_channel along with a possible category.
+        If we received category_id=-1, it means we need to display only uncategorized slides.
+        """
         if not channel.can_access_from_current_website():
             raise werkzeug.exceptions.NotFound()
 
         domain = self._get_channel_slides_base_domain(channel)
+        uncategorized = False
+        category = request.env['slide.slide'].browse(category_id) if category_id > 0 else None
 
         pager_url = "/slides/%s" % (channel.id)
         pager_args = {}
@@ -374,9 +379,10 @@ class WebsiteSlides(WebsiteProfile):
             elif tag:
                 domain += [('tag_ids.id', '=', tag.id)]
                 pager_url += "/tag/%s" % tag.id
-            if uncategorized:
+            if category_id == -1:
                 domain += [('category_id', '=', False)]
-                pager_url += "?uncategorized=1"
+                pager_url += "/category/-1"
+                uncategorized = True
             elif slide_type:
                 domain += [('slide_type', '=', slide_type)]
                 pager_url += "?slide_type=%s" % slide_type
@@ -402,7 +408,7 @@ class WebsiteSlides(WebsiteProfile):
             query_string = "?search_tag=%s" % tag.id
         elif slide_type:
             query_string = "?search_slide_type=%s" % slide_type
-        elif uncategorized:
+        elif category_id == -1:
             query_string = "?search_uncategorized=1"
 
         values = {
@@ -463,10 +469,18 @@ class WebsiteSlides(WebsiteProfile):
         # documentation mode may display less slides than content by category but overhead of
         # computation is reasonable
         values['slide_promoted'] = request.env['slide.slide'].sudo().search(domain, limit=1, order=order)
+
+        limit_category_data = False
+        if channel.channel_type == 'documentation':
+            if category_id:
+                limit_category_data = self._slides_per_page
+            else:
+                limit_category_data = self._slides_per_category
+
         values['category_data'] = channel._get_categorized_slides(
             domain, order,
             force_void=not category,
-            limit=False if channel.channel_type != 'documentation' else self._slides_per_page if category else self._slides_per_category,
+            limit=limit_category_data,
             offset=pager['offset'])
         values['channel_progress'] = self._get_channel_progress(channel, include_quiz=True)
 
