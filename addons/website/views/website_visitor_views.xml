@@ -9,6 +9,7 @@
                 <field name="visitor_id"/>
                 <field name="page_id"/>
                 <field name="url"/>
+                <field name="visit_url" invisible="1"/>
                 <field name="visit_datetime"/>
             </tree>
         </field>
@@ -305,6 +306,7 @@
                 <field name="visitor_id"/>
                 <field name="page_id"/>
                 <field name="url"/>
+                <field name="visit_url" invisible="1"/>
                 <field name="visit_datetime"/>
             </tree>
         </field>

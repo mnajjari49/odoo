@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data>
+
+        <record id="website_sale_visitor_1" model="website.visitor">
+            <field name="name">Joel Wills</field>
+            <field name="partner_id" ref="base.partner_demo_portal"/>
+            <field name="email"/>
+            <field name="lang_id">1</field>
+            <field name="create_date" eval="(DateTime.today()- relativedelta(days=3,minutes=72))"/>
+            <field name="last_connection_datetime" eval="(DateTime.today()- relativedelta(days=3))"/>
+        </record>
+
+        <record id="website_sale_visitor_track_contact_page" model="website.track">
+            <field name="visitor_id" ref="website_sale_visitor_1"/>
+            <field name="visit_datetime" eval="(DateTime.today()- relativedelta(days=3,minutes=62))"/>
+            <field name="page_id" eval="ref('website.contactus_page')"/>
+            <field name="product_id" ref="product.product_product_16"/>
+            <field name="url">/contactus</field>
+        </record>
+
+        <record id="website_sale_visitor_track_shop_page" model="website.track">
+            <field name="visitor_id" ref="website_sale_visitor_1"/>
+            <field name="visit_datetime" eval="(DateTime.today()- relativedelta(days=3,minutes=65))"/>
+            <field name="url">/shop</field>
+        </record>
+
+        <record id="website_sale_visitor_track_home_page" model="website.track">
+            <field name="visitor_id" ref="website_sale_visitor_1"/>
+            <field name="visit_datetime" eval="(DateTime.today()- relativedelta(days=3,minutes=32))"/>
+            <field name="page_id" eval="ref('website.homepage_page')"/>
+            <field name="product_id" ref="product.product_delivery_02"/>
+            <field name="url">/</field>
+        </record>
+
+    </data>
+</odoo>

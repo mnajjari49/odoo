@@ -20,6 +20,9 @@ Allow website visitors to chat with the collaborators. This module also brings a
         'security/website_livechat.xml',
         'data/website_livechat_data.xml',
     ],
+    'demo': [
+        'data/website_livechat_visitor_demo.xml',
+    ],
     'qweb': [
         'static/src/xml/thread.xml',
     ],

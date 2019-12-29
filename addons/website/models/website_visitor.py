@@ -22,6 +22,18 @@ class WebsiteTrack(models.Model):
     page_id = fields.Many2one('website.page', index=True, ondelete='cascade', readonly=True)
     url = fields.Text('Url', index=True)
     visit_datetime = fields.Datetime('Visit Date', default=fields.Datetime.now, required=True, readonly=True)
+    # this field is used for demo data to set correct dynamic URL in the record.
+    # when creating all database with install all module on the run bot
+    # in that case, we have always get http://localhost:8069
+    # because of default base URL is not updated whenever we have not accessed or connect the database on the runbot.
+    visit_url = fields.Text(compute="_compute_visit_url")
+
+    def _compute_visit_url(self):
+        base_url = self.env['ir.config_parameter'].get_param('web.base.url')
+        for track in self:
+            if not (track.url.startswith('http://' or 'https://')):
+                track.url = base_url + track.url
+            track.visit_url = track.url
 
 
 class WebsiteVisitor(models.Model):
