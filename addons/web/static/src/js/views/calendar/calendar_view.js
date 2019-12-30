@@ -166,6 +166,8 @@ odoo.define('web.CalendarView', async function (require) {
         getRenderer(parent, state) {
             var Renderer = this.config.Renderer;
             state = Object.assign(state || {}, this.rendererParams);
+            // TODO: MSH: no need to assign environment explicitly now, create instance of RendererWrapper
+            // instead of Renderer
             Renderer.env = env;
             return new Renderer(null, state);
         },

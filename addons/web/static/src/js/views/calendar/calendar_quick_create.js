@@ -1,6 +1,8 @@
 odoo.define('web.CalendarQuickCreate', function (require) {
     "use strict";
 
+    // TODO: MSH: Convert it to ES6 syntax, convert it to OWL, remove jQuery and underscore dependency
+
 var core = require('web.core');
 var Dialog = require('web.Dialog');
 
@@ -30,7 +32,6 @@ var QuickCreate = Dialog.extend({
      * @param {Object} dataCalendar
      */
     init: function (parent, buttons, options, dataTemplate, dataCalendar) {
-        debugger;
         this._buttons = buttons || false;
         this.options = options;
 
@@ -49,7 +50,6 @@ var QuickCreate = Dialog.extend({
                     }
                 }},
                 {text: _t("Edit"), click: function () {
-                    debugger;
                     dataCalendar.disableQuickCreate = true;
                     dataCalendar.title = self.$('input').val().trim();
                     dataCalendar.on_save = self.destroy.bind(self);
@@ -86,7 +86,6 @@ var QuickCreate = Dialog.extend({
         }
         dataCalendar.title = val;
         if (val) {
-            debugger;
             this.trigger_up('quickCreate', {data: dataCalendar, options: this.options});
         } else {
             return false;
@@ -108,7 +107,7 @@ var QuickCreate = Dialog.extend({
         }
         if(event.keyCode === $.ui.keyCode.ENTER) {
             this._flagEnter = true;
-            if (!this._quickAdd(this.dataCalendar)){
+            if (!this._quickAdd(this.dataCalendar)) {
                 this._flagEnter = false;
             }
         } else if (event.keyCode === $.ui.keyCode.ESCAPE && this._buttons) {

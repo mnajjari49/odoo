@@ -37,6 +37,8 @@ odoo.define('web.CalendarController', function (require) {
             updateRecord: '_onUpdateRecord',
             viewUpdated: '_onViewUpdated',
         }),
+        // TODO: MSH: Why custom_events why not put it in events?
+        // TODO: MSH: Convert it to ES6 syntax, remove jQuery and underscore dependency as much as we can
         custom_events: Object.assign({}, ControllerAdapter.prototype.custom_events,{
             quickCreate: '_onQuickCreate',
         }),
