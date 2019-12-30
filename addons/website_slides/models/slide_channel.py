@@ -517,13 +517,34 @@ class Channel(models.Model):
 
     def _get_categorized_slides(self, base_domain, order, force_void=True, limit=False, offset=False):
         """ Return an ordered structure of slides by categories within a given
-        base_domain that must fulfill slides. """
+        base_domain that must fulfill slides.
+        As a course structure is based on its slides sequences, uncategorized slides must have the lowest sequences.
+        The only way to determine if a slide belongs to a particular category is by looking at its sequence:
+        Example:
+        Category 1 has a sequence of 1,
+        Category 2 has a sequence of 3,
+        Slide 1 has a sequence of 0,
+        Slide 2 has a sequence of 2.
+        The course will be structured as follows:
+            Slide 1
+            Category 1
+            Slide 2
+            Category 2.
+        Slide 1 is uncategorized,
+        Category 1 has one slide : Slide 2
+        Category 2 is empty.
+
+        Therefore, in order to be coherent with the backend behaviour (which displays slides based on their sequence),
+        uncategorized slides must be the first ones to be displayed in the frontend content list.
+
+        Furthermore, doing it this way allows us to use the actual dom for easily resequencing slides whenever a drag and drop happens.
+        """
         self.ensure_one()
         all_categories = self.env['slide.slide'].sudo().search([('channel_id', '=', self.id), ('is_category', '=', True)])
         all_slides = self.env['slide.slide'].sudo().search(base_domain, order=order)
         category_data = []
 
-        # First add all categories by natural order
+        # Add all categories by natural order
         for category in all_categories:
             category_slides = all_slides.filtered(lambda slide: slide.category_id == category)
             if not category_slides and not force_void:
@@ -534,21 +555,24 @@ class Channel(models.Model):
                 'total_slides': len(category_slides),
                 'slides': category_slides[(offset or 0):(limit + offset or len(category_slides))],
             })
-        # Then add uncategorized slides
+
+        # Add uncategorized slides. Note that uncategorized slides are inserted at the first position of the array
         uncategorized_slides = all_slides.filtered(lambda slide: not slide.category_id)
         if uncategorized_slides or force_void:
-            category_data.append({
-                'category': False, 'id': False,
-                'name': _('Uncategorized'), 'slug_name': _('Uncategorized'),
+            category_data.insert(0, {
+                'category': False,
+                'id': False,
+                'name': _('Uncategorized'),
+                'slug_name': _('Uncategorized'),
                 'total_slides': len(uncategorized_slides),
                 'slides': uncategorized_slides[(offset or 0):(offset + limit or len(uncategorized_slides))],
             })
+
         return category_data
 
-    def _resequence_slides(self, slide):
+    def _resequence_slides(self, slide, category_id=None):
         ids_to_resequence = self.slide_ids.ids
         index_of_added_slide = ids_to_resequence.index(slide.id)
-        category_id = slide.category_id.id
         next_category_id = None
         if self.slide_category_ids:
             index_of_category = self.slide_category_ids.ids.index(category_id) if category_id else None
