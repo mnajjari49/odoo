@@ -125,6 +125,7 @@ class ProjectTask(models.Model):
     ], string="Billable Type", compute='_compute_billable_type', compute_sudo=True, store=True)
     is_project_map_empty = fields.Boolean("Is Project map empty", compute='_compute_is_project_map_empty')
     allow_billable = fields.Boolean(related="project_id.allow_billable")
+    display_create_sales_order = fields.Boolean(compute='_compute_display_create_sales_order')
 
     @api.onchange('sale_line_id')
     def _onchange_sale_line_id(self):
@@ -163,6 +164,23 @@ class ProjectTask(models.Model):
     def _compute_is_project_map_empty(self):
         for task in self:
             task.is_project_map_empty = not bool(task.sudo().project_id.sale_line_employee_ids)
+
+    @api.depends('allow_billable', 'billable_type', 'partner_id', 'sale_order_id', 'timer_start')
+    def _compute_display_create_sales_order(self):
+        for task in self:
+            create_so = True
+
+            if task.is_fsm is not False or \
+               task.allow_billable is False or \
+               task.billable_type == 'employee_rate' or \
+               task.partner_id is False or \
+               task.sale_order_id.invoice_status is not False or \
+               task.timer_start is not False:
+                create_so = False
+
+            task.write({
+                'display_create_sales_order': create_so,
+            })
 
     @api.onchange('project_id')
     def _onchange_project(self):

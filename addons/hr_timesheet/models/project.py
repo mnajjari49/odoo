@@ -98,6 +98,12 @@ class Task(models.Model):
     timesheet_timer_last_stop = fields.Datetime("Timesheet Timer Last Use", readonly=True)
     display_timesheet_timer = fields.Boolean("Display Timesheet Time", compute='_compute_display_timesheet_timer')
 
+    display_timer_start_primary = fields.Boolean(compute='_compute_display_timer_buttons')
+    display_timer_start_secondary = fields.Boolean(compute='_compute_display_timer_buttons')
+    display_timer_stop = fields.Boolean(compute='_compute_display_timer_buttons')
+    display_timer_pause = fields.Boolean(compute='_compute_display_timer_buttons')
+    display_timer_resume = fields.Boolean(compute='_compute_display_timer_buttons')
+
     @api.depends('timesheet_ids.unit_amount')
     def _compute_effective_hours(self):
         for task in self:
@@ -144,6 +150,33 @@ class Task(models.Model):
             'view_mode': 'list,form',
             'domain': [('project_id', '!=', False), ('task_id', 'in', self.child_ids.ids)],
         }
+
+    @api.depends('display_timesheet_timer', 'timer_start', 'total_hours_spent', 'timer_pause')
+    def _compute_display_timer_buttons(self):
+        for task in self:
+            start_p, start_s, stop, pause, resume = True, True, True, True, True
+            if task.display_timesheet_timer is False:
+                start_p, start_s, stop, pause, resume = False, False, False, False, False
+            else:
+                if task.timer_start is not False:
+                    start_p, start_s = False, False
+                else:
+                    stop, pause, resume = False, False, False
+                if task.total_hours_spent == 0:
+                    start_s = False
+                else:
+                    start_p = False
+                if task.timer_pause is not False:
+                    pause = False
+                else:
+                    resume = False
+            task.write({
+                'display_timer_start_primary': start_p,
+                'display_timer_start_secondary': start_s,
+                'display_timer_stop': stop,
+                'display_timer_pause': pause,
+                'display_timer_resume': resume
+            })
 
     def write(self, values):
         # a timesheet must have an analytic account (and a project)

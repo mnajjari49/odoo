@@ -158,6 +158,7 @@ class Project(models.Model):
     name = fields.Char("Name", index=True, required=True, tracking=True)
     active = fields.Boolean(default=True,
         help="If the active field is set to False, it will allow you to hide the project without removing it.")
+    is_fsm = fields.Boolean("Field Service", default=False, help="Display tasks in the Field Service module and allow planning with start/end dates.")
     sequence = fields.Integer(default=10, help="Gives the sequence order when displaying a list of Projects.")
     partner_id = fields.Many2one('res.partner', string='Customer', auto_join=True, tracking=True, domain="['|', ('company_id', '=', False), ('company_id', '=', company_id)]")
     company_id = fields.Many2one('res.company', string='Company', required=True, default=lambda self: self.env.company)
@@ -482,6 +483,7 @@ class Task(models.Model):
     active = fields.Boolean(default=True)
     name = fields.Char(string='Title', tracking=True, required=True, index=True)
     description = fields.Html(string='Description')
+    is_fsm = fields.Boolean(related='project_id.is_fsm', search='_search_is_fsm')
     priority = fields.Selection([
         ('0', 'Normal'),
         ('1', 'Important'),

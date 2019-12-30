@@ -73,8 +73,8 @@
             <field name="inherit_id" ref="project.view_task_form2"/>
             <field name="arch" type="xml">
                 <xpath expr="//header" position='inside'>
-                    <field name="allow_billable" invisible="1"/>
-                    <button name="action_make_billable" string="Create Sales Order" type="object" attrs="{'invisible': ['|', '|', '|', '|', '|', ('allow_billable', '=', False), ('allow_timesheets', '=', False), ('billable_type', '=', 'employee_rate'), ('partner_id', '=', False), ('sale_order_id', '!=', False), '&amp;', ('display_timesheet_timer', '=', True), ('timer_start', '!=', False)]}" groups="sales_team.group_sale_salesman"/>
+                    <field name="display_create_sales_order" invisible="1"/>
+                    <button name="action_make_billable" string="Create Sales Order" type="object" attrs="{'invisible': [('display_create_sales_order', '=', False)]}" groups="sales_team.group_sale_salesman"/>
                 </xpath>
                 <xpath expr="//group[@name='sales_order_group']" position="inside">
                     <field name="billable_type" invisible="1"/>
