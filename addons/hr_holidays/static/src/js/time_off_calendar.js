@@ -12,7 +12,7 @@ odoo.define('hr_holidays.dashboard.view_custo', function(require) {
 
 
     var TimeOffCalendarController = CalendarController.extend({
-        events: _.extend({}, CalendarController.prototype.events, {
+        events: Object.assign({}, CalendarController.prototype.events, {
             'click .btn-time-off': '_onNewTimeOff',
             'click .btn-allocation': '_onNewAllocation',
         }),
@@ -29,7 +29,7 @@ odoo.define('hr_holidays.dashboard.view_custo', function(require) {
          */
 
         renderButtons: function ($node) {
-            this._super.apply(this, arguments);
+            this._super(...arguments);
 
             $(QWeb.render('hr_holidays.dashboard.calendar.button', {
                 time_off: _t('New Time Off Request'),
@@ -83,24 +83,25 @@ odoo.define('hr_holidays.dashboard.view_custo', function(require) {
             });
         },
     });
-    var TimeOffCalendarRenderer = CalendarRenderer.extend({
-        _render: function () {
+    class TimeOffCalendarRenderer extends CalendarRenderer {
+        _render() {
             var self = this;
-            return this._super.apply(this, arguments).then(function () {
+            return super._render(...arguments).then(function () {
                 return self._rpc({
                     model: 'hr.leave.type',
                     method: 'get_days_all_request',
                     context: self.context,
                 });
             }).then(function (result) {
+                debugger;
                 self.$el.parent().find('.o_timeoff_container').remove();
                 var elem = QWeb.render('hr_holidays.dashboard_calendar_header', {
                     timeoffs: result,
                 });
                 self.$el.before(elem);
             });
-        },
-    });
+        }
+    }
     var TimeOffCalendarView = CalendarView.extend({
         config: _.extend({}, CalendarView.prototype.config, {
             Controller: TimeOffCalendarController,

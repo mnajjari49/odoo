@@ -1,14 +1,13 @@
 odoo.define('web.CalendarView', async function (require) {
     "use strict";
 
-    const env = await require('web.env');
-
     const AbstractView = require('web.AbstractView');
-    const CalendarModel = require('web.CalendarModel');
     const CalendarController = require('web.CalendarController');
+    const CalendarModel = require('web.CalendarModel');
     const CalendarRenderer = require('web.CalendarRenderer');
     const core = require('web.core');
     const pyUtils = require('web.py_utils');
+    const RendererWrapper = require('web.RendererWrapper');
     const utils = require('web.utils');
 
     const _lt = core._lt;
@@ -37,42 +36,46 @@ odoo.define('web.CalendarView', async function (require) {
         /**
          * @override
          */
-        init: function (viewInfo, params) {
-            this._super.apply(this, arguments);
-            var arch = this.arch;
-            var fields = this.fields;
-            var attrs = arch.attrs;
+        init(viewInfo, params) {
+            this._super(...arguments);
+            const arch = this.arch;
+            const fields = this.fields;
+            const attrs = arch.attrs;
 
             if (!attrs.date_start) {
                 throw new Error(_lt("Calendar view has not defined 'date_start' attribute."));
             }
 
-            var mapping = {};
-            var fieldNames = fields.display_name ? ['display_name'] : [];
-            var displayFields = {};
+            const mapping = {};
+            const fieldNames = fields.display_name ? ['display_name'] : [];
+            const displayFields = {};
 
-            _.each(fieldsToGather, function (field) {
+            fieldsToGather.forEach(field =>  {
                 if (arch.attrs[field]) {
-                    var fieldName = attrs[field];
+                    const fieldName = attrs[field];
                     mapping[field] = fieldName;
                     fieldNames.push(fieldName);
                 }
             });
 
-            var filters = {};
+            const filters = {};
 
-            var eventLimit = attrs.event_limit !== null && (isNaN(+attrs.event_limit) ? _.str.toBool(attrs.event_limit) : +attrs.event_limit);
+            const eventLimit = attrs.event_limit !== null && (isNaN(+attrs.event_limit) ? _.str.toBool(attrs.event_limit) : +attrs.event_limit);
 
-            var modelFilters = [];
-            _.each(arch.children, function (child) {
-                if (child.tag !== 'field') return;
-                var fieldName = child.attrs.name;
+            const modelFilters = []; // TODO: MSH: Is it used anywhere?
+            arch.children.forEach(child => {
+                if (child.tag !== 'field') {
+                    return;
+                }
+                const fieldName = child.attrs.name;
                 fieldNames.push(fieldName);
                 if (!child.attrs.invisible) {
                     child.attrs.options = child.attrs.options ? pyUtils.py_eval(child.attrs.options) : {};
                     displayFields[fieldName] = {attrs: child.attrs};
 
-                    if (params.sidebar === false) return; // if we have not sidebar, (eg: Dashboard), we don't use the filter "coworkers"
+                    if (params.sidebar === false) {
+                        return; // if we have not sidebar, (eg: Dashboard), we don't use the filter "coworkers"
+                    }
 
                     if (child.attrs.avatar_field) {
                         filters[fieldName] = filters[fieldName] || {
@@ -98,7 +101,7 @@ odoo.define('web.CalendarView', async function (require) {
             });
 
             if (attrs.color) {
-                var fieldName = attrs.color;
+                const fieldName = attrs.color;
                 fieldNames.push(fieldName);
                 filters[fieldName] = {
                     'title': fields[fieldName].string,
@@ -116,16 +119,16 @@ odoo.define('web.CalendarView', async function (require) {
             //if quick_add = False, we don't allow quick_add
             //if quick_add = not specified in view, we use the default widgets.QuickCreate
             //if quick_add = is NOT False and IS specified in view, we this one for widgets.QuickCreate'
-            this.controllerParams.quickAddPop = (!('quick_add' in attrs) || utils.toBoolElse(attrs.quick_add+'', true));
-            this.controllerParams.disableQuickCreate =  params.disable_quick_create || !this.controllerParams.quickAddPop;
+            this.controllerParams.quickAddPop = (!('quick_add' in attrs) || utils.toBoolElse(attrs.quick_add + '', true));
+            this.controllerParams.disableQuickCreate = params.disable_quick_create || !this.controllerParams.quickAddPop;
 
             // If form_view_id is set, then the calendar view will open a form view
             // with this id, when it needs to edit or create an event.
             this.controllerParams.formViewId =
                 attrs.form_view_id ? parseInt(attrs.form_view_id, 10) : false;
             if (!this.controllerParams.formViewId && params.action) {
-                var formViewDescr = _.find(params.action.views, function (v) {
-                    return v.type ===  'form';
+                const formViewDescr = params.action.views.find(v => {
+                    return v.type === 'form';
                 });
                 if (formViewDescr) {
                     this.controllerParams.formViewId = formViewDescr.viewID;
@@ -164,12 +167,8 @@ odoo.define('web.CalendarView', async function (require) {
          * @returns {Renderer} instance of the renderer
          */
         getRenderer(parent, state) {
-            var Renderer = this.config.Renderer;
             state = Object.assign(state || {}, this.rendererParams);
-            // TODO: MSH: no need to assign environment explicitly now, create instance of RendererWrapper
-            // instead of Renderer
-            Renderer.env = env;
-            return new Renderer(null, state);
+            return new RendererWrapper(null, state, this.config.Renderer);
         },
     });
 

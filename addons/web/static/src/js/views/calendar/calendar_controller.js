@@ -9,8 +9,8 @@ odoo.define('web.CalendarController', function (require) {
      * with the renderer, and with the outside world (such as a search view input)
      */
 
-    const ControllerAdapter = require('web.ControllerAdapter');
     const config = require('web.config');
+    const ControllerAdapter = require('web.ControllerAdapter');
     const core = require('web.core');
     const Dialog = require('web.Dialog');
     const dialogs = require('web.view_dialogs');
@@ -19,11 +19,13 @@ odoo.define('web.CalendarController', function (require) {
     const _t = core._t;
     const QWeb = core.qweb;
 
-    function dateToServer (date) {
+    function dateToServer(date) {
         return date.clone().utc().locale('en').format('YYYY-MM-DD HH:mm:ss');
     }
 
-    var CalendarController = ControllerAdapter.extend({
+    // TODO: MSH: Convert it to ES6 syntax, remove jQuery and underscore dependency as much as we can
+
+    const CalendarController = ControllerAdapter.extend({
         events: Object.assign({}, ControllerAdapter.prototype.events, {
             changeDate: '_onChangeDate',
             changeFilter: '_onChangeFilter',
@@ -33,13 +35,11 @@ odoo.define('web.CalendarController', function (require) {
             openCreate: '_onOpenCreate',
             openEvent: '_onOpenEvent',
             prev: '_onPrev',
-            // quickCreate: '_onQuickCreate',
             updateRecord: '_onUpdateRecord',
             viewUpdated: '_onViewUpdated',
         }),
-        // TODO: MSH: Why custom_events why not put it in events?
-        // TODO: MSH: Convert it to ES6 syntax, remove jQuery and underscore dependency as much as we can
-        custom_events: Object.assign({}, ControllerAdapter.prototype.custom_events,{
+        custom_events: Object.assign({}, ControllerAdapter.prototype.custom_events, {
+            openCreate: '_onOpenCreate',
             quickCreate: '_onQuickCreate',
         }),
         /**
@@ -49,7 +49,7 @@ odoo.define('web.CalendarController', function (require) {
          * @param {AbstractRenderer} renderer
          * @param {Object} params
          */
-        init: function (parent, model, renderer, params) {
+        init(parent, model, renderer, params) {
             this._super(...arguments);
             this.current_start = null;
             this.displayName = params.displayName;
@@ -70,7 +70,7 @@ odoo.define('web.CalendarController', function (require) {
          *
          * @override
          */
-        destroy: function () {
+        destroy() {
             this._super(...arguments);
             if (this.$todayButton) {
                 this.$todayButton.off();
@@ -85,7 +85,7 @@ odoo.define('web.CalendarController', function (require) {
          * @override
          * @returns {string}
          */
-        getTitle: function () {
+        getTitle() {
             return this._title;
         },
         /**
@@ -96,24 +96,23 @@ odoo.define('web.CalendarController', function (require) {
          *   should be inserted. $node may be undefined, in which case the Calendar
          *   inserts them into this.options.$buttons or into a div of its template
          */
-        renderButtons: function ($node) {
-            var self = this;
+        renderButtons($node) {
             this.$buttons = $(QWeb.render('CalendarView.buttons', {
                 isMobile: config.device.isMobile,
             }));
-            this.$buttons.on('click', 'button.o_calendar_button_new', function () {
-                self.trigger_up('switch_view', {view_type: 'form'});
+            this.$buttons.on('click', 'button.o_calendar_button_new', () => {
+                this.trigger_up('switch_view', {view_type: 'form'});
             });
 
-            _.each(['prev', 'today', 'next'], function (action) {
-                self.$buttons.on('click', '.o_calendar_button_' + action, function () {
-                    self._move(action);
+            ['prev', 'today', 'next'].forEach(action => {
+                this.$buttons.on('click', '.o_calendar_button_' + action, () => {
+                    this._move(action);
                 });
             });
-            _.each(['day', 'week', 'month'], function (scale) {
-                self.$buttons.on('click', '.o_calendar_button_' + scale, function () {
-                    self.model.setScale(scale);
-                    self.reload();
+            ['day', 'week', 'month'].forEach(scale => {
+                this.$buttons.on('click', '.o_calendar_button_' + scale, () => {
+                    this.model.setScale(scale);
+                    this.reload();
                 });
             });
 
@@ -137,7 +136,7 @@ odoo.define('web.CalendarController', function (require) {
          * @param {jQueryElement} $node the button should be appended to this
          *   element to be displayed in the bottom right corner of the control panel
          */
-        renderPager: function ($node) {
+        renderPager($node) {
             if (config.device.isMobile) {
                 this.$todayButton = $(QWeb.render('CalendarView.TodayButtonMobile'));
                 this.$todayButton.on('click', this._move.bind(this, 'today'));
@@ -156,7 +155,7 @@ odoo.define('web.CalendarController', function (require) {
          * @param {string} to either 'prev', 'next' or 'today'
          * @returns {Promise}
          */
-        _move: function (to) {
+        _move(to) {
             this.model[to]();
             return this.reload();
         },
@@ -164,26 +163,23 @@ odoo.define('web.CalendarController', function (require) {
          * @override
          * @private
          */
-        _update: function () {
-            var self = this;
+        async _update() {
             if (!this.showUnusualDays) {
-                return this._super(...arguments);
+                return await this._super(...arguments);
             }
-            return this._super(...arguments).then(function () {
-                self._rpc({
-                    model: self.modelName,
-                    method: 'get_unusual_days',
-                    args: [self.model.data.start_date.format('YYYY-MM-DD'), self.model.data.end_date.format('YYYY-MM-DD')],
-                    context: self.context,
-                }).then(function (data) {
-                    _.each(self.$el.find('td.fc-day'), function (td) {
-                        var $td = $(td);
-                        if (data[$td.data('date')]) {
-                            $td.addClass('o_calendar_disabled');
-                        }
-                    });
-                });
+            const result = await this._super(...arguments);
+            const data = await this._rpc({
+                model: this.modelName,
+                method: 'get_unusual_days',
+                args: [this.model.data.start_date.format('YYYY-MM-DD'), this.model.data.end_date.format('YYYY-MM-DD')],
+                context: this.context,
             });
+            this.el.querySelectorAll('td.fc-day').forEach(td => {
+                if (data[td.getAttribute('data-date')]) {
+                    td.classList.add('o_calendar_disabled');
+                }
+            });
+            return result;
         },
         /**
          * @private
@@ -191,8 +187,8 @@ odoo.define('web.CalendarController', function (require) {
          * @param {integer} record.id
          * @returns {Promise}
          */
-        _updateRecord: function (record) {
-            var reload = this.reload.bind(this, {});
+        _updateRecord(record) {
+            const reload = this.reload.bind(this, {});
             return this.model.updateRecord(record).then(reload, reload);
         },
 
@@ -202,80 +198,78 @@ odoo.define('web.CalendarController', function (require) {
 
         /**
          * @private
-         * @param {OdooEvent} event
+         * @param {CustomEvent} event
          */
-        _onChangeDate: function (event) {
-            var modelData = this.model.get();
-            if (modelData.target_date.format('YYYY-MM-DD') === event.data.date.format('YYYY-MM-DD')) {
+        _onChangeDate(event) {
+            const modelData = this.model.get();
+            if (modelData.target_date.format('YYYY-MM-DD') === event.detail.date.format('YYYY-MM-DD')) {
                 // When clicking on same date, toggle between the two views
                 switch (modelData.scale) {
                     case 'month': this.model.setScale('week'); break;
                     case 'week': this.model.setScale('day'); break;
                     case 'day': this.model.setScale('month'); break;
                 }
-            } else if (modelData.target_date.week() === event.data.date.week()) {
+            } else if (modelData.target_date.week() === event.detail.date.week()) {
                 // When clicking on a date in the same week, switch to day view
                 this.model.setScale('day');
             } else {
                 // When clicking on a random day of a random other week, switch to week view
                 this.model.setScale('week');
             }
-            this.model.setDate(event.data.date);
+            this.model.setDate(event.detail.date);
             this.reload();
         },
         /**
          * @private
-         * @param {OdooEvent} event
+         * @param {CustomEvent} event
          */
-        _onChangeFilter: function (event) {
-            if (this.model.changeFilter(event.data) && !event.data.no_reload) {
+        _onChangeFilter(event) {
+            if (this.model.changeFilter(event.detail) && !event.detail.no_reload) {
                 this.reload();
             }
         },
         /**
          * @private
-         * @param {OdooEvent} event
+         * @param {CustomEvent} event
          */
-        _onDeleteRecord: function (event) {
-            var self = this;
+        _onDeleteRecord(event) {
             Dialog.confirm(this, _t("Are you sure you want to delete this record ?"), {
-                confirm_callback: function () {
-                    self.model.deleteRecords([event.data.id], self.modelName).then(function () {
-                        self.reload();
+                confirm_callback: () => {
+                    this.model.deleteRecords([event.detail.id], this.modelName).then(() => {
+                        this.reload();
                     });
                 }
             });
         },
         /**
          * @private
-         * @param {OdooEvent} event
+         * @param {CustomEvent} event
          */
-        _onDropRecord: function (event) {
-            this._updateRecord(_.extend({}, event.data, {
+        _onDropRecord(event) {
+            this._updateRecord(Object.assign({}, event.detail, {
                 'drop': true,
             }));
         },
         /**
          * @private
-         * @param {OdooEvent} event
+         * @param {CustomEvent} event
          */
-        _onNext: function (event) {
+        _onNext(event) {
             event.stopPropagation();
             this._move('next');
         },
         /**
          * @private
-         * @param {OdooEvent} event
+         * @param {CustomEvent} event
          */
-        _onOpenCreate: function (event) {
-            var self = this;
-            debugger;
+        _onOpenCreate(event) {
+            const eventData = event.data || event.detail || {};
             if (this.model.get().scale === "month") {
-                event.detail.allDay = true;
+                eventData.allDay = true;
             }
-            var data = this.model.calendarEventToRecord(event.detail);
+            const data = this.model.calendarEventToRecord(eventData);
 
-            var context = _.extend({}, this.context, event.options && event.options.context);
+            const context = Object.assign({}, this.context, event.options && event.options.context);
             // context default has more priority in default_get so if data.name is false then it may
             // lead to error/warning while saving record in form view as name field can be required
             if (data.name) {
@@ -292,13 +286,13 @@ odoo.define('web.CalendarController', function (require) {
                 context['default_' + this.mapping.all_day] = data[this.mapping.all_day] || null;
             }
 
-            for (var k in context) {
+            for (const k in context) {
                 if (context[k] && context[k]._isAMomentObject) {
                     context[k] = dateToServer(context[k]);
                 }
             }
 
-            var options = _.extend({}, this.options, event.options, {
+            const options = Object.assign({}, this.options, event.options, {
                 context: context,
                 title: _.str.sprintf(_t('Create: %s'), (this.displayName || this.renderer.arch.attrs.string))
             });
@@ -308,32 +302,32 @@ odoo.define('web.CalendarController', function (require) {
                 this.quick = null;
             }
 
-            if (!options.disableQuickCreate && !event.detail.disableQuickCreate && this.quickAddPop) {
-                this.quick = new QuickCreate(this, true, options, data, event.detail);
+            if (!options.disableQuickCreate && !eventData.disableQuickCreate && this.quickAddPop) {
+                this.quick = new QuickCreate(this, true, options, data, eventData);
                 this.quick.open();
-                this.quick.opened(function () {
-                    self.quick.focus();
+                this.quick.opened(() => {
+                    this.quick.focus();
                 });
                 return;
             }
 
-            var title = _t("Create");
-            if (this.renderer.arch.attrs.string) {
-                title += ': ' + this.renderer.arch.attrs.string;
+            let title = _t("Create");
+            if (this.renderer.props.arch.attrs.string) {
+                title += ': ' + this.renderer.props.arch.attrs.string;
             }
             if (this.eventOpenPopup) {
                 if (this.previousOpen) { this.previousOpen.close(); }
-                this.previousOpen = new dialogs.FormViewDialog(self, {
+                this.previousOpen = new dialogs.FormViewDialog(this, {
                     res_model: this.modelName,
                     context: context,
                     title: title,
                     view_id: this.formViewId || false,
                     disable_multiple_selection: true,
-                    on_saved: function () {
+                    on_saved: () => {
                         if (event.detail.on_save) {
                             event.detail.on_save();
                         }
-                        self.reload();
+                        this.reload();
                     },
                 });
                 this.previousOpen.open();
@@ -349,43 +343,41 @@ odoo.define('web.CalendarController', function (require) {
         },
         /**
          * @private
-         * @param {OdooEvent} event
+         * @param {CustomEvent} event
          */
-        _onOpenEvent: function (event) {
-            var self = this;
-            var id = event.data._id;
+        async _onOpenEvent(event) {
+            let id = event.detail._id;
             id = id && parseInt(id).toString() === id ? parseInt(id) : id;
 
             if (!this.eventOpenPopup) {
-                this._rpc({
-                    model: self.modelName,
+                const viewId = await this._rpc({
+                    model: this.modelName,
                     method: 'get_formview_id',
                     //The event can be called by a view that can have another context than the default one.
                     args: [[id]],
-                    context: event.context || self.context,
-                }).then(function (viewId) {
-                    self.do_action({
-                        type:'ir.actions.act_window',
-                        res_id: id,
-                        res_model: self.modelName,
-                        views: [[viewId || false, 'form']],
-                        target: 'current',
-                        context: event.context || self.context,
-                    });
+                    context: event.context || this.context,
+                });
+                this.do_action({
+                    type: 'ir.actions.act_window',
+                    res_id: id,
+                    res_model: this.modelName,
+                    views: [[viewId || false, 'form']],
+                    target: 'current',
+                    context: event.context || this.context,
                 });
                 return;
             }
 
-            var options = {
-                res_model: self.modelName,
+            const options = {
+                res_model: this.modelName,
                 res_id: id || null,
-                context: event.context || self.context,
-                title: _t("Open: ") + event.data.title,
-                on_saved: function () {
-                    if (event.data.on_save) {
-                        event.data.on_save();
+                context: event.context || this.context,
+                title: _t("Open: ") + event.detail.title,
+                on_saved: () => {
+                    if (event.detail.on_save) {
+                        event.detail.on_save();
                     }
-                    self.reload();
+                    this.reload();
                 },
             };
             if (this.formViewId) {
@@ -395,9 +387,9 @@ odoo.define('web.CalendarController', function (require) {
         },
         /**
          * @private
-         * @param {OdooEvent} event
+         * @param {CustomEvent} event
          */
-        _onPrev: function () {
+        _onPrev(event) {
             event.stopPropagation();
             this._move('prev');
         },
@@ -406,18 +398,16 @@ odoo.define('web.CalendarController', function (require) {
          * Handles saving data coming from quick create box
          *
          * @private
-         * @param {OdooEvent} event
+         * @param {CustomEvent} event
          */
-        _onQuickCreate: function (event) {
-            debugger;
-            var self = this;
+        _onQuickCreate(event) {
+            const self = this;
             if (this.quickCreating) {
                 return;
             }
             this.quickCreating = true;
             this.model.createRecord(event)
                 .then(function () {
-                    debugger;
                     self.quick.destroy();
                     self.quick = null;
                     self.reload();
@@ -429,32 +419,32 @@ odoo.define('web.CalendarController', function (require) {
                     // Preventdefaulting the error event will prevent the traceback window
                     errorEvent.preventDefault();
                     event.data.options.disableQuickCreate = true;
-                    event.data.data.on_save = self.quick.destroy.bind(self.quick);
+                    event.data.on_save = self.quick.destroy.bind(self.quick);
                     self._onOpenCreate(event.data);
                     self.quickCreating = false;
-                })
+                });
         },
         /**
          * @private
-         * @param {OdooEvent} event
+         * @param {CustomEvent} event
          */
-        _onUpdateRecord: function (event) {
-            this._updateRecord(event.data);
+        _onUpdateRecord(event) {
+            this._updateRecord(event.detail);
         },
         /**
          * The internal state of the calendar (mode, period displayed) has changed,
          * so update the control panel buttons and breadcrumbs accordingly.
          *
          * @private
-         * @param {OdooEvent} event
+         * @param {CustomEvent} event
          */
-        _onViewUpdated: function (event) {
-            this.mode = event.data.mode;
+        _onViewUpdated(event) {
+            this.mode = event.detail.mode;
             if (this.$buttons) {
                 this.$buttons.find('.active').removeClass('active');
                 this.$buttons.find('.o_calendar_button_' + this.mode).addClass('active');
             }
-            this._setTitle(this.displayName + ' (' + event.data.title + ')');
+            this._setTitle(this.displayName + ' (' + event.detail.title + ')');
         },
     });
 

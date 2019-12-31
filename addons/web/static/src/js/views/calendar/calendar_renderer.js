@@ -8,6 +8,11 @@ odoo.define('web.CalendarRenderer', function (require) {
 
     const AbstractRendererOwl = require('web.AbstractRendererOwl');
     const CalendarPopover = require('web.CalendarPopover');
+    const config = require('web.config');
+    const core = require('web.core');
+
+    const _t = core._t;
+
     const scales = {
         day: 'agendaDay',
         week: 'agendaWeek',
@@ -27,8 +32,8 @@ odoo.define('web.CalendarRenderer', function (require) {
         }
 
         mounted() {
-            this._initCalendar()
-            this._initSidebar()
+            this._initCalendar();
+            this._initSidebar();
         }
         /**
             * Initialize the main calendar
@@ -38,35 +43,35 @@ odoo.define('web.CalendarRenderer', function (require) {
         _initCalendar() {
             var self = this;
 
-            this.$calendar = $(this.el).find('.o_calendar_widget');
+            // TODO: MSH: Remove jQuery wrap here and change all other method where this.$calendar is used
+            this.$calendar = $(this.el.querySelector(".o_calendar_widget"));
 
             // This seems like a workaround but apparently passing the locale
             // in the options is not enough. We should initialize it beforehand
-            var locale = moment.locale();
+            const locale = moment.locale();
             $.fullCalendar.locale(locale);
 
-
             //Documentation here : http://arshaw.com/fullcalendar/docs/
-            var fc_options = Object.assign({}, this.props.fc_options, {
-                // eventDrop(event) {
-                //     self.trigger_up('dropRecord', event);
-                // },
-                // eventResize(event) {
-                //     self._unselectEvent();
-                //     self.trigger_up('updateRecord', event);
-                // },
-                // eventClick(eventData, ev) {
-                //     self._unselectEvent();
-                //     self.$calendar.find(_.str.sprintf('[data-event-id=%s]', eventData.id)).addClass('o_cw_custom_highlight');
-                //     self._renderEventPopover(eventData, ev.currentTarget);
-                // },
-                select(startDate, endDate) {
+            const fcOptions = Object.assign({}, this.props.fc_options, {
+                eventDrop: function (event) {
+                    self.trigger('dropRecord', event);
+                },
+                eventResize: function (event) {
+                    self._unselectEvent();
+                    self.trigger('updateRecord', event);
+                },
+                eventClick: function (eventData, ev) {
+                    self._unselectEvent();
+                    self.$calendar.find(_.str.sprintf('[data-event-id=%s]', eventData.id)).addClass('o_cw_custom_highlight');
+                    self._renderEventPopover(eventData, $(ev.currentTarget));
+                },
+                select: function (startDate, endDate) {
                     self.isSwipeEnabled = false;
                     // Clicking on the view, dispose any visible popover. Otherwise create a new event.
-                    if (self.el.querySelectorAll('.o_cw_popover').length) {
+                    if (self.el.querySelector('.o_cw_popover')) {
                         self._unselectEvent();
                     } else {
-                        var data = { start: startDate, end: endDate };
+                        var data = {start: startDate, end: endDate};
                         if (self.props.context.default_name) {
                             data.title = self.props.context.default_name;
                         }
@@ -74,17 +79,16 @@ odoo.define('web.CalendarRenderer', function (require) {
                     }
                     self.$calendar.fullCalendar('unselect');
                 },
-                eventRender(event, element, view) {
+                eventRender: function (event, element, view) {
                     self.isSwipeEnabled = false;
-                    var render = self._eventRender(event);
-                    element.querySelector('.fc-content').innerhtml = render.innerhtml;
-                    element.classList.add(render.getAttribute('class'));
-                    element.setAttribute('data-event-id', event.id);
+                    var $render = $(self._eventRender(event));
+                    element.find('.fc-content').html($render.html());
+                    element.addClass($render.attr('class'));
+                    element.attr('data-event-id', event.id);
 
                     // Add background if doesn't exist
-                    if (!element.querySelector('.fc-bg').length) {
-                        // element.find('.fc-content').after($('<div/>', {class: 'fc-bg'}));
-                        element.querySelector('.fc-content').className += "fc-bg";
+                    if (!element.find('.fc-bg').length) {
+                        element.find('.fc-content').after($('<div/>', {class: 'fc-bg'}));
                     }
 
                     // For month view: Show background for all-day/multidate events only
@@ -95,82 +99,77 @@ odoo.define('web.CalendarRenderer', function (require) {
                         // note: add & remove 1 min to avoid issues with 00:00
                         var isSameDayEvent = start.clone().add(1, 'minute').isSame(end.clone().subtract(1, 'minute'), 'day');
                         if (!event.record.allday && isSameDayEvent) {
-                            element.classList.add('o_cw_nobg');
+                            element.addClass('o_cw_nobg');
                         }
                     }
-                },
 
-                //     // On double click, edit the event
-                //     element.addEventListener('dblclick', function () {
-                //         self.trigger_up('edit_event', {id: event.id});
-                //     });
-                // },
-                // eventAfterAllRender() {
-                //     self.isSwipeEnabled = true;
-                // },
-                // viewRender(view) {
-                //     // compute mode from view.name which is either 'month', 'agendaWeek' or 'agendaDay'
-                //     var mode = view.name === 'month' ? 'month' : (view.name === 'agendaWeek' ? 'week' : 'day');
-                //     self.trigger('viewUpdated', {
-                //         mode: mode,
-                //         title: view.title,
-                //     });
-                // },
-                // // Add/Remove a class on hover to style multiple days events.
-                // // The css ":hover" selector can't be used because these events
-                // // are rendered using multiple elements.
-                // eventMouseover(eventData) {
-                //     self.$calendar.find(_.str.sprintf('[data-event-id=%s]', eventData.id)).addClass('o_cw_custom_hover');
-                // },
-                // eventMouseout(eventData) {
-                //     self.$calendar.find(_.str.sprintf('[data-event-id=%s]', eventData.id)).removeClass('o_cw_custom_hover');
-                // },
-                // eventDragStart(eventData) {
-                //     self.$calendar.find(_.str.sprintf('[data-event-id=%s]', eventData.id)).addClass('o_cw_custom_hover');
-                //     self._unselectEvent();
-                // },
-                // eventResizeStart(eventData) {
-                //     self.$calendar.find(_.str.sprintf('[data-event-id=%s]', eventData.id)).addClass('o_cw_custom_hover');
-                //     self._unselectEvent();
-                // },
-                // eventLimitClick() {
-                //     self._unselectEvent();
-                //     return 'popover';
-                // },
-                windowResize() {
+                    // On double click, edit the event
+                    element.on('dblclick', function () {
+                        self.trigger('edit_event', {id: event.id});
+                    });
+                },
+                eventAfterAllRender: function () {
+                    self.isSwipeEnabled = true;
+                },
+                viewRender: function (view) {
+                    // compute mode from view.name which is either 'month', 'agendaWeek' or 'agendaDay'
+                    var mode = view.name === 'month' ? 'month' : (view.name === 'agendaWeek' ? 'week' : 'day');
+                    self.trigger('viewUpdated', {
+                        mode: mode,
+                        title: view.title,
+                    });
+                },
+                // Add/Remove a class on hover to style multiple days events.
+                // The css ":hover" selector can't be used because these events
+                // are rendered using multiple elements.
+                eventMouseover: function (eventData) {
+                    self.$calendar.find(_.str.sprintf('[data-event-id=%s]', eventData.id)).addClass('o_cw_custom_hover');
+                },
+                eventMouseout: function (eventData) {
+                    self.$calendar.find(_.str.sprintf('[data-event-id=%s]', eventData.id)).removeClass('o_cw_custom_hover');
+                },
+                eventDragStart: function (eventData) {
+                    self.$calendar.find(_.str.sprintf('[data-event-id=%s]', eventData.id)).addClass('o_cw_custom_hover');
+                    self._unselectEvent();
+                },
+                eventResizeStart: function (eventData) {
+                    self.$calendar.find(_.str.sprintf('[data-event-id=%s]', eventData.id)).addClass('o_cw_custom_hover');
+                    self._unselectEvent();
+                },
+                eventLimitClick: function () {
+                    self._unselectEvent();
+                    return 'popover';
+                },
+                windowResize: function () {
                     self._render();
                 },
-                // views: {
-                //     day: {
-                //         columnFormat: 'LL'
-                //     },
-                //     week: {
-                //         columnFormat: 'ddd D'
-                //     },
-                //     // month: {
-                //     //     columnFormat: config.device.isMobile ? 'ddd' : 'dddd'
-                //     // }
-                //     month: {
-                //         columnFormat: 'dddd'
-                //     }
-                // },
-                // height: 'parent',
-                // unselectAuto: false,
-                // //isRTL: _t.database.parameters.direction === "rtl",
-                // locale: locale, // reset locale when fullcalendar has already been instanciated before now
+                views: {
+                    day: {
+                        columnFormat: 'LL'
+                    },
+                    week: {
+                        columnFormat: 'ddd D'
+                    },
+                    month: {
+                        columnFormat: config.device.isMobile ? 'ddd' : 'dddd'
+                    }
+                },
+                height: 'parent',
+                unselectAuto: false,
+                isRTL: _t.database.parameters.direction === "rtl",
+                locale: locale, // reset locale when fullcalendar has already been instanciated before now
             });
 
-            this.$calendar.fullCalendar(fc_options);
+            this.$calendar.fullCalendar(fcOptions);
         }
-
         /**
          * Initialize the sidebar
          *
          * @private
          */
         _initSidebar() {
-            this.$sidebar = this.$('.o_calendar_sidebar');
-            this.$sidebar_container = this.$(".o_calendar_sidebar_container");
+            this.$sidebar = this.el.querySelector('.o_calendar_sidebar');
+            this.$sidebar_container = this.el.querySelector(".o_calendar_sidebar_container");
             this._initCalendarMini();
         }
         /**
@@ -180,7 +179,8 @@ odoo.define('web.CalendarRenderer', function (require) {
          */
         _initCalendarMini() {
             var self = this;
-            this.$small_calendar = this.$(".o_calendar_mini");
+            // TODO: MSH: Remove jQuery wrap here
+            this.$small_calendar = $(this.el.querySelector(".o_calendar_mini"));
             this.$small_calendar.datepicker({
                 'onSelect': function (datum, obj) {
                     self.trigger_up('changeDate', {
@@ -188,9 +188,9 @@ odoo.define('web.CalendarRenderer', function (require) {
                     });
                 },
                 'showOtherMonths': true,
-                'dayNamesMin': this.state.fc_options.dayNamesShort,
-                'monthNames': this.state.fc_options.monthNamesShort,
-                'firstDay': this.state.fc_options.firstDay,
+                'dayNamesMin': this.props.fc_options.dayNamesShort,
+                'monthNames': this.props.fc_options.monthNamesShort,
+                'firstDay': this.props.fc_options.firstDay,
             });
         }
 
@@ -410,7 +410,7 @@ odoo.define('web.CalendarRenderer', function (require) {
         */
         _renderEvents() {
             this.$calendar.fullCalendar('removeEvents');
-            this.$calendar.fullCalendar('addEventSource', this.state.data);
+            this.$calendar.fullCalendar('addEventSource', this.props.data);
         }
 
         /**
@@ -425,7 +425,7 @@ odoo.define('web.CalendarRenderer', function (require) {
             _.each(this.filters || (this.filters = []), function (filter) {
                 filter.destroy();
             });
-            if (this.state.fullWidth) {
+            if (this.props.fullWidth) {
                 return;
             }
             return this._renderFiltersOneByOne();
