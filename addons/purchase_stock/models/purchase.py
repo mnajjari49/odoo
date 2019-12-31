@@ -38,12 +38,20 @@ class PurchaseOrder(models.Model):
                  'order_line.move_ids.picking_id')
     def _compute_picking(self):
         for order in self:
-            pickings = self.env['stock.picking']
-            for line in order.order_line:
-                # We keep a limited scope on purpose. Ideally, we should also use move_orig_ids and
-                # do some recursive search, but that could be prohibitive if not done correctly.
-                moves = line.move_ids | line.move_ids.mapped('returned_move_ids')
-                pickings |= moves.mapped('picking_id')
+            # We keep a limited scope on purpose. Ideally, we should also use move_orig_ids and
+            # do some recursive search, but that could be prohibitive if not done correctly.
+            moves = self.env['stock.move'].search_read(
+                [('purchase_line_id', 'in', order.order_line.ids)],
+                ['id', 'picking_id']
+            )
+            ids = [move['id'] for move in moves]
+            returned_moves = self.env['stock.move'].search_read(
+                [('origin_returned_move_id', 'in', ids)],
+                ['picking_id']
+            )
+            picking_ids = {move['picking_id'][0] for move in moves + returned_moves}
+            pickings = self.env['stock.picking'].browse(picking_ids)
+
             order.picking_ids = pickings
             order.picking_count = len(pickings)
 
