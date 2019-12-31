@@ -13,12 +13,6 @@ from odoo.exceptions import UserError
 class SaleOrder(models.Model):
     _inherit = "sale.order"
 
-    @api.model
-    def _default_warehouse_id(self):
-        company = self.env.company.id
-        warehouse_ids = self.env['stock.warehouse'].search([('company_id', '=', company)], limit=1)
-        return warehouse_ids
-
     incoterm = fields.Many2one(
         'account.incoterms', 'Incoterm',
         help="International Commercial Terms are a series of predefined commercial terms used in international transactions.")
@@ -30,9 +24,9 @@ class SaleOrder(models.Model):
         ,help="If you deliver all products at once, the delivery order will be scheduled based on the greatest "
         "product lead time. Otherwise, it will be based on the shortest.")
     warehouse_id = fields.Many2one(
-        'stock.warehouse', string='Warehouse',
-        required=True, readonly=True, states={'draft': [('readonly', False)], 'sent': [('readonly', False)]},
-        default=_default_warehouse_id, check_company=True)
+        'stock.warehouse', string='Warehouse', compute="_compute_warehouse_id", store=True,
+        required=True, readonly=True, check_company=True,
+        states={'draft': [('readonly', False)], 'sent': [('readonly', False)]})
     picking_ids = fields.One2many('stock.picking', 'sale_id', string='Transfers')
     delivery_count = fields.Integer(string='Delivery Orders', compute='_compute_picking_ids')
     procurement_group_id = fields.Many2one('procurement.group', 'Procurement Group', copy=False)
@@ -43,6 +37,14 @@ class SaleOrder(models.Model):
                                           "the order lines.")
     json_popover = fields.Char('JSON data for the popover widget', compute='_compute_json_popover')
     show_json_popover = fields.Boolean('Has late picking', compute='_compute_json_popover')
+
+    @api.depends('company_id')
+    def _compute_warehouse_id(self):
+        for order in self:
+            company = self.env.company or order.company_id
+            # Keep current warehouse on company change if warehouse company is the order current company.
+            order.warehouse_id = order.warehouse_id.filtered(lambda w: w.company_id == order.company_id) or \
+                self.env['stock.warehouse'].search([('company_id', '=', company.id)], limit=1)
 
     @api.depends('picking_ids.date_done')
     def _compute_effective_date(self):
@@ -119,11 +121,6 @@ class SaleOrder(models.Model):
     def _compute_picking_ids(self):
         for order in self:
             order.delivery_count = len(order.picking_ids)
-
-    @api.onchange('company_id')
-    def _onchange_company_id(self):
-        if self.company_id:
-            self.warehouse_id = self.env['stock.warehouse'].search([('company_id', '=', self.company_id.id)], limit=1)
 
     @api.onchange('partner_shipping_id')
     def _onchange_partner_shipping_id(self):
