@@ -26,14 +26,14 @@
         </div>
     </div> -->
 
-    <t t-name="calendar-box">
-        <div t-att-style="typeof color === 'string' ? ('background-color:' + color) + ';' : ''" t-attf-class="#{record.is_highlighted ? 'o_event_hightlight' : ''} #{typeof color === 'number' ? _.str.sprintf('o_calendar_color_%s', color) : 'o_calendar_color_1'}">
+    <t t-name="calendar-box" owl="1">
+        <div t-att-style="typeof color === 'string' ? ('background-color:' + color) + ';' : ''" t-attf-class="{{record.is_highlighted ? 'o_event_hightlight ' : '' + typeof color === 'number' ? 'o_calendar_color_' + color  : 'o_calendar_color_1'}}">
             <div class="o_event_title" t-esc="record.display_name"/>
         </div>
     </t>
 
-    <t t-name="CalendarView.event.popover.placeholder">
-        <div t-attf-class="o_cw_popover popover card shadow #{typeof color === 'number' ? _.str.sprintf('o_calendar_color_%s', color) : ''}" role="tooltip">
+    <t t-name="CalendarView.event.popover.placeholder" owl="1">
+        <div t-attf-class="o_cw_popover popover card shadow {{typeof color === 'number' ? 'o_calendar_color_' + color : ''}}" role="tooltip">
             <div class="arrow"/>
             <div class="card-header d-flex justify-content-between py-2 pr-2">
                 <h4 class="popover-header border-0 p-0 pt-1"/>

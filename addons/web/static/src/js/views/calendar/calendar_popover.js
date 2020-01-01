@@ -1,6 +1,8 @@
 odoo.define('web.CalendarPopover', function (require) {
 "use strict";
 
+// TODO: MSH: Convert it to OWL component
+
 var fieldRegistry = require('web.field_registry');
 var StandaloneFieldManagerMixin = require('web.StandaloneFieldManagerMixin');
 var Widget = require('web.Widget');
