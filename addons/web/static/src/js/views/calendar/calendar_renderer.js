@@ -7,7 +7,10 @@ odoo.define('web.CalendarRenderer', function (require) {
     // convert SidebarM2O and SidebarFilter in to OWL
 
     const { useState, onMounted, onPatched } = owl.hooks;
+    const { Component } = owl;
+
     const AbstractRendererOwl = require('web.AbstractRendererOwl');
+    const AdapterComponent = require('web.AdapterComponent');
     const CalendarPopover = require('web.CalendarPopover');
     const config = require('web.config');
     const core = require('web.core');
@@ -32,47 +35,50 @@ odoo.define('web.CalendarRenderer', function (require) {
         },
     });
     // TODO: MSH: Add adapter component here and set SidebarFilterM2O as component of that adapter component
+    /**
+     * Owl Component Adapter for KanbanColumnProgressBar (Odoo Widget)
+     * TODO: Remove this adapter when KanbanColumnProgressBar is a Component
+     */
+    class SidebarFilterM2OAdapter extends AdapterComponent {
+        constructor(parent, props) {
+            props.Component = SidebarFilterM2O;
+            super(...arguments);
+        }
+
+        get widgetArgs() {
+            return [this.props.name, this.props.record, this.props.options];
+        }
+    }
 
     // TODO: MSH: convert it to OWL, move FieldManagerMixin to last and add it like:
     // Object.assign(SidebarFilter.prototype, FieldManagerMixin); as we can not have multiple inheritance in JS class
-    const SidebarFilter = Widget.extend(FieldManagerMixin, {
-        template: 'CalendarView.sidebar.filter',
-        custom_events: Object.assign({}, FieldManagerMixin.custom_events, {
-            field_changed: '_onFieldChanged',
-        }),
-        /**
-         * @constructor
-         * @param {Widget} parent
-         * @param {Object} options
-         * @param {string} options.fieldName
-         * @param {Object[]} options.filters A filter is an object with the
-         *   following keys: id, value, label, active, avatar_model, color,
-         *   can_be_removed
-         * @param {Object} [options.favorite] this is an object with the following
-         *   keys: fieldName, model, fieldModel
-         */
-        init: function (parent, options) {
-            this._super.apply(this, arguments);
+    // Check if we can use SidbarFilterOwl as sub component
+    class SidebarFilterOwl extends Component {
+
+        constructor(parent, props) {
+            super(...arguments);
             FieldManagerMixin.init.call(this);
 
-            this.title = options.title;
-            this.fields = options.fields;
-            this.fieldName = options.fieldName;
-            this.write_model = options.write_model;
-            this.write_field = options.write_field;
-            this.avatar_field = options.avatar_field;
-            this.avatar_model = options.avatar_model;
-            this.filters = options.filters;
-            this.label = options.label;
-            this.getColor = options.getColor;
+            this.title = props.title;
+            this.fields = props.fields;
+            this.fieldName = props.fieldName;
+            this.write_model = props.write_model;
+            this.write_field = props.write_field;
+            this.avatar_field = props.avatar_field;
+            this.avatar_model = props.avatar_model;
+            this.filters = props.filters;
+            this.label = props.label;
+            this.getColor = props.getColor;
             this.isSwipeEnabled = true;
-        },
+            // TODO: MSH: temporary fix template error, remove underscore function if possible
+            this.uniqueId = _.uniqueId;
+        }
         /**
          * @override
          */
-        willStart: function () {
+        willStart() {
             var self = this;
-            var defs = [this._super.apply(this, arguments)];
+            var defs = [super.willStart(...arguments)];
 
             if (this.write_model || this.write_field) {
                 var def = this.model.makeRecord(this.write_model, [{
@@ -80,34 +86,35 @@ odoo.define('web.CalendarRenderer', function (require) {
                     relation: this.fields[this.fieldName].relation,
                     type: 'many2one',
                 }]).then(function (recordID) {
-                    self.many2one = new SidebarFilterM2O(self,
-                        self.write_field,
-                        self.model.get(recordID),
-                        {
+                    self.many2one = new SidebarFilterM2OAdapter(self, {
+                        name: self.write_field,
+                        record: self.model.get(recordID),
+                        options: {
                             mode: 'edit',
                             attrs: {
                                 placeholder: "+ " + _.str.sprintf(_t("Add %s"), self.title),
                                 can_create: false
                             },
-                        });
+                        }
+                    });
                 });
                 defs.push(def);
             }
             return Promise.all(defs);
 
-        },
+        }
         /**
          * @override
          */
-        start: function () {
-            this._super();
+        mounted() {
+            // this._super();
             if (this.many2one) {
-                this.many2one.appendTo(this.$el);
+                this.many2one.mount(this.el);
                 this.many2one.filter_ids = _.without(_.pluck(this.filters, 'value'), 'all');
             }
-            this.$el.on('click', '.o_remove', this._onFilterRemove.bind(this));
-            this.$el.on('click', '.o_calendar_filter_items input', this._onFilterActive.bind(this));
-        },
+            // this.el.querySelectorAll('.o_remove').addEventListener('click', this._onFilterRemove.bind(this));
+            // this.el.querySelectorAll('.o_calendar_filter_items input').addEventListener('click', this._onFilterActive.bind(this));
+        }
 
         //--------------------------------------------------------------------------
         // Handlers
@@ -117,17 +124,17 @@ odoo.define('web.CalendarRenderer', function (require) {
          * @private
          * @param {OdooEvent} event
          */
-        _onFieldChanged: function (event) {
+        _onFieldChanged(event) {
             var self = this;
             event.stopPropagation();
-            var createValues = {'user_id': session.uid};
+            var createValues = { 'user_id': session.uid };
             var value = event.data.changes[this.write_field].id;
             createValues[this.write_field] = value;
             this._rpc({
-                    model: this.write_model,
-                    method: 'create',
-                    args: [createValues],
-                })
+                model: this.write_model,
+                method: 'create',
+                args: [createValues],
+            })
                 .then(function () {
                     self.trigger_up('changeFilter', {
                         'fieldName': self.fieldName,
@@ -135,33 +142,33 @@ odoo.define('web.CalendarRenderer', function (require) {
                         'active': true,
                     });
                 });
-        },
+        }
         /**
          * @private
          * @param {MouseEvent} e
          */
-        _onFilterActive: function (e) {
+        _onFilterActive(e) {
             var $input = $(e.currentTarget);
             this.trigger_up('changeFilter', {
                 'fieldName': this.fieldName,
                 'value': $input.closest('.o_calendar_filter_item').data('value'),
                 'active': $input.prop('checked'),
             });
-        },
+        }
         /**
          * @private
          * @param {MouseEvent} e
          */
-        _onFilterRemove: function (e) {
+        _onFilterRemove(e) {
             var self = this;
             var $filter = $(e.currentTarget).closest('.o_calendar_filter_item');
             Dialog.confirm(this, _t("Do you really want to delete this filter from favorites ?"), {
                 confirm_callback: function () {
                     self._rpc({
-                            model: self.write_model,
-                            method: 'unlink',
-                            args: [[$filter.data('id')]],
-                        })
+                        model: self.write_model,
+                        method: 'unlink',
+                        args: [[$filter.data('id')]],
+                    })
                         .then(function () {
                             self.trigger_up('changeFilter', {
                                 'fieldName': self.fieldName,
@@ -172,8 +179,11 @@ odoo.define('web.CalendarRenderer', function (require) {
                         });
                 },
             });
-        },
-    });
+        }
+    }
+    SidebarFilterOwl.template = 'CalendarView.sidebar.filter';
+    // copy methods of FieldManagerMixin into SidebarFilterOwl
+    Object.assign(SidebarFilterOwl.prototype, FieldManagerMixin);
 
     class OwlCalendarRenderer extends AbstractRendererOwl {
 
@@ -389,8 +399,9 @@ odoo.define('web.CalendarRenderer', function (require) {
          * @private
          */
         _initSidebar() {
-            this.$sidebar = this.el.querySelector('.o_calendar_sidebar');
-            this.$sidebar_container = this.el.querySelector(".o_calendar_sidebar_container");
+            // TODO: MSH: Remove jQuery wrap
+            this.$sidebar = $(this.el.querySelector('.o_calendar_sidebar'));
+            this.$sidebar_container = $(this.el.querySelector(".o_calendar_sidebar_container"));
             this._initCalendarMini();
         }
         /**
@@ -554,45 +565,45 @@ odoo.define('web.CalendarRenderer', function (require) {
             filterIndex = filterIndex || 0;
             var arrFilters = _.toArray(this.props.filters);
             var prom;
-            // TODO: MSH: temporary comment below code, uncomment it once SidebarFilter is adapted
+            // TODO: MSH: convert it to ES6
 
-            // if (filterIndex < arrFilters.length) {
-            //     var options = arrFilters[filterIndex];
-            //     if (!_.find(options.filters, function (f) {return f.display == null || f.display;})) {
-            //         return;
-            //     }
+            if (filterIndex < arrFilters.length) {
+                var options = arrFilters[filterIndex];
+                if (!_.find(options.filters, function (f) {return f.display == null || f.display;})) {
+                    return;
+                }
 
-            //     var self = this;
-            //     options.getColor = this.getColor.bind(this);
-            //     options.fields = this.state.fields;
-            //     var filter = new SidebarFilter(self, options);
-            //     prom = filter.appendTo(this.$sidebar).then(function () {
-            //         // Show filter popover
-            //         if (options.avatar_field) {
-            //             _.each(options.filters, function (filter) {
-            //                 if (filter.value !== 'all') {
-            //                     var selector = _.str.sprintf('.o_calendar_filter_item[data-value=%s]', filter.value);
-            //                     self.$sidebar.find(selector).popover({
-            //                         animation: false,
-            //                         trigger: 'hover',
-            //                         html: true,
-            //                         placement: 'top',
-            //                         title: filter.label,
-            //                         delay: {show: 300, hide: 0},
-            //                         content: function () {
-            //                             return $('<img>', {
-            //                                 src: _.str.sprintf('/web/image/%s/%s/%s', options.avatar_model, filter.value, options.avatar_field),
-            //                                 class: 'mx-auto',
-            //                             });
-            //                         },
-            //                     });
-            //                 }
-            //             });
-            //         }
-            //         return self._renderFiltersOneByOne(filterIndex + 1);
-            //     });
-            //     this.filters.push(filter);
-            // }
+                var self = this;
+                options.getColor = this.getColor.bind(this);
+                options.fields = this.props.fields;
+                var filter = new SidebarFilterOwl(self, options);
+                prom = filter.mount(this.$sidebar[0]).then(function () {
+                    // Show filter popover
+                    if (options.avatar_field) {
+                        _.each(options.filters, function (filter) {
+                            if (filter.value !== 'all') {
+                                var selector = _.str.sprintf('.o_calendar_filter_item[data-value=%s]', filter.value);
+                                self.$sidebar.find(selector).popover({
+                                    animation: false,
+                                    trigger: 'hover',
+                                    html: true,
+                                    placement: 'top',
+                                    title: filter.label,
+                                    delay: {show: 300, hide: 0},
+                                    content: function () {
+                                        return $('<img>', {
+                                            src: _.str.sprintf('/web/image/%s/%s/%s', options.avatar_model, filter.value, options.avatar_field),
+                                            class: 'mx-auto',
+                                        });
+                                    },
+                                });
+                            }
+                        });
+                    }
+                    return self._renderFiltersOneByOne(filterIndex + 1);
+                });
+                this.filters.push(filter);
+            }
             return Promise.resolve(prom);
         }
         /**

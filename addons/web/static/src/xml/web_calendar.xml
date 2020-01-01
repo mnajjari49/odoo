@@ -64,33 +64,33 @@
         </div>
     </t>
 
-    <t t-name="CalendarView.sidebar.filter">
-        <t t-set="needCollapse" t-value="widget.filters.length > 2 and widget.title"></t>
+    <t t-name="CalendarView.sidebar.filter" owl="1">
+        <t t-set="needCollapse" t-value="filters.length > 2 and title"></t>
         <div class="o_calendar_filter">
-            <h5 t-if="needCollapse" type="button" data-toggle="collapse" t-attf-data-target="#o_cw_filter_collapse_#{widget.title}" class="d-flex justify-content-between align-items-center">
-                <t t-esc="widget.title"/><i class="o_cw_filter_collapse_icon fa fa-chevron-down"/>
+            <h5 t-if="needCollapse" type="button" data-toggle="collapse" t-attf-data-target="#o_cw_filter_collapse_{{title}}" class="d-flex justify-content-between align-items-center">
+                <t t-esc="title"/><i class="o_cw_filter_collapse_icon fa fa-chevron-down"/>
             </h5>
 
-            <h5 t-elif="widget.title" t-esc="widget.title"/>
+            <h5 t-elif="title" t-esc="title"/>
 
-            <div t-attf-class="o_calendar_filter_items #{needCollapse ? 'collapse show' : 0}" aria-expanded="true" t-attf-id="o_cw_filter_collapse_#{widget.title}">
-                <t t-foreach="widget.filters" t-as="filter" t-if="filter.display == null || filter.display">
-                    <t t-set="idForLabel" t-value="_.uniqueId('o_calendar_filter_item_')"/>
-                    <t t-set="color" t-value="widget.getColor(filter.color_index)"/>
+            <div t-attf-class="o_calendar_filter_items {{needCollapse ? 'collapse show' : 0}}" aria-expanded="true" t-attf-id="o_cw_filter_collapse_{{title}}">
+                <t t-foreach="filters" t-as="filter" t-if="filter.display == null || filter.display">
+                    <t t-set="idForLabel" t-value="uniqueId('o_calendar_filter_item_')"/>
+                    <t t-set="color" t-value="getColor(filter.color_index)"/>
                     <t t-set="isColorNumber" t-value="typeof color === 'number'"/>
 
-                    <div t-attf-class="o_calendar_filter_item w-100 position-relative mb-2 #{isColorNumber ? _.str.sprintf('o_cw_filter_color_%s', color) : ''}"
+                    <div t-attf-class="o_calendar_filter_item w-100 position-relative mb-2 {{isColorNumber ? 'o_cw_filter_color_%s' + color : ''}}"
                          t-att-data-value="filter.value" t-att-data-id="filter.id">
 
                         <input type="checkbox" t-att-id="idForLabel" name="selection" class="position-absolute" t-att-checked="filter.active ? true : undefined"/>
 
                         <label t-att-for="idForLabel" class="d-flex align-items-center m-0">
-                            <span t-attf-class="o_cw_filter_input_bg align-items-center d-flex flex-shrink-0 justify-content-center position-relative mr-1 #{widget.avatar_field ? 'o_beside_avatar' : ''}"
-                                t-att-style="color and !isColorNumber ? _.str.sprintf('border-color:%s;background-color:%s', color, color) : ''">
+                            <span t-attf-class="o_cw_filter_input_bg align-items-center d-flex flex-shrink-0 justify-content-center position-relative mr-1 {{avatar_field ? 'o_beside_avatar' : ''}}"
+                                t-att-style="color and !isColorNumber ? 'border-color:'+ color +';background-color:' + color : ''">
                                 <i class="fa fa-check position-relative"/>
                             </span>
                             <i t-if="filter.value == 'all'" class="o_cw_filter_avatar fa fa-users fa-fw  flex-shrink-0 mr-1" role="img" aria-label="Avatar" title="Avatar"/>
-                            <img t-elif="widget.avatar_field and filter.value" t-attf-src="/web/image/#{widget.avatar_model}/#{filter.value}/#{widget.avatar_field}" class="o_cw_filter_avatar flex-shrink-0 mr-1" alt="Avatar"/>
+                            <img t-elif="avatar_field and value" t-attf-src="/web/image/{{avatar_model}}/{{filter.value}}/{{avatar_field}}" class="o_cw_filter_avatar flex-shrink-0 mr-1" alt="Avatar"/>
                             <span class="o_cw_filter_title text-truncate flex-grow" t-esc="filter.label" t-att-title="filter.label"/>
                         </label>
 
