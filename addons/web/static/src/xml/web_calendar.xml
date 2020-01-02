@@ -66,7 +66,7 @@
 
     <t t-name="CalendarView.sidebar.filter" owl="1">
         <t t-set="needCollapse" t-value="filters.length > 2 and title"></t>
-        <div class="o_calendar_filter">
+        <div class="o_calendar_filter" t-on-field-changed="_onFieldChanged">
             <h5 t-if="needCollapse" type="button" data-toggle="collapse" t-attf-data-target="#o_cw_filter_collapse_{{title}}" class="d-flex justify-content-between align-items-center">
                 <t t-esc="title"/><i class="o_cw_filter_collapse_icon fa fa-chevron-down"/>
             </h5>
@@ -82,7 +82,7 @@
                     <div t-attf-class="o_calendar_filter_item w-100 position-relative mb-2 {{isColorNumber ? 'o_cw_filter_color_%s' + color : ''}}"
                          t-att-data-value="filter.value" t-att-data-id="filter.id">
 
-                        <input type="checkbox" t-att-id="idForLabel" name="selection" class="position-absolute" t-att-checked="filter.active ? true : undefined"/>
+                        <input type="checkbox" t-att-id="idForLabel" name="selection" class="position-absolute" t-att-checked="filter.active ? true : undefined" t-on-click="_onFilterActive"/>
 
                         <label t-att-for="idForLabel" class="d-flex align-items-center m-0">
                             <span t-attf-class="o_cw_filter_input_bg align-items-center d-flex flex-shrink-0 justify-content-center position-relative mr-1 {{avatar_field ? 'o_beside_avatar' : ''}}"
@@ -94,7 +94,7 @@
                             <span class="o_cw_filter_title text-truncate flex-grow" t-esc="filter.label" t-att-title="filter.label"/>
                         </label>
 
-                        <button t-if="filter.id" class="o_remove btn bg-white text-700 py-0 px-2" title="Remove this favorite from the list" role="img" aria-label="Remove this favorite from the list">
+                        <button t-if="filter.id" class="o_remove btn bg-white text-700 py-0 px-2" title="Remove this favorite from the list" role="img" aria-label="Remove this favorite from the list" t-on-click="_onFilterRemove">
                             <i class="fa fa-times"/>
                         </button>
                     </div>

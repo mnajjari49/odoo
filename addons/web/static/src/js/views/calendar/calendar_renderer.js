@@ -19,7 +19,6 @@ odoo.define('web.CalendarRenderer', function (require) {
     const FieldManagerMixin = require('web.FieldManagerMixin');
     const relationalFields = require('web.relational_fields');
     const session = require('web.session');
-    const Widget = require('web.Widget');
 
     const _t = core._t;
 
@@ -30,14 +29,13 @@ odoo.define('web.CalendarRenderer', function (require) {
     };
 
     const SidebarFilterM2O = relationalFields.FieldMany2One.extend({
-        _getSearchBlacklist: function () {
-            return this._super.apply(this, arguments).concat(this.filter_ids || []);
+        _getSearchBlacklist() {
+            return this._super(...arguments).concat(this.filter_ids || []);
         },
     });
-    // TODO: MSH: Add adapter component here and set SidebarFilterM2O as component of that adapter component
     /**
-     * Owl Component Adapter for KanbanColumnProgressBar (Odoo Widget)
-     * TODO: Remove this adapter when KanbanColumnProgressBar is a Component
+     * Owl Component Adapter for relationalFields.FieldMany2One (Odoo Widget)
+     * TODO: Remove this adapter when relationalFields.FieldMany2One is a Component
      */
     class SidebarFilterM2OAdapter extends AdapterComponent {
         constructor(parent, props) {
@@ -47,6 +45,10 @@ odoo.define('web.CalendarRenderer', function (require) {
 
         get widgetArgs() {
             return [this.props.name, this.props.record, this.props.options];
+        }
+
+        patched() {
+            this.widget._reset(this.props.record);
         }
     }
 
@@ -76,44 +78,38 @@ odoo.define('web.CalendarRenderer', function (require) {
         /**
          * @override
          */
-        willStart() {
-            var self = this;
-            var defs = [super.willStart(...arguments)];
+        async willStart() {
+            await super.willStart(...arguments);
 
             if (this.write_model || this.write_field) {
-                var def = this.model.makeRecord(this.write_model, [{
+                this.m2oRecordID = await this.model.makeRecord(this.write_model, [{
                     name: this.write_field,
                     relation: this.fields[this.fieldName].relation,
                     type: 'many2one',
-                }]).then(function (recordID) {
-                    self.many2one = new SidebarFilterM2OAdapter(self, {
-                        name: self.write_field,
-                        record: self.model.get(recordID),
-                        options: {
-                            mode: 'edit',
-                            attrs: {
-                                placeholder: "+ " + _.str.sprintf(_t("Add %s"), self.title),
-                                can_create: false
-                            },
-                        }
-                    });
-                });
-                defs.push(def);
+                }]);
             }
-            return Promise.all(defs);
-
         }
         /**
          * @override
          */
-        mounted() {
-            // this._super();
-            if (this.many2one) {
-                this.many2one.mount(this.el);
-                this.many2one.filter_ids = _.without(_.pluck(this.filters, 'value'), 'all');
+        async mounted() {
+            if (this.write_model || this.write_field) {
+                this.many2one = new SidebarFilterM2OAdapter(this, {
+                    name: this.write_field,
+                    record: this.model.get(this.m2oRecordID),
+                    options: {
+                        mode: 'edit',
+                        attrs: {
+                            placeholder: "+ " + _.str.sprintf(_t("Add %s"), this.title),
+                            can_create: false
+                        },
+                    }
+                });
             }
-            // this.el.querySelectorAll('.o_remove').addEventListener('click', this._onFilterRemove.bind(this));
-            // this.el.querySelectorAll('.o_calendar_filter_items input').addEventListener('click', this._onFilterActive.bind(this));
+            if (this.many2one) {
+                await this.many2one.mount(this.el);
+                this.many2one.widget.filter_ids = _.without(_.pluck(this.filters, 'value'), 'all');
+            }
         }
 
         //--------------------------------------------------------------------------
@@ -124,35 +120,32 @@ odoo.define('web.CalendarRenderer', function (require) {
          * @private
          * @param {OdooEvent} event
          */
-        _onFieldChanged(event) {
-            var self = this;
+        async _onFieldChanged(event) {
             event.stopPropagation();
-            var createValues = { 'user_id': session.uid };
-            var value = event.data.changes[this.write_field].id;
+            const createValues = { 'user_id': session.uid };
+            const value = event.detail.changes[this.write_field].id;
             createValues[this.write_field] = value;
-            this._rpc({
+            await this.rpc({
                 model: this.write_model,
                 method: 'create',
                 args: [createValues],
-            })
-                .then(function () {
-                    self.trigger_up('changeFilter', {
-                        'fieldName': self.fieldName,
-                        'value': value,
-                        'active': true,
-                    });
-                });
+            });
+            this.trigger('changeFilter', {
+                'fieldName': this.fieldName,
+                'value': value,
+                'active': true,
+            });
         }
         /**
          * @private
          * @param {MouseEvent} e
          */
         _onFilterActive(e) {
-            var $input = $(e.currentTarget);
-            this.trigger_up('changeFilter', {
+            const input = e.currentTarget;
+            this.trigger('changeFilter', {
                 'fieldName': this.fieldName,
-                'value': $input.closest('.o_calendar_filter_item').data('value'),
-                'active': $input.prop('checked'),
+                'value': parseInt(input.closest('.o_calendar_filter_item').getAttribute('data-value')),
+                'active': input.checked,
             });
         }
         /**
@@ -160,30 +153,32 @@ odoo.define('web.CalendarRenderer', function (require) {
          * @param {MouseEvent} e
          */
         _onFilterRemove(e) {
-            var self = this;
-            var $filter = $(e.currentTarget).closest('.o_calendar_filter_item');
+            const self = this;
+            const filter = (e.currentTarget).closest('.o_calendar_filter_item');
             Dialog.confirm(this, _t("Do you really want to delete this filter from favorites ?"), {
                 confirm_callback: function () {
-                    self._rpc({
+                    self.rpc({
                         model: self.write_model,
                         method: 'unlink',
-                        args: [[$filter.data('id')]],
-                    })
-                        .then(function () {
-                            self.trigger_up('changeFilter', {
-                                'fieldName': self.fieldName,
-                                'id': $filter.data('id'),
-                                'active': false,
-                                'value': $filter.data('value'),
-                            });
+                        args: [[parseInt(filter.getAttribute('data-id'))]],
+                    }).then(function () {
+                        self.trigger('changeFilter', {
+                            'fieldName': self.fieldName,
+                            'id': parseInt(filter.getAttribute('data-id')),
+                            'active': false,
+                            'value': parseInt(filter.getAttribute('data-value')),
                         });
+                    });
                 },
             });
         }
     }
     SidebarFilterOwl.template = 'CalendarView.sidebar.filter';
     // copy methods of FieldManagerMixin into SidebarFilterOwl
-    Object.assign(SidebarFilterOwl.prototype, FieldManagerMixin);
+    // Object.assign(SidebarFilterOwl.prototype, FieldManagerMixin);
+    // We need something like: https://hacks.mozilla.org/2015/08/es6-in-depth-subclassing/
+    // instead of _.defaults or Object.assign(it will override with FieldManagerMixin methods)
+    _.defaults(SidebarFilterOwl.prototype, FieldManagerMixin);
 
     class OwlCalendarRenderer extends AbstractRendererOwl {
 
