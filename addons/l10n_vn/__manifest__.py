@@ -21,7 +21,8 @@ with Chart of account under Circular No. 200/2014/TT-BTC
 """,
     "depends": [
         "account",
-        "base_iban"
+        "base_iban",
+        "l10n_multilang"
     ],
     "data": [
          'data/l10n_vn_chart_data.xml',
@@ -32,5 +33,5 @@ with Chart of account under Circular No. 200/2014/TT-BTC
          'data/account_tax_data.xml',
          'data/account_chart_template_data.xml',
     ],
-    'post_init_hook': '_preserve_tag_on_taxes',
+    'post_init_hook': '_post_init_hook',
 }
