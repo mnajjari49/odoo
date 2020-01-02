@@ -8,6 +8,16 @@ from odoo.exceptions import ValidationError
 class Project(models.Model):
     _inherit = 'project.project'
 
+    @api.model
+    def default_get(self, fields):
+        """ Pre-fill timesheet product as "Time" data product when creating new project allowing billable tasks by default. """
+        result = super(Project, self).default_get(fields)
+        if 'timesheet_product_id' in fields and result.get('allow_billable') and result.get('allow_timesheets') and not result.get('timesheet_product_id'):
+            default_product = self.env.ref('sale_timesheet.time_product', False)
+            if default_product:
+                result['timesheet_product_id'] = default_product.id
+        return result
+
     billable_type = fields.Selection([
         ('task_rate', 'At Task Rate'),
         ('employee_rate', 'At Employee Rate'),
@@ -21,6 +31,12 @@ class Project(models.Model):
         help="Employee/Sale Order Item Mapping:\n Defines to which sales order item an employee's timesheet entry will be linked."
         "By extension, it defines the rate at which an employee's time on the project is billed.")
     allow_billable = fields.Boolean("Bill from Tasks")
+    timesheet_product_id = fields.Many2one('product.product', string='Timesheet Product', domain="[('type', '=', 'service'), ('invoice_policy', '=', 'delivery'), ('service_type', '=', 'timesheet'), '|', ('company_id', '=', False), ('company_id', '=', company_id)]", help='Select a Service product with which you would like to bill your time spent on tasks.')
+
+    @api.constrains('allow_billable', 'allow_timesheets')
+    def _check_required_timesheet_required(self):
+        if self.allow_timesheets and self.allow_billable and not self.timesheet_product_id:
+            raise ValidationError(_('The timesheet product is required when the task can be billed and timesheets are allowed.'))
 
     @api.depends('sale_order_id', 'sale_line_id', 'sale_line_employee_ids')
     def _compute_billable_type(self):
@@ -41,6 +57,15 @@ class Project(models.Model):
         else:
             if self.billable_type == 'no':
                 self.sale_line_employee_ids = False
+
+    @api.onchange('allow_timesheets', 'allow_billable')
+    def _onchange_allow_timesheets_and_billable(self):
+        if self.allow_timesheets and self.allow_billable and not self.timesheet_product_id:
+            default_product = self.env.ref('sale_timesheet.time_product', False)
+            if default_product:
+                self.timesheet_product_id = default_product
+        else:
+            self.timesheet_product_id = False
 
     @api.onchange('allow_billable')
     def _onchange_allow_billable(self):
@@ -109,8 +134,18 @@ class Project(models.Model):
             "context": {
                 'active_id': self.id,
                 'active_model': 'project.project',
+                'default_product_id': self.timesheet_product_id.id,
             },
         }
+    
+    @api.model
+    def create(self, vals):
+        self._check_required_timesheet_required()
+        return super(Project, self).create(vals)
+
+    def write(self, vals):
+        self._check_required_timesheet_required()
+        return super(Project, self).write(vals)
 
 
 class ProjectTask(models.Model):
@@ -183,5 +218,6 @@ class ProjectTask(models.Model):
                 'active_id': self.id,
                 'active_model': 'project.task',
                 'form_view_initial_mode': 'edit',
+                'default_product_id': self.project_id.timesheet_product_id.id,
             },
         }
