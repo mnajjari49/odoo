@@ -41,6 +41,9 @@
                 </div>
             </div>
         </t>
+        <t t-jquery=".o_cw_popover_fields_secondary, .o_cw_popover_edit, .o_cw_popover_delete" t-operation="attributes">
+            <attribute name="t-if">widget.privacy</attribute>
+        </t>
     </t>
 
 </template>

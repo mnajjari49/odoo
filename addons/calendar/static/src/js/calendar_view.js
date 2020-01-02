@@ -18,6 +18,7 @@ var AttendeeCalendarPopover = CalendarPopover.extend({
         var self = this;
         this._super.apply(this, arguments);
         var session = this.getSession();
+        this.privacy = this.event.record.privacy;
         // Show status dropdown if user is in attendees list
         this.showStatusDropdown = _.contains(this.event.record.partner_ids, session.partner_id);
         if (this.showStatusDropdown) {
