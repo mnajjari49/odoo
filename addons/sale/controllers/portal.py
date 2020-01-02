@@ -314,7 +314,7 @@ class CustomerPortal(CustomerPortal):
         # Create transaction
         vals = {
             'payment_token_id': pm_id,
-            'type': kwargs.get('transaction_type'),
+            'type': order._get_payment_type(),
             'return_url': order.get_portal_url(),
         }
 

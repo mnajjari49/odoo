@@ -945,7 +945,7 @@ class WebsiteSale(http.Controller):
         vals = {
             'payment_token_id': pm_id,
             'return_url': '/shop/payment/validate',
-            'type': kwargs.get('transaction_type')
+            'type': 'save_token'
         }
 
         tx = order._create_payment_transaction(vals)

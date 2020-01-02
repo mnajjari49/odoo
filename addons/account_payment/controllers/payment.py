@@ -80,7 +80,7 @@ class PaymentPortal(http.Controller):
 
         vals = {
             'payment_token_id': token.id,
-            'type': kwargs.get('transaction_type'),
+            'type': 'save_token',
             'return_url': _build_url_w_params(success_url, params),
         }
 

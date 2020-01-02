@@ -282,7 +282,7 @@ class WebsitePayment(http.Controller):
             'currency_id': int(currency_id),
             'partner_id': int(partner_id),
             'payment_token_id': int(pm_id),
-            'type': kwargs.get('transaction_type') if partner_id else 'server2server',
+            'type': 'save_token' if partner_id else 'server2server',
             'return_url': return_url,
         }
 
