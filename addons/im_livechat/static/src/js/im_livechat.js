@@ -167,6 +167,37 @@ var LivechatButton = Widget.extend({
         utils.set_cookie('im_livechat_session', "", -1); // remove cookie
     },
     /**
+     * create and open livechat window
+     *
+     * @private
+     * @param {Object} livechatData
+     */
+    _createChatWindow(livechatData) {
+        var self = this;
+        this._livechat = new WebsiteLivechat({
+            parent: this,
+            data: livechatData
+        });
+        return this._openChatWindow().then(function () {
+            if (!self._history) {
+                self._sendWelcomeMessage();
+            }
+            self._renderMessages();
+            self.call('bus_service', 'addChannel', self._livechat.getUUID());
+            self.call('bus_service', 'startPolling');
+
+            utils.set_cookie('im_livechat_session', JSON.stringify(self._livechat.toData()), 60*60);
+            utils.set_cookie('im_livechat_auto_popup', JSON.stringify(false), 60*60);
+            if (livechatData && livechatData.operator_pid[0]) {
+                // livechatData.operator_pid contains a tuple (id, name)
+                // we are only interested in the id
+                var operatorPidId = livechatData.operator_pid[0];
+                var oneWeek = 7*24*60*60;
+                utils.set_cookie('im_livechat_previous_operator_pid', operatorPidId, oneWeek);
+            }
+        });
+    },
+    /**
      * @private
      * @param {Array} notification
      */
@@ -226,6 +257,14 @@ var LivechatButton = Widget.extend({
         });
     },
     /**
+     * called when there is no operator available for the livechat
+     *
+     * @private
+     */
+    _notifyNoOperator() {
+        alert(_t("None of our collaborators seem to be available, please try again later."));
+    },
+    /**
      * @private
      */
     _openChat: _.debounce(function () {
@@ -249,30 +288,9 @@ var LivechatButton = Widget.extend({
         }
         def.then(function (livechatData) {
             if (!livechatData || !livechatData.operator_pid) {
-                alert(_t("None of our collaborators seem to be available, please try again later."));
+                self._notifyNoOperator();
             } else {
-                self._livechat = new WebsiteLivechat({
-                    parent: self,
-                    data: livechatData
-                });
-                return self._openChatWindow().then(function () {
-                    if (!self._history) {
-                        self._sendWelcomeMessage();
-                    }
-                    self._renderMessages();
-                    self.call('bus_service', 'addChannel', self._livechat.getUUID());
-                    self.call('bus_service', 'startPolling');
-
-                    utils.set_cookie('im_livechat_session', JSON.stringify(self._livechat.toData()), 60*60);
-                    utils.set_cookie('im_livechat_auto_popup', JSON.stringify(false), 60*60);
-                    if (livechatData.operator_pid[0]) {
-                        // livechatData.operator_pid contains a tuple (id, name)
-                        // we are only interested in the id
-                        var operatorPidId = livechatData.operator_pid[0];
-                        var oneWeek = 7*24*60*60;
-                        utils.set_cookie('im_livechat_previous_operator_pid', operatorPidId, oneWeek);
-                    }
-                });
+                self._createChatWindow(livechatData);
             }
         }).then(function () {
             self._openingChat = false;
