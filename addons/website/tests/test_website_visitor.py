@@ -46,17 +46,24 @@ class WebsiteVisitorTests(tests.HttpCase):
         ])
 
     def test_create_visitor_on_tracked_page(self):
-        self.assertEqual(len(self.Visitor.search([])), 0, "No visitor at the moment")
-        self.assertEqual(len(self.Track.search([])), 0, "No track at the moment")
+        Track = self.Track.search([('page_id', '=', self.tracked_view.id)])
+        self.assertEqual(len(Track.mapped('visitor_id')), 0, "No visitor at the moment")
+        self.assertEqual(len(Track), 0, "No track at the moment")
+
         self.url_open(self.untracked_view.url)
-        self.assertEqual(len(self.Visitor.search([])), 0, "No visitor created after visiting an untracked view")
-        self.assertEqual(len(self.Track.search([])), 0, "No track created after visiting an untracked view")
+        Track = self.Track.search([('page_id', '=', self.tracked_view.id)])
+        self.assertEqual(len(Track.mapped('visitor_id')), 0, "No visitor created after visiting an untracked view")
+        self.assertEqual(len(Track), 0, "No track created after visiting an untracked view")
+
         self.url_open(self.tracked_view.url)
-        self.assertEqual(len(self.Visitor.search([])), 1, "A visitor should be created after visiting a tracked view")
-        self.assertEqual(len(self.Track.search([])), 1, "A track should be created after visiting a tracked view")
+        Track = self.Track.search([('page_id', '=', self.tracked_view.id)])
+        self.assertEqual(len(Track.mapped('visitor_id')), 1, "A visitor should be created after visiting a tracked view")
+        self.assertEqual(len(Track), 1, "A track should be created after visiting a tracked view")
+
         self.url_open(self.tracked_view.url)
-        self.assertEqual(len(self.Visitor.search([])), 1, "No visitor should be created after visiting another tracked view")
-        self.assertEqual(len(self.Track.search([])), 1, "No track should be created after visiting another tracked view before 30 min")
+        Track = self.Track.search([('page_id', '=', self.tracked_view.id)])
+        self.assertEqual(len(Track.mapped('visitor_id')), 1, "No visitor should be created after visiting another tracked view")
+        self.assertEqual(len(Track), 1, "No track should be created after visiting another tracked view before 30 min")
 
     def test_long_period_inactivity(self):
         # link visitor to partner
