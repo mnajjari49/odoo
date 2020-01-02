@@ -2,6 +2,13 @@ odoo.define('web.CalendarPopover', function (require) {
 "use strict";
 
 // TODO: MSH: Convert it to OWL component
+// TODO: MSH: Create generic class, like FieldAdapter extends AdapterComponent
+// where Component for fieldAdapter we will pass in props from where FieldAdapter is initialized
+// Component will be result of fieldRegistry.getAny([field.widget, field.type])
+// and FieldAdater will have widgetArgs method which will have [this.props.name, this.props.record, this.props.options]
+// where options will be self.displayFields[field.name] in our case
+// use mount instead of appendTo everywhere, code of start of CalendarPopover will moved to mounted method
+// not sure but we may need to move processFields in mounted method of CaledarPopover instead of willStart, like we have to do in calendar_renderer
 
 var fieldRegistry = require('web.field_registry');
 var StandaloneFieldManagerMixin = require('web.StandaloneFieldManagerMixin');

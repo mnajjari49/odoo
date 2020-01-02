@@ -198,6 +198,29 @@ odoo.define('web.CalendarRenderer', function (require) {
         /**
          * @override
          */
+        destroy() {
+            if (this.$calendar) {
+                this.$calendar.fullCalendar('destroy');
+            }
+            if (this.$small_calendar) {
+                this.$small_calendar.datepicker('destroy');
+                $('#ui-datepicker-div:empty').remove();
+            }
+            this._super.apply(this, arguments);
+        }
+        /**
+         * @override
+         */
+        mounted() {
+            this._initCalendar();
+            this._initSidebar();
+            if (config.device.isMobile) {
+                this._bindSwipe();
+            }
+        }
+        /**
+         * @override
+         */
         on_attach_callback() {
             if (config.device.isMobile) {
                 this.$el.height($(window).height() - this.$el.offset().top);
@@ -209,27 +232,84 @@ odoo.define('web.CalendarRenderer', function (require) {
                 this.$calendar.fullCalendar('render');
             }
         }
+
+        //--------------------------------------------------------------------------
+        // Public
+        //--------------------------------------------------------------------------
+
+        //TODO: MSH: Convert to ES6 and adapt code, all public methods
+
+        /**
+         * Note: this is not dead code, it is called by the calendar-box template
+         *
+         * @param {any} record
+         * @param {any} fieldName
+         * @param {any} imageField
+         * @returns {string[]}
+         */
+        getAvatars(record, fieldName, imageField) {
+            var field = this.state.fields[fieldName];
+
+            if (!record[fieldName]) {
+                return [];
+            }
+            if (field.type === 'one2many' || field.type === 'many2many') {
+                return _.map(record[fieldName], function (id) {
+                    return '<img src="/web/image/'+field.relation+'/'+id+'/'+imageField+'" />';
+                });
+            } else if (field.type === 'many2one') {
+                return ['<img src="/web/image/'+field.relation+'/'+record[fieldName][0]+'/'+imageField+'" />'];
+            } else {
+                var value = this._format(record, fieldName);
+                var color = this.getColor(value);
+                if (isNaN(color)) {
+                    return ['<span class="o_avatar_square" style="background-color:'+color+';"/>'];
+                }
+                else {
+                    return ['<span class="o_avatar_square o_calendar_color_'+color+'"/>'];
+                }
+            }
+        }
+        /**
+         * Note: this is not dead code, it is called by two template
+         *
+         * @param {any} key
+         * @returns {integer}
+         */
+        getColor(key) {
+            if (!key) {
+                return;
+            }
+            if (this.color_map[key]) {
+                return this.color_map[key];
+            }
+            // check if the key is a css color
+            if (typeof key === 'string' && key.match(/^((#[A-F0-9]{3})|(#[A-F0-9]{6})|((hsl|rgb)a?\(\s*(?:(\s*\d{1,3}%?\s*),?){3}(\s*,[0-9.]{1,4})?\))|)$/i)) {
+                return this.color_map[key] = key;
+            }
+            var index = (((_.keys(this.color_map).length + 1) * 5) % 24) + 1;
+            this.color_map[key] = index;
+            return index;
+        }
         /**
          * @override
          */
-        destroy() {
-            if (this.$calendar) {
-                this.$calendar.fullCalendar('destroy');
+        getLocalState() {
+            var $fcScroller = this.$calendar.find('.fc-scroller');
+            return {
+                scrollPosition: $fcScroller.scrollTop(),
+            };
+        }
+        /**
+         * @override
+         */
+        setLocalState(localState) {
+            if (localState.scrollPosition) {
+                var $fcScroller = this.$calendar.find('.fc-scroller');
+                $fcScroller.scrollTop(localState.scrollPosition);
             }
-            if (this.$small_calendar) {
-                this.$small_calendar.datepicker('destroy');
-                $('#ui-datepicker-div:empty').remove();
-            }
-            this._super.apply(this, arguments);
         }
 
-        mounted() {
-            this._initCalendar();
-            this._initSidebar();
-            if (config.device.isMobile) {
-                this._bindSwipe();
-            }
-        }
 
         //--------------------------------------------------------------------------
         // Private
@@ -259,6 +339,121 @@ odoo.define('web.CalendarRenderer', function (require) {
                     self.trigger('prev');
                 }
             });
+        }
+        /**
+         * @param {any} event
+         * @returns {string} the html for the rendered event
+         */
+        _eventRender(event) {
+            const qwebContext = {
+                event: event,
+                record: event.record,
+                color: this.getColor(event.color_index),
+            };
+            this.qweb_context = qwebContext;
+            if (_.isEmpty(qwebContext.record)) {
+                return '';
+            } else {
+                return this.env.qweb.renderToString("calendar-box", qwebContext);
+            }
+        }
+        // TODO: MSH: convert _format to ES6 and adapt code
+
+        /**
+         * @private
+         * @param {any} record
+         * @param {any} fieldName
+         * @returns {string}
+         */
+        _format(record, fieldName) {
+            var field = this.state.fields[fieldName];
+            if (field.type === "one2many" || field.type === "many2many") {
+                return fieldUtils.format[field.type]({ data: record[fieldName] }, field);
+            } else {
+                return fieldUtils.format[field.type](record[fieldName], field, { forceString: true });
+            }
+        }
+        /**
+         * Prepare context to display in the popover.
+         *
+         * @private
+         * @param {Object} eventData
+         * @returns {Object} context
+         */
+        _getPopoverContext(eventData) {
+            const context = {
+                hideDate: this.hideDate,
+                hideTime: this.hideTime,
+                eventTime: {},
+                eventDate: {},
+                fields: this.props.fields,
+                displayFields: this.displayFields,
+                event: eventData,
+                modelName: this.model,
+            };
+
+            const start = moment(eventData.r_start || eventData.start);
+            const end = moment(eventData.r_end || eventData.end);
+            const isSameDayEvent = start.clone().add(1, 'minute').isSame(end.clone().subtract(1, 'minute'), 'day');
+
+            // Do not display timing if the event occur across multiple days. Otherwise use user's timing preferences
+            if (!this.hideTime && !eventData.record.allday && isSameDayEvent) {
+                // Fetch user's preferences
+                const dbTimeFormat = _t.database.parameters.time_format.search('%H') != -1 ? 'HH:mm' : 'hh:mm a';
+
+                context.eventTime.time = start.clone().format(dbTimeFormat) + ' - ' + end.clone().format(dbTimeFormat);
+
+                // Calculate duration and format text
+                const durationHours = moment.duration(end.diff(start)).hours();
+                const durationHoursKey = (durationHours === 1) ? 'h' : 'hh';
+                const durationMinutes = moment.duration(end.diff(start)).minutes();
+                const durationMinutesKey = (durationMinutes === 1) ? 'm' : 'mm';
+
+                const localeData = moment.localeData(); // i18n for 'hours' and "minutes" strings
+                context.eventTime.duration = (durationHours > 0 ? localeData.relativeTime(durationHours, true, durationHoursKey) : '')
+                    + (durationHours > 0 && durationMinutes > 0 ? ', ' : '')
+                    + (durationMinutes > 0 ? localeData.relativeTime(durationMinutes, true, durationMinutesKey) : '');
+            }
+
+            if (!this.hideDate) {
+                if (!isSameDayEvent && start.isSame(end, 'month')) {
+                    // Simplify date-range if an event occurs into the same month (eg. '4-5 August 2019')
+                    context.eventDate.date = start.clone().format('MMMM D') + '-' + end.clone().format('D, YYYY');
+                } else {
+                    context.eventDate.date = isSameDayEvent ? start.clone().format('dddd, LL') : start.clone().format('LL') + ' - ' + end.clone().format('LL');
+                }
+
+                if (eventData.record.allday && isSameDayEvent) {
+                    context.eventDate.duration = _t("All day");
+                } else if (eventData.record.allday && !isSameDayEvent) {
+                    const daysLocaleData = moment.localeData();
+                    const days = moment.duration(end.diff(start)).days();
+                    context.eventDate.duration = daysLocaleData.relativeTime(days, true, 'dd');
+                }
+            }
+
+            return context;
+        }
+        /**
+         * Prepare the parameters for the popover.
+         * This allow the parameters to be extensible.
+         *
+         * @private
+         * @param {Object} eventData
+         */
+        _getPopoverParams(eventData) {
+            return {
+                animation: false,
+                delay: {
+                    show: 50,
+                    hide: 100
+                },
+                trigger: 'manual',
+                html: true,
+                title: eventData.record.display_name,
+                template: this.env.qweb.renderToString('CalendarView.event.popover.placeholder', { color: this.getColor(eventData.color_index) }),
+                container: eventData.allDay ? '.fc-view' : '.fc-scroller',
+            };
         }
         /**
          * Initialize the main calendar
@@ -389,6 +584,28 @@ odoo.define('web.CalendarRenderer', function (require) {
             this.$calendar.fullCalendar(fcOptions);
         }
         /**
+         * Initialize the mini calendar in the sidebar
+         *
+         * @private
+         */
+        _initCalendarMini() {
+            var self = this;
+            // TODO: MSH: this should be sub component we can initialize datepicker in mounted method of that component
+            // TODO: MSH: Remove jQuery wrap here
+            this.$small_calendar = $(this.el.querySelector(".o_calendar_mini"));
+            this.$small_calendar.datepicker({
+                'onSelect': function (datum, obj) {
+                    self.trigger('changeDate', {
+                        date: moment(new Date(+obj.currentYear, +obj.currentMonth, +obj.currentDay))
+                    });
+                },
+                'showOtherMonths': true,
+                'dayNamesMin': this.props.fc_options.dayNamesShort,
+                'monthNames': this.props.fc_options.monthNamesShort,
+                'firstDay': this.props.fc_options.firstDay,
+            });
+        }
+        /**
          * Initialize the sidebar
          *
          * @private
@@ -400,77 +617,17 @@ odoo.define('web.CalendarRenderer', function (require) {
             this._initCalendarMini();
         }
         /**
-         * Initialize the mini calendar in the sidebar
+         * Finalise the popover
          *
+         * @param {jQueryElement} $popoverElement
+         * @param {web.CalendarPopover} calendarPopover
          * @private
          */
-        _initCalendarMini() {
-            var self = this;
-            // TODO: MSH: Remove jQuery wrap here
-            this.$small_calendar = $(this.el.querySelector(".o_calendar_mini"));
-            this.$small_calendar.datepicker({
-                'onSelect': function (datum, obj) {
-                    self.trigger_up('changeDate', {
-                        date: moment(new Date(+obj.currentYear, +obj.currentMonth, +obj.currentDay))
-                    });
-                },
-                'showOtherMonths': true,
-                'dayNamesMin': this.props.fc_options.dayNamesShort,
-                'monthNames': this.props.fc_options.monthNamesShort,
-                'firstDay': this.props.fc_options.firstDay,
-            });
+        _onPopoverShown($popoverElement, calendarPopover) {
+            var $popover = $($popoverElement.data('bs.popover').tip);
+            $popover.find('.o_cw_popover_close').on('click', this._unselectEvent.bind(this));
+            $popover.find('.o_cw_body').replaceWith(calendarPopover.$el);
         }
-
-        /**
-         * Remove highlight classes and dispose of popovers
-         *
-         * @private
-        */
-        _unselectEvent() {
-            $(this.el).find('.fc-event').removeClass('o_cw_custom_highlight');
-            $(this.el).find('.o_cw_popover').popover('dispose');
-        }
-
-        /**
-         * @param {any} event
-         * @returns {string} the html for the rendered event
-         */
-        _eventRender(event) {
-            const qwebContext = {
-                event: event,
-                record: event.record,
-                color: this.getColor(event.color_index),
-            };
-            this.qweb_context = qwebContext;
-            if (_.isEmpty(qwebContext.record)) {
-                return '';
-            } else {
-                return this.env.qweb.renderToString("calendar-box", qwebContext);
-            }
-        }
-
-        /**
-         * Note: this is not dead code, it is called by two template
-         *
-         * @param {any} key
-         * @returns {integer}
-         */
-        getColor(key) {
-            if (!key) {
-                return;
-            }
-            if (this.color_map[key]) {
-                return this.color_map[key];
-            }
-            // check if the key is a css color
-            if (typeof key === 'string' && key.match(/^((#[A-F0-9]{3})|(#[A-F0-9]{6})|((hsl|rgb)a?\(\s*(?:(\s*\d{1,3}%?\s*),?){3}(\s*,[0-9.]{1,4})?\))|)$/i)) {
-                return this.color_map[key] = key;
-            }
-            var index = (((_.keys(this.color_map).length + 1) * 5) % 24) + 1;
-            this.color_map[key] = index;
-            return index;
-        }
-
         /**
          * Render the calendar view, this is the main entry point.
          *
@@ -518,7 +675,6 @@ odoo.define('web.CalendarRenderer', function (require) {
 
             return Promise.all([filterProm]);
         }
-
         /**
          * Render all events
          *
@@ -528,7 +684,6 @@ odoo.define('web.CalendarRenderer', function (require) {
             this.$calendar.fullCalendar('removeEvents');
             this.$calendar.fullCalendar('addEventSource', this.props.data);
         }
-
         /**
          * Render all filters
          *
@@ -557,6 +712,11 @@ odoo.define('web.CalendarRenderer', function (require) {
          * @returns {Promise} resolved when all filters have been rendered
          */
         _renderFiltersOneByOne(filterIndex) {
+            // TODO: MSH: Instead of doing stuff here, we can create separate component for SidebarFilters
+            // iterate over filters in template and add condition like we add here and add SidebarFilter component in loop
+            // put it inside sidebar element, code of then will moved in mounted method of SidebarFilter component
+            // for this.filters, we can use t-ref and get the component and add into this.filters
+            // need to check, as we are manually destroying filter in _renderFilter method
             filterIndex = filterIndex || 0;
             var arrFilters = _.toArray(this.props.filters);
             var prom;
@@ -602,88 +762,6 @@ odoo.define('web.CalendarRenderer', function (require) {
             return Promise.resolve(prom);
         }
         /**
-         * Prepare context to display in the popover.
-         *
-         * @private
-         * @param {Object} eventData
-         * @returns {Object} context
-         */
-        _getPopoverContext(eventData) {
-            const context = {
-                hideDate: this.hideDate,
-                hideTime: this.hideTime,
-                eventTime: {},
-                eventDate: {},
-                fields: this.props.fields,
-                displayFields: this.displayFields,
-                event: eventData,
-                modelName: this.model,
-            };
-
-            const start = moment(eventData.r_start || eventData.start);
-            const end = moment(eventData.r_end || eventData.end);
-            const isSameDayEvent = start.clone().add(1, 'minute').isSame(end.clone().subtract(1, 'minute'), 'day');
-
-            // Do not display timing if the event occur across multiple days. Otherwise use user's timing preferences
-            if (!this.hideTime && !eventData.record.allday && isSameDayEvent) {
-                // Fetch user's preferences
-                const dbTimeFormat = _t.database.parameters.time_format.search('%H') != -1 ? 'HH:mm': 'hh:mm a';
-
-                context.eventTime.time = start.clone().format(dbTimeFormat) + ' - ' + end.clone().format(dbTimeFormat);
-
-                // Calculate duration and format text
-                const durationHours = moment.duration(end.diff(start)).hours();
-                const durationHoursKey = (durationHours === 1) ? 'h' : 'hh';
-                const durationMinutes = moment.duration(end.diff(start)).minutes();
-                const durationMinutesKey = (durationMinutes === 1) ? 'm' : 'mm';
-
-                const localeData = moment.localeData(); // i18n for 'hours' and "minutes" strings
-                context.eventTime.duration = (durationHours > 0 ? localeData.relativeTime(durationHours, true, durationHoursKey) : '')
-                        + (durationHours > 0 && durationMinutes > 0 ? ', ' : '')
-                        + (durationMinutes > 0 ? localeData.relativeTime(durationMinutes, true, durationMinutesKey) : '');
-            }
-
-            if (!this.hideDate) {
-                if (!isSameDayEvent && start.isSame(end, 'month')) {
-                    // Simplify date-range if an event occurs into the same month (eg. '4-5 August 2019')
-                    context.eventDate.date = start.clone().format('MMMM D') + '-' + end.clone().format('D, YYYY');
-                } else {
-                    context.eventDate.date = isSameDayEvent ? start.clone().format('dddd, LL') : start.clone().format('LL') + ' - ' + end.clone().format('LL');
-                }
-
-                if (eventData.record.allday && isSameDayEvent) {
-                    context.eventDate.duration = _t("All day");
-                } else if (eventData.record.allday && !isSameDayEvent) {
-                    const daysLocaleData = moment.localeData();
-                    const days = moment.duration(end.diff(start)).days();
-                    context.eventDate.duration = daysLocaleData.relativeTime(days, true, 'dd');
-                }
-            }
-
-            return context;
-        }
-        /**
-         * Prepare the parameters for the popover.
-         * This allow the parameters to be extensible.
-         *
-         * @private
-         * @param {Object} eventData
-         */
-        _getPopoverParams(eventData) {
-            return {
-                animation: false,
-                delay: {
-                    show: 50,
-                    hide: 100
-                },
-                trigger: 'manual',
-                html: true,
-                title: eventData.record.display_name,
-                template: this.env.qweb.renderToString('CalendarView.event.popover.placeholder', {color: this.getColor(eventData.color_index)}),
-                container: eventData.allDay ? '.fc-view' : '.fc-scroller',
-            };
-        }
-        /**
          * Render event popover
          *
          * @private
@@ -692,6 +770,7 @@ odoo.define('web.CalendarRenderer', function (require) {
          */
         _renderEventPopover(eventData, $eventElement) {
             // Initialize popover widget
+            debugger;
             const calendarPopover = new this.config.CalendarPopover(this, this._getPopoverContext(eventData));
             calendarPopover.appendTo($('<div>')).then(() => {
                 $eventElement.popover(
@@ -700,6 +779,40 @@ odoo.define('web.CalendarRenderer', function (require) {
                     this._onPopoverShown($(this), calendarPopover);
                 }).popover('show');
             });
+        }
+
+        //--------------------------------------------------------------------------
+        // Handlers
+        //--------------------------------------------------------------------------
+
+        /**
+         * Remove highlight classes and dispose of popovers
+         *
+         * @private
+        */
+        _unselectEvent() {
+            $(this.el).find('.fc-event').removeClass('o_cw_custom_highlight');
+            $(this.el).find('.o_cw_popover').popover('dispose');
+        }
+        // TODO: MSH: convert to ES6 and adapt code
+        /**
+         * @private
+         * @param {OdooEvent} event
+         */
+        _onEditEvent(event) {
+            this._unselectEvent();
+            this.trigger('openEvent', {
+                _id: event.data.id,
+                title: event.data.title,
+            });
+        }
+        /**
+         * @private
+         * @param {OdooEvent} event
+         */
+        _onDeleteEvent(event) {
+            this._unselectEvent();
+            this.trigger('deleteRecord', {id: event.data.id});
         }
     }
 
