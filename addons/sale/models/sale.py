@@ -1107,6 +1107,9 @@ class SaleOrderLine(models.Model):
         ('non_accountable_null_fields',
             "CHECK(display_type IS NULL OR (product_id IS NULL AND price_unit = 0 AND product_uom_qty = 0 AND product_uom IS NULL AND customer_lead = 0))",
             "Forbidden values on non-accountable sale order line"),
+        ('down_payments',
+            "CHECK(NOT is_downpayment OR (product_uom_qty = 0 AND qty_delivered = 0))",
+            "You cannot order or deliver a down payment.")
     ]
 
     def _update_line_quantity(self, values):
