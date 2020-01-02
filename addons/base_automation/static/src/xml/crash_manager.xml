@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <templates>
-    <t t-extend="CrashManager.error">
+    <t t-name="CrashManager.BaseAutomationError" t-extend="CrashManager.error">
         <t t-jquery=".alert.alert-warning" t-operation="append">
-            <t t-if="widget.options.base_automation_id">
+            <t t-if="widget.base_automation.id">
                 <p>
                     The error is due to the automated action
-                    "<t t-esc="widget.options.base_automation_name"/>"
-                    (#<t t-esc="widget.options.base_automation_id"/>).
+                    "<t t-esc="widget.base_automation.name"/>"
+                    (#<t t-esc="widget.base_automation.id"/>).
                     <br/>
                 </p>
-                <p t-if="!widget.options.base_automation_is_admin">
+                <p t-if="!widget.base_automation.is_admin">
                     You can ask an administrator to disable or correct this automated action.
                 </p>
-                <p t-if="widget.options.base_automation_is_admin">
+                <p t-if="widget.base_automation.is_admin">
                     You can disable the action or edit it to solve the issue.<br/>
                     Disabling this action will enable you to continue your workflow
                     but any data created after this could potentially be corrupted,
@@ -23,7 +23,7 @@
             </t>
         </t>
         <t t-jquery=".alert.alert-warning button" t-operation="after">
-            <t t-if="widget.options.base_automation_id &amp;&amp; widget.options.base_automation_is_admin">
+            <t t-if="widget.base_automation.id &amp;&amp; widget.base_automation.is_admin">
                 <button class="btn btn-secondary ml8 o_disable_action_button" style="margin-top: 5px;">
                     <i class="fa fa-ban mr8"/>Disable Action
                 </button>

@@ -1,3 +1,11 @@
+odoo.define('web.ErrorDialogRegistry', function (require) {
+"use strict";
+
+var Registry = require('web.Registry');
+
+return new Registry();
+});
+
 odoo.define('web.CrashManager', function (require) {
 "use strict";
 
@@ -5,6 +13,7 @@ const AbstractService = require('web.AbstractService');
 var ajax = require('web.ajax');
 var core = require('web.core');
 var Dialog = require('web.Dialog');
+var ErrorDialogRegistry = require('web.ErrorDialogRegistry');
 var Widget = require('web.Widget');
 
 var _t = core._t;
@@ -38,7 +47,6 @@ var CrashManagerDialog = Dialog.extend({
         this._super.apply(this, [parent, options]);
         this.message = error.message;
         this.traceback = error.traceback;
-        this.options = error.options;
     },
 });
 
@@ -249,13 +257,11 @@ var CrashManager = AbstractService.extend({
         if (!active) {
             return;
         }
-        var dialog = new ErrorDialog(this, {
+        error.traceback = error.data.debug;
+        var DialogClass = error.data.context && ErrorDialogRegistry.get(error.data.context.exception_class) || ErrorDialog;
+        var dialog = new DialogClass(this, {
             title: _.str.capitalize(error.type) || _t("Odoo Error"),
-        }, {
-            message: error.message,
-            traceback: error.data.debug,
-            options: error.data.options,
-        });
+        }, error);
 
 
         // When the dialog opens, initialize the copy feature and destroy it when the dialog is closed

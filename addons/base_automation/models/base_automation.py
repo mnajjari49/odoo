@@ -173,10 +173,13 @@ class BaseAutomation(models.Model):
 
     @api.model
     def _add_postmortem_action(self, e):
-        e.options = {}
-        e.options['base_automation_id'] = self.id
-        e.options['base_automation_name'] = self.name
-        e.options['base_automation_is_admin'] = self.user_has_groups('base.group_system')
+        e.context = {}
+        e.context['exception_class'] = 'base_automation'
+        e.context['base_automation'] = {
+            'id': self.id,
+            'name': self.name,
+            'is_admin': self.user_has_groups('base.group_system'),
+        }
 
     def _process(self, records, domain_post=None):
         """ Process action ``self`` on the ``records`` that have not been done yet. """
