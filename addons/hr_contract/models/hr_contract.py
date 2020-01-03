@@ -41,6 +41,8 @@ class Contract(models.Model):
     ], string='Status', group_expand='_expand_states', copy=False,
        tracking=True, help='Status of the contract', default='draft')
     company_id = fields.Many2one('res.company', default=lambda self: self.env.company, required=True)
+    company_country_id = fields.Many2one('res.country', string="Company country", related='company_id.country_id', readonly=True)
+
     """
         kanban_state:
             * draft + green = "Incoming" state (will be set as Open once the contract has started)
