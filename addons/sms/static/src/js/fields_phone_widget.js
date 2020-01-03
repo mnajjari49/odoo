@@ -63,7 +63,7 @@ Phone.include({
             });
             $composerButton.prepend($('<i>', {class: 'fa fa-mobile'}));
             $composerButton.on('click', this._onClickSMS.bind(this));
-            this.$el = $('<div/>').append(this.$el).append($composerButton);
+            this.$el = this.$el.add($composerButton);
         }
 
         return def;
