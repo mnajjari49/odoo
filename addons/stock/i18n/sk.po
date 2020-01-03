@@ -4189,7 +4189,7 @@ msgstr "Plánovaný prevod"
 #. module: stock
 #: code:addons/stock/models/stock_picking.py:0
 #, python-format
-msgid "Please add 'Done' qantitites to the picking to create a new pack."
+msgid "Please add 'Done' quantities to the picking to create a new pack."
 msgstr ""
 
 #. module: stock
