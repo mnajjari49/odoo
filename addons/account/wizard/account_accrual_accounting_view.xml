@@ -22,6 +22,8 @@
                             <field name="journal_id"/>
                         </group>
                     </group>
+                    <label for="preview_data" string="The following Journal Entries will be generated"/>
+                    <field name="preview_data" widget="account_accrual_widget" class="d-block"/>
                     <footer>
                         <button string="Create Journal Entry" name="amend_entries" type="object" class="oe_highlight"/>
                         <button string="Cancel" class="btn btn-secondary" special="cancel"/>
