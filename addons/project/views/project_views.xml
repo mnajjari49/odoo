@@ -473,6 +473,7 @@
                     <field name="is_favorite"/>
                     <field name="rating_percentage_satisfaction"/>
                     <field name="rating_status"/>
+                    <field name="rating_active" />
                     <field name="analytic_account_id"/>
                     <templates>
                         <t t-name="kanban-box">
@@ -489,7 +490,7 @@
                                             <div t-if="record.alias_name.value and record.alias_domain.value">
                                                 <span><i class="fa fa-envelope" role="img" aria-label="Domain Alias" title="Domain Alias"></i> <t t-esc="record.alias_id.value"/></span>
                                             </div>
-                                            <div t-if="record.rating_active" class="mt8 text-primary" title="Percentage of happy ratings over the past 30 days." groups="project.group_project_rating">
+                                            <div t-if="record.rating_active.raw_value" class="mt8 text-primary" title="Percentage of happy ratings over the past 30 days." groups="project.group_project_rating">
                                                 <b>
                                                     <t t-if="record.rating_percentage_satisfaction.value == -1">
                                                         <i class="fa fa-smile-o"/> No rating yet
