@@ -191,6 +191,16 @@ var LivechatButton = Widget.extend({
                 } else {
                     this._livechat.unregisterTyping({ partnerID: partnerID });
                 }
+            } else if (notification[1]._type === 'operator_status') {
+                if (notification[1].im_status === 'offline') {
+                    this._chatWindow.$el.find('.o_thread_window_header').after($('<div>', {
+                        text: _t("No operators are available"),
+                        class: 'o_no_operator_available'
+                    }));
+                } else {
+                    this._chatWindow.$el.find('.o_no_operator_available').remove();
+                }
+                this.call('bus_service', 'updateOption', 'im_status', notification[1].im_status);
             } else { // normal message
                 // If message from notif is already in chatter messages, stop handling
                 if (this._messages.some(message => message.getID() === notification[1].id)) {
