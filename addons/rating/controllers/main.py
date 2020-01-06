@@ -16,8 +16,8 @@ class Rating(http.Controller):
         if not rating:
             return request.not_found()
         rate_names = {
-            10: _("satisfied"),
-            5: _("not satisfied"),
+            5: _("satisfied"),
+            3: _("not satisfied"),
             1: _("highly dissatisfied")
         }
         rating.write({'rating': rate, 'consumed': True})
