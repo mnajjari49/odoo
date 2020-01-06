@@ -1002,10 +1002,6 @@
             <field name="context">{'project_id':active_id}</field>
         </record>
 
-<<<<<<< HEAD
-=======
-
->>>>>>> Done everything except published button on ratings page
         <!-- Menu item for project -->
         <menuitem id="menu_tasks_config" name="GTD" parent="menu_project_config" sequence="2"/>
 
