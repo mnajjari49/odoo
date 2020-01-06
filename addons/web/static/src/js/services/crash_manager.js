@@ -258,8 +258,8 @@ var CrashManager = AbstractService.extend({
             return;
         }
         error.traceback = error.data.debug;
-        var DialogClass = error.data.context && ErrorDialogRegistry.get(error.data.context.exception_class) || ErrorDialog;
-        var dialog = new DialogClass(this, {
+        var dialogClass = error.data.context && ErrorDialogRegistry.get(error.data.context.exception_class) || ErrorDialog;
+        var dialog = new dialogClass(this, {
             title: _.str.capitalize(error.type) || _t("Odoo Error"),
         }, error);
 

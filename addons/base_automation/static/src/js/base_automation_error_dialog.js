@@ -1,11 +1,13 @@
-odoo.define('base_automation.CrashManager', function (require) {
+odoo.define('base_automation.BaseAutomatioErrorDialog', function (require) {
     "use strict";
-    var CrashManager = require('web.CrashManager');
-    var ErrorDialog = CrashManager.ErrorDialog;
-    var ErrorDialogRegistry = require('web.ErrorDialogRegistry');
-    var BaseAutomationErrorDialog = ErrorDialog.extend({
+
+    const CrashManager = require('web.CrashManager');
+    const ErrorDialog = CrashManager.ErrorDialog;
+    const ErrorDialogRegistry = require('web.ErrorDialogRegistry');
+
+    const BaseAutomationErrorDialog = ErrorDialog.extend({
         xmlDependencies: (ErrorDialog.prototype.xmlDependencies || []).concat(
-            ['/base_automation/static/src/xml/crash_manager.xml']
+            ['/base_automation/static/src/xml/base_automation_error_dialog.xml']
         ),
         template: 'CrashManager.BaseAutomationError',
         events: {
@@ -28,7 +30,7 @@ odoo.define('base_automation.CrashManager', function (require) {
         },
 
         //--------------------------------------------------------------------------
-        // Private
+        // Handlers
         //--------------------------------------------------------------------------
 
         /**
@@ -37,7 +39,7 @@ odoo.define('base_automation.CrashManager', function (require) {
         * Then, we write `active` to `False` on the automated action to disable it.
         *
         * @private
-        * @param {event} ev
+        * @param {MouseEvent} ev
         */
         _onDisableAction: function (ev) {
             ev.preventDefault();
@@ -55,7 +57,7 @@ odoo.define('base_automation.CrashManager', function (require) {
         * Then, we redirect the user to the automated action form.
         *
         * @private
-        * @param {event} ev
+        * @param {MouseEvent} ev
         */
         _onEditAction: function (ev) {
             ev.preventDefault();
@@ -69,5 +71,7 @@ odoo.define('base_automation.CrashManager', function (require) {
             });
         },
     });
+
     ErrorDialogRegistry.add('base_automation', BaseAutomationErrorDialog);
+
 });
