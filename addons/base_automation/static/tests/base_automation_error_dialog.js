@@ -1,5 +1,5 @@
 odoo.define('base_automation.BaseAutomatioErrorDialogTests', function (require) {
-"use strict";
+'use strict';
 
     const CrashManager = require('web.CrashManager').CrashManager;
 
@@ -7,13 +7,13 @@ odoo.define('base_automation.BaseAutomatioErrorDialogTests', function (require) 
 
         QUnit.module('Error Dialog');
 
-        QUnit.test('Error dialog with disable/edit automated actions buttons', async function (assert) {
+        QUnit.test('Error due to an automated action', async function (assert) {
             assert.expect(4);
 
-            let baseAutomationName = "Test base automation error dialog";
+            let baseAutomationName = 'Test base automation error dialog';
             let error = {
-                type: "Odoo Client Error",
-                message: "Message",
+                type: 'Odoo Client Error',
+                message: 'Message',
                 data: {
                     debug: 'Traceback',
                     context: {
@@ -31,22 +31,20 @@ odoo.define('base_automation.BaseAutomatioErrorDialogTests', function (require) 
 
             await dialog._opened;
 
-            let $el = dialog.$el;
-
-            assert.strictEqual($el.find('.o_clipboard_button').length, 1, "should display Copy full error button");
-            assert.strictEqual($el.find('.o_disable_action_button').length, 1, "should display Disable action button");
-            assert.strictEqual($el.find('.o_edit_action_button').length, 1, "should display Edit action button");
-            assert.ok($el.text().indexOf(baseAutomationName) !== -1, "should display the automated action name");
+            assert.containsOnce(document.body, '.modal .o_clipboard_button');
+            assert.containsOnce(document.body, '.modal .o_disable_action_button');
+            assert.containsOnce(document.body, '.modal .o_edit_action_button');
+            assert.ok(dialog.$el.text().indexOf(baseAutomationName) !== -1);
 
             crashManager.destroy();
         });
 
-        QUnit.test('Error dialog without automated action', async function (assert) {
+        QUnit.test('Error not due to an automated action', async function (assert) {
             assert.expect(3);
 
             let error = {
-                type: "Odoo Client Error",
-                message: "Message",
+                type: 'Odoo Client Error',
+                message: 'Message',
                 data: {
                     debug: 'Traceback',
                 },
@@ -56,11 +54,9 @@ odoo.define('base_automation.BaseAutomatioErrorDialogTests', function (require) 
 
             await dialog._opened;
 
-            let $el = dialog.$el;
-
-            assert.strictEqual($el.find('.o_clipboard_button').length, 1, "should display Copy full error button");
-            assert.strictEqual($el.find('.o_disable_action_button').length, 0, "should not display Disable action button");
-            assert.strictEqual($el.find('.o_edit_action_button').length, 0, "should not display Edit action button");
+            assert.containsOnce(document.body, '.modal .o_clipboard_button');
+            assert.containsNone(document.body, '.modal .o_disable_action_button');
+            assert.containsNone(document.body, '.modal .o_edit_action_button');
 
             crashManager.destroy();
         });

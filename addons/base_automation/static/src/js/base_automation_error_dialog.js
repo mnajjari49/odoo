@@ -25,7 +25,7 @@ odoo.define('base_automation.BaseAutomatioErrorDialog', function (require) {
         * @param {boolean} error.data.context.base_automation.is_admin  whether the user is admin
         */
         init: function (parent, options, error) {
-            this._super.apply(this, [parent, options, error]);
+            this._super.apply(this, arguments);
             this.base_automation = error.data.context.base_automation;
         },
 

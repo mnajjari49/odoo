@@ -8,7 +8,7 @@
 <div t-name="CrashManager.error" class="o_dialog_error">
     <div class="alert alert-warning clearfix" role="alert">
         <div class="float-right ml8 btn-group-vertical">
-            <button class="btn btn-primary ml8 o_clipboard_button">
+            <button class="btn btn-primary o_clipboard_button">
                 <i class="fa fa-clipboard mr8"/>Copy the full error to clipboard
             </button>
         </div>
