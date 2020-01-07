@@ -233,6 +233,7 @@ list of filtered posts (by date or tag).
                     <t t-set="_record" t-value="blog_post"/>
                     <t t-set="use_filters" t-value="True"/>
                     <t t-set="use_size" t-value="True"/>
+                    <t t-set="display_opt_name" t-value="'Blog Post Cover'"/>
                     <t t-set="additionnal_classes" t-value="'o_wblog_post_page_cover'"/>
 
                     <div class="container text-center position-relative h-100 d-flex flex-column flex-grow-1 justify-content-around">
