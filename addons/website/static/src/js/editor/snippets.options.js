@@ -1046,10 +1046,6 @@ options.registry.CoverProperties = options.Class.extend({
      */
     start: function () {
         this.$filterValueOpts = this.$el.find('[data-filter-value]');
-        this.$filterColorOpts = this.$el.find('[data-filter-color]');
-        this.filterColorClasses = this.$filterColorOpts.map(function () {
-            return $(this).data('filterColor');
-        }).get().join(' ');
 
         return this._super.apply(this, arguments);
     },
@@ -1079,20 +1075,7 @@ options.registry.CoverProperties = options.Class.extend({
      */
     filterValue: function (previewMode, widgetValue, params) {
         this.$filter.css('opacity', widgetValue || 0);
-    },
-    /**
-     * @see this.selectClass for parameters
-     */
-    filterColor: function (previewMode, widgetValue, params) {
-        this.$filter.removeClass(this.filterColorClasses);
-        if (widgetValue) {
-            this.$filter.addClass(widgetValue);
-        }
-
-        var $firstVisibleFilterOpt = this.$filterValueOpts.eq(1);
-        if (parseFloat(this.$filter.css('opacity')) < parseFloat($firstVisibleFilterOpt.data('filterValue'))) {
-            this.filterValue(previewMode, $firstVisibleFilterOpt.data('filterValue'), $firstVisibleFilterOpt);
-        }
+        this.$filter.toggleClass('oe_black', parseFloat(widgetValue) !== 0);
     },
 
     //--------------------------------------------------------------------------
@@ -1109,7 +1092,6 @@ options.registry.CoverProperties = options.Class.extend({
         this.$target[0].dataset.coverClass = this.$el.find('[data-cover-opt-name="size"] we-button.active').data('selectClass') || '';
         this.$target[0].dataset.textAlignClass = this.$el.find('[data-cover-opt-name="text_align"] we-button.active').data('selectClass') || '';
         this.$target[0].dataset.filterValue = this.$filterValueOpts.filter('.active').data('filterValue') || 0.0;
-        this.$target[0].dataset.filterColor = this.$filterColorOpts.filter('.active').data('filterColor') || '';
     },
 
     //--------------------------------------------------------------------------
@@ -1123,15 +1105,6 @@ options.registry.CoverProperties = options.Class.extend({
         switch (methodName) {
             case 'filterValue': {
                 return parseFloat(this.$filter.css('opacity')).toFixed(1);
-            }
-            case 'filterColor': {
-                const classes = this.filterColorClasses.split(' ');
-                for (const className of classes) {
-                    if (this.$filter.hasClass(className)) {
-                        return className;
-                    }
-                }
-                return '';
             }
             case 'background': {
                 const background = this.$image.css('background-image');
