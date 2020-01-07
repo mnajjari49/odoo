@@ -4,21 +4,21 @@
 from odoo import api, models, fields
 
 
+class SaleOrder(models.Model):
+    _inherit = 'sale.order'
+
+    @api.depends('order_line.purchase_line_ids.order_id')
+    def _compute_mto_purchase_order_count(self):
+        super(SaleOrder, self)._compute_mto_purchase_order_count()
+
+    def _get_mto_purchase_orders(self):
+        return super(SaleOrder, self)._get_mto_purchase_orders() | self.order_line.purchase_line_ids.order_id
+
+
 class SaleOrderLine(models.Model):
-    _inherit = "sale.order.line"
+    _inherit = 'sale.order.line'
 
     purchase_line_ids = fields.One2many('purchase.order.line', 'sale_line_id')
-
-    def _get_qty_procurement(self, previous_product_uom_qty):
-        # People without purchase rights should be able to do this operation
-        purchase_lines_sudo = self.sudo().purchase_line_ids
-        if purchase_lines_sudo.filtered(lambda r: r.state != 'cancel'):
-            qty = 0.0
-            for po_line in purchase_lines_sudo.filtered(lambda r: r.state != 'cancel'):
-                qty += po_line.product_uom._compute_quantity(po_line.product_qty, self.product_uom, rounding_method='HALF-UP')
-            return qty
-        else:
-            return super(SaleOrderLine, self)._get_qty_procurement(previous_product_uom_qty=previous_product_uom_qty)
 
     def _compute_is_mto(self):
         super(SaleOrderLine, self)._compute_is_mto()
@@ -31,3 +31,14 @@ class SaleOrderLine(models.Model):
                         pull_rule.picking_type_id.sudo().default_location_dest_id.usage == 'customer':
                     line.is_mto = True
                     break
+
+    def _get_qty_procurement(self, previous_product_uom_qty):
+        # People without purchase rights should be able to do this operation
+        purchase_lines_sudo = self.sudo().purchase_line_ids
+        if purchase_lines_sudo.filtered(lambda r: r.state != 'cancel'):
+            qty = 0.0
+            for po_line in purchase_lines_sudo.filtered(lambda r: r.state != 'cancel'):
+                qty += po_line.product_uom._compute_quantity(po_line.product_qty, self.product_uom, rounding_method='HALF-UP')
+            return qty
+        else:
+            return super(SaleOrderLine, self)._get_qty_procurement(previous_product_uom_qty=previous_product_uom_qty)
