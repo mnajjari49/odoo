@@ -294,7 +294,7 @@ odoo.define('web.CalendarController', function (require) {
 
             const options = Object.assign({}, this.options, event.options, {
                 context: context,
-                title: _.str.sprintf(_t('Create: %s'), (this.displayName || this.renderer.arch.attrs.string))
+                title: _t(`Create: ${this.displayName || this.renderer.arch.attrs.string}`)
             });
 
             if (this.quick != null) {

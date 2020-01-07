@@ -79,7 +79,7 @@
                     <t t-set="color" t-value="getColor(filter.color_index)"/>
                     <t t-set="isColorNumber" t-value="typeof color === 'number'"/>
 
-                    <div t-attf-class="o_calendar_filter_item w-100 position-relative mb-2 {{isColorNumber ? 'o_cw_filter_color_%s' + color : ''}}"
+                    <div t-attf-class="o_calendar_filter_item w-100 position-relative mb-2 {{isColorNumber ? 'o_cw_filter_color_' + color : ''}}"
                          t-att-data-value="filter.value" t-att-data-id="filter.id">
 
                         <input type="checkbox" t-att-id="idForLabel" name="selection" class="position-absolute" t-att-checked="filter.active ? true : undefined" t-on-click="_onFilterActive"/>

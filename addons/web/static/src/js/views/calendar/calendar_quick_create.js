@@ -81,7 +81,7 @@ odoo.define('web.CalendarQuickCreate', function (require) {
             const val = this.$('input').val().trim();
             if (!val) {
                 this.$('label, input').addClass('o_field_invalid');
-                const warnings = _.str.sprintf('<ul><li>%s</li></ul>', _t("Summary"));
+                const warnings = `<ul><li>${_t("Summary")}</li></ul>`;
                 this.do_warn(_t("The following field is invalid:"), warnings);
             }
             dataCalendar.title = val;
