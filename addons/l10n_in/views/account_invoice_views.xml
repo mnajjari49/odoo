@@ -24,8 +24,7 @@
                     options='{"no_create_edit": True, "no_open": True}'/>
             </xpath>
             <xpath expr="//page[@id='other_tab']/group[@id='other_tab_group']/group[@name='payments_info_group']" position="after">
-                <group string="Export India" attrs="{'invisible': [
-                    '|',
+                <group string="Export India" attrs="{'invisible': ['|',
                         ('l10n_in_gst_treatment', 'not in', ['overseas','deemed_export']),
                         ('type', 'not in', ['out_invoice','out_refund']),
                     ]}">
@@ -33,7 +32,7 @@
                     <field name="l10n_in_shipping_bill_date"/>
                     <field name="l10n_in_shipping_port_code_id"/>
                 </group>
-                <group string="Import India" attrs="{'invisible': [
+                <group string="Import India" attrs="{'invisible': ['|',
                         ('l10n_in_gst_treatment', 'not in', ['overseas','special_economic_zone']),
                         ('type', 'not in', ['in_invoice','in_refund']),
                     ]}">

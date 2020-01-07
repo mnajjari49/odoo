@@ -37,7 +37,7 @@ class AccountMove(models.Model):
         wrong_moves = self.filtered(lambda move:
             move.l10n_in_company_country_code == 'IN' and
             move.l10n_in_gst_treatment in ['regular','composition','special_economic_zone','deemed_export'] and
-            move.partner_id.vat == False)
+            move.l10n_in_gstin == False)
         if wrong_moves:
             partners_name = "".join("%s(%s) "%(m.partner_id.name,m.partner_id.id) for m in wrong_moves)
             raise ValidationError(_("GSTIN is required for GST Treatment Regular, Composition, Special Economic Zone and Deemed Export.\nDefine GSTIN in %s") %(partners_name))
