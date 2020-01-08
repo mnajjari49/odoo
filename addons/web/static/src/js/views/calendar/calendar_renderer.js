@@ -586,9 +586,10 @@ odoo.define('web.CalendarRenderer', function (require) {
          * @private
          */
         _onPopoverShown($popoverElement, calendarPopover) {
-            var $popover = $($popoverElement.data('bs.popover').tip);
+            const $popover = $($popoverElement.data('bs.popover').tip);
             $popover.find('.o_cw_popover_close').on('click', this._unselectEvent.bind(this));
-            $popover.find('.o_cw_body').replaceWith(calendarPopover.$el);
+            // TODO: MSH: Remove jQuery wrap
+            $popover.find('.o_cw_body').replaceWith($(calendarPopover.el));
         }
         /**
          * Render the calendar view, this is the main entry point.
@@ -598,6 +599,7 @@ odoo.define('web.CalendarRenderer', function (require) {
          * @returns {Promise}
          */
         _render() {
+            // TODO: MSH: Convert to es6 syntax
             var $calendar = this.$calendar;
             var $fc_view = $calendar.find('.fc-view');
             var scrollPosition = $fc_view.scrollLeft();
@@ -730,14 +732,15 @@ odoo.define('web.CalendarRenderer', function (require) {
          * @param {jQueryElement} $eventElement
          */
         _renderEventPopover(eventData, $eventElement) {
+            const self = this;
             // Initialize popover widget
-            debugger;
             const calendarPopover = new this.config.CalendarPopover(this, this._getPopoverContext(eventData));
-            calendarPopover.appendTo($('<div>')).then(() => {
+            // TODO: MSH: Remove jQuery wrap
+            calendarPopover.mount($('<div>')[0]).then(() => {
                 $eventElement.popover(
                     this._getPopoverParams(eventData)
                 ).on('shown.bs.popover', function () {
-                    this._onPopoverShown($(this), calendarPopover);
+                    self._onPopoverShown($(this), calendarPopover);
                 }).popover('show');
             });
         }

@@ -28,7 +28,8 @@
         </t>
     </t>
 
-    <t t-name="Calendar.attendee.status.popover" t-extend="CalendarView.event.popover">
+    <!-- TODO: MSH: Temporary commented code, convert it to OWL -->
+    <!-- <t t-name="Calendar.attendee.status.popover" t-extend="CalendarView.event.popover">
         <t t-jquery=".o_cw_popover_delete" t-operation="after">
             <div t-if="widget.showStatusDropdown" class="btn-group o-calendar-attendee-status ml-2">
                 <a href="#" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -41,6 +42,6 @@
                 </div>
             </div>
         </t>
-    </t>
+    </t> -->
 
 </template>
