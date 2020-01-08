@@ -137,6 +137,8 @@ class StockRule(models.Model):
 class ProcurementGroup(models.Model):
     _inherit = 'procurement.group'
 
+    mrp_production_id = fields.One2many('mrp.production', 'procurement_group_id')
+
     @api.model
     def run(self, procurements, raise_user_error=True):
         """ If 'run' is called on a kit, this override is made in order to call
