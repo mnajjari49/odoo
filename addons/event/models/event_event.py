@@ -49,16 +49,13 @@ class EventType(models.Model):
     name = fields.Char('Event Category', required=True, translate=True)
     sequence = fields.Integer()
     # registration
-    has_seats_limitation = fields.Boolean(
-        'Limited Seats', default=False)
+    has_seats_limitation = fields.Boolean('Limited Seats', default=False)
     default_registration_min = fields.Integer(
-        'Minimum Registrations', default=0,
-        help="It will select this default minimum value when you choose this event",
-        compute='_compute_default_registration', store=True, readonly=False)
+        'Minimum Registrations', compute='_compute_default_registration', readonly=False, store=True,
+        help="It will select this default minimum value when you choose this event")
     default_registration_max = fields.Integer(
-        'Maximum Registrations', default=0,
-        help="It will select this default maximum value when you choose this event",
-        compute='_compute_default_registration', store=True, readonly=False)
+        'Maximum Registrations', compute='_compute_default_registration', readonly=False, store=True,
+        help="It will select this default maximum value when you choose this event")
     auto_confirm = fields.Boolean(
         'Automatically Confirm Registrations', default=True,
         help="Events and registrations will automatically be confirmed "
