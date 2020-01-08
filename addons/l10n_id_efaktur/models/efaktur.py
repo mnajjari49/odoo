@@ -24,9 +24,10 @@ class Efaktur(models.Model):
         for record in self:
             if record.name and record.name != re.sub(r'\D', '', record.name):
                 record.name = re.sub(r'\D', '', record.name)
-            if len(record.invoice_id) > 1:
+            if len(record.invoice_id) > 1 and record.name[1] == '0':
+                # same number can be used multiple times if it is for a correction done multiple times
                 raise UserError(_('Only one invoice per number'))
-            elif len(record.invoice_id) == 1 and len(record.name) != 16:
+            elif len(record.invoice_id) >= 1 and len(record.name) != 16:
                 raise UserError(_('A number linked to an invoice should have 16 digits'))
             elif len(record.invoice_id) == 0 and len(record.name) != 13:
                 raise UserError(_('A number not linked to an invoice should have 13 digits'))

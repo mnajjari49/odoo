@@ -69,6 +69,15 @@ class AccountMove(models.Model):
         for move in self:
             move.l10n_id_need_kode_transaksi = (ppn_tag.id in move.line_ids.tag_ids.ids) and move.partner_id.l10n_id_pkp and not move.l10n_id_efaktur_id and move.type == 'out_invoice'
 
+    @api.constrains('l10n_id_kode_transaksi', 'line_ids')
+    def _constraint_kode_ppn(self):
+        ppn_tag = self.env.ref('l10n_id.ppn_tag')
+        for move in self:
+            if move.l10n_id_kode_transaksi == '08' and any(ppn_tag.id in line.tag_ids.ids for line in move.line_ids if line.exclude_from_invoice_tab is False):
+                raise UserError(_('There shouldn\'t be PPN with this Kode Transaksi'))
+            elif move.l10n_id_kode_transaksi != '08' and any(ppn_tag.id not in line.tag_ids.ids for line in move.line_ids if line.exclude_from_invoice_tab is False):
+                raise UserError(_('All lines should have PPN with this Kode Transaksi'))
+
     def post(self):
         """Set E-Faktur number after validation."""
         for move in self:
@@ -78,12 +87,15 @@ class AccountMove(models.Model):
                 if move.l10n_id_replace_invoice_id.l10n_id_efaktur_id:
                     if not move.l10n_id_replace_invoice_id.l10n_id_date_validated:
                         raise ValidationError(_('Replacement invoice only for invoices on which e-faktur is validated'))
-                    rep_efaktur = move.l10n_id_replace_invoice_id.l10n_id_efaktur_id.name
-                    self.env['l10n_id_efaktur.efaktur'].create({
-                        'name': '%s1%s' % (move.l10n_id_kode_transaksi, rep_efaktur[3:]),
+                    rep_efaktur_str = move.l10n_id_replace_invoice_id.l10n_id_efaktur_id.name
+                    new_efaktur_str = '%s1%s' % (move.l10n_id_kode_transaksi, rep_efaktur_str[3:])
+                    efaktur = self.env['l10n_id_efaktur.efaktur'].search([('name', '=', new_efaktur_str)]) or self.env['l10n_id_efaktur.efaktur'].create({
+                        'name': new_efaktur_str,
                         'invoice_id': [(6, 0, move.ids)],
                         'company_id': move.company_id.id,
                     })
+                    efaktur.invoice_id |= move
+
                 else:
                     efaktur = self.env['l10n_id_efaktur.efaktur'].search([('invoice_id', '=', False), ('company_id', '=', move.company_id.id)], limit=1)
                     if not efaktur:
@@ -342,7 +354,7 @@ class AccountMove(models.Model):
         return {'JUMLAH_PPNBM': 0, 'UANG_MUKA_PPNBM': 0, 'BLOK': '', 'NOMOR': '', 'RT': '', 'RW': '', 'KECAMATAN': '', 'KELURAHAN': '', 'KABUPATEN': '', 'PROPINSI': '', 'KODE_POS': '', 'JUMLAH_BARANG': 0, 'TARIF_PPNBM': 0, 'PPNBM': 0}
 
     def _generate_efaktur(self, delimiter):
-        output_head = self.filtered(lambda x: x.l10n_id_need_kode_transaksi == True)._generate_efaktur_invoice(delimiter)
+        output_head = self.filtered(lambda x: x.l10n_id_need_kode_transaksi is True)._generate_efaktur_invoice(delimiter)
         my_utf8 = output_head.encode("utf-8")
         out = base64.b64encode(my_utf8)
 

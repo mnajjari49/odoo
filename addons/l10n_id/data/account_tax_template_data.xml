@@ -82,7 +82,6 @@
             (0,0, {
                 'factor_percent': 100,
                 'repartition_type': 'base',
-                'tag_ids': [(4, ref('ppn_tag'))],
             }),
             (0,0, {
                 'factor_percent': 100,
@@ -94,7 +93,6 @@
             (0,0, {
                 'factor_percent': 100,
                 'repartition_type': 'base',
-                'tag_ids': [(4, ref('ppn_tag'))],
             }),
             (0,0, {
                 'factor_percent': 100,
@@ -115,7 +113,6 @@
             (0,0, {
                 'factor_percent': 100,
                 'repartition_type': 'base',
-                'tag_ids': [(4, ref('ppn_tag'))],
             }),
             (0,0, {
                 'factor_percent': 100,
@@ -127,7 +124,6 @@
             (0,0, {
                 'factor_percent': 100,
                 'repartition_type': 'base',
-                'tag_ids': [(4, ref('ppn_tag'))],
             }),
             (0,0, {
                 'factor_percent': 100,
@@ -148,7 +144,6 @@
             (0,0, {
                 'factor_percent': 100,
                 'repartition_type': 'base',
-                'tag_ids': [(4, ref('ppn_tag'))],
             }),
             (0,0, {
                 'factor_percent': 100,
@@ -160,7 +155,6 @@
             (0,0, {
                 'factor_percent': 100,
                 'repartition_type': 'base',
-                'tag_ids': [(4, ref('ppn_tag'))],
             }),
             (0,0, {
                 'factor_percent': 100,
@@ -181,7 +175,6 @@
             (0,0, {
                 'factor_percent': 100,
                 'repartition_type': 'base',
-                'tag_ids': [(4, ref('ppn_tag'))],
             }),
             (0,0, {
                 'factor_percent': 100,
@@ -193,7 +186,6 @@
             (0,0, {
                 'factor_percent': 100,
                 'repartition_type': 'base',
-                'tag_ids': [(4, ref('ppn_tag'))],
             }),
             (0,0, {
                 'factor_percent': 100,
