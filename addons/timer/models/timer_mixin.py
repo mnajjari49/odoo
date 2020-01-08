@@ -71,13 +71,14 @@ class TimerMixin(models.AbstractModel):
         
 
     def action_timer_pause(self):
-        for timer in list(filter(lambda t: t.is_timer_running, self.timer_ids)):
-            timer.action_timer_pause()
+        self.ensure_one()
+        timer = self._get_record_timer()
+        timer.action_timer_pause()
 
     def action_timer_resume(self):
-        
-        for timer in list(filter(lambda t: t.is_timer_running, self.timer_ids)):
-            timer.action_timer_resume()
+        self.ensure_one()
+        timer = self._get_record_timer()
+        timer.action_timer_resume()
 
     def stop_timer_in_progress(self):
         # Cancel the timer in progress if there is one

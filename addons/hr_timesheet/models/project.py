@@ -171,14 +171,13 @@ class Task(models.Model):
 
     def action_timer_start(self):
         self.ensure_one()
-        if not self.timesheet_timer_first_start:
-            self.write({'timesheet_timer_first_start': fields.Datetime.now()})
+        # Stop existing timer
         super(Task, self).action_timer_start()
 
     def action_timer_stop(self):
         self.ensure_one()
-        if self.timer_start:  # timer was either running or paused
-            minutes_spent = self._get_minutes_spent()
+        if self._get_record_timer().timer_start:  # timer was either running or paused
+            minutes_spent = super().action_timer_stop()
             minutes_spent = self._timer_rounding(minutes_spent)
             return self._action_create_timesheet(minutes_spent * 60 / 3600)
         return False
