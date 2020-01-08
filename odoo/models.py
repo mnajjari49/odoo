@@ -5095,10 +5095,8 @@ class BaseModel(MetaModel('DummyModel', (object,), {'_register': False})):
     def __int__(self):
         return self.id
 
-    def __str__(self):
-        return "%s%s" % (self._name, getattr(self, '_ids', ""))
     def __repr__(self):
-        return str(self)
+        return "%s%s" % (self._name, getattr(self, '_ids', ""))
 
     def __hash__(self):
         if hasattr(self, '_ids'):
