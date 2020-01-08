@@ -94,7 +94,7 @@ const FieldTimesheetTime = basicFields.FieldFloatTime.extend({
         // launches the "action_timer_start".
         if (this.recordData.timer_start) {
             const time = await this._rpc({
-                model: this.model,
+                model: 'timer.timer',
                 method: 'get_server_time',
                 args: []
             });

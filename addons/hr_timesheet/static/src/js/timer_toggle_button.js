@@ -51,7 +51,7 @@ const TimerToggleButton = FieldToggleBoolean.extend({
      */
     _onToggleButton: async function (event) {
         event.stopPropagation();
-
+        console.log("triggered : ", this.res_id, this.value);
         const result = await this._rpc({
             model: 'account.analytic.line',
             method: this._getActionButton(),
@@ -66,6 +66,7 @@ const TimerToggleButton = FieldToggleBoolean.extend({
         this._setValue(!this.value);
     },
     _getActionButton: function () {
+        console.log("action : ", this.value);
         return this.value ? 'action_timer_stop' : 'action_timer_start';
     }
 });

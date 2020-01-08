@@ -51,7 +51,7 @@ var TimerFieldWidget = AbstractField.extend({
     },
     _getServerTime: function () {
         return this._rpc({
-            model: 'account.analytic.line',
+            model: 'timer.timer',
             method: 'get_server_time',
             args: []
         });
