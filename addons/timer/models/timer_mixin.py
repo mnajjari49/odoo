@@ -62,26 +62,26 @@ class TimerMixin(models.AbstractModel):
         
         """
         self.ensure_one()
-        minutes_spent = self.timer_id.action_timer_stop()
+        timer = self._get_record_timer()
+        minutes_spent = timer.action_timer_stop()
         self.env['timer.timer'].search([
-                    ('id', '=', self.timer_id.id)
+                    ('id', '=', timer.id)
                 ]).unlink()
         return minutes_spent
         
 
     def action_timer_pause(self):
-        # self.write({'timer_pause': fields.Datetime.now()})
         for timer in list(filter(lambda t: t.is_timer_running, self.timer_ids)):
             timer.action_timer_pause()
 
     def action_timer_resume(self):
-        # new_start = self.timer_start + (fields.Datetime.now() - self.timer_pause)
-        # self.write({'timer_start': new_start, 'timer_pause': False})
+        
         for timer in list(filter(lambda t: t.is_timer_running, self.timer_ids)):
             timer.action_timer_resume()
 
     def stop_timer_in_progress(self):
         # Cancel the timer in progress if there is one
+        
         for timer in self._get_user_timers().filtered(lambda t: t.is_timer_running):
             result = { 
                 "minutes_spent" : timer.action_timer_stop(),
@@ -91,4 +91,4 @@ class TimerMixin(models.AbstractModel):
                 ('id', '=', timer.id)
             ]).unlink()
             return result
-            # Pause or Stop ?
+            # TODO : Pause or Stop ?

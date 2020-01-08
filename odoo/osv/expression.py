@@ -917,7 +917,6 @@ class expression(object):
                 # Non-stored field should provide an implementation of search.
                 if not field.search:
                     # field does not support search!
-                    import pdb; pdb.set_trace()
                     _logger.error("Non-stored field %s cannot be searched.", field)
                     if _logger.isEnabledFor(logging.DEBUG):
                         _logger.debug(''.join(traceback.format_stack()))
