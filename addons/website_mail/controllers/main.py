@@ -53,7 +53,7 @@ class WebsiteMail(http.Controller):
 
         record = request.env[model].sudo().browse(int(res_id))
         if record and partner:
-            values['is_follower'] = bool(request.env['mail.followers'].search_count([
+            values['is_follower'] = bool(request.env['mail.followers'].sudo().search_count([
                 ('res_model', '=', model),
                 ('res_id', '=', record.id),
                 ('partner_id', '=', partner.id)
