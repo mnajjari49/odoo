@@ -754,6 +754,31 @@ var KanbanActivity = BasicActivity.extend({
 });
 
 // -----------------------------------------------------------------------------
+// Activities Widget for Activity views ('kanban_activity_date' widget)
+// -----------------------------------------------------------------------------
+const KanbanActivityDate = KanbanActivity.extend({
+    _render() {
+        this._super.apply(this, arguments);
+        // replace clock by closest deadline
+        const $date = $('<div class="o_closest_deadline">');
+        const date = new Date(this.record.data.closest_deadline);
+        // To remove year only if current year
+        if (moment().year() === moment(date).year()) {
+            $date.text(date.toLocaleDateString(moment().locale(), { day: 'numeric', month: 'short' }));
+        } else {
+            $date.text(moment(date).format('ll'));
+        }
+        this.$el.find('a').html($date);
+        if (this.record.data.activity_ids.res_ids.length > 1) {
+            this.$el.find('a').append($('<span>', {
+                class: 'badge badge-light badge-pill border-0 ' + this.record.data.activity_state,
+                text: this.record.data.activity_ids.res_ids.length,
+            }));
+        }
+    }
+})
+
+// -----------------------------------------------------------------------------
 // Activity Exception Widget to display Exception icon ('activity_exception' widget)
 // -----------------------------------------------------------------------------
 
@@ -797,6 +822,7 @@ var ActivityException = AbstractField.extend({
 field_registry
     .add('mail_activity', Activity)
     .add('kanban_activity', KanbanActivity)
+    .add('kanban_activity_date', KanbanActivityDate)
     .add('activity_exception', ActivityException);
 
 return Activity;
