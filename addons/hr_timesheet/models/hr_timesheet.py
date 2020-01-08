@@ -205,8 +205,9 @@ class AccountAnalyticLine(models.Model):
         """ Start timer and search if another timer hasn't been launched.
             If yes, then stop the timer before launch this timer.
         """
-        if not self.timer_start and self.display_timer:
+        if not self._get_record_timer().timer_start and self.display_timer:
             # Stop an existing timer if it is running
+            # YTI Should be done in the mixin IMO
             ts_info = self.stop_timer_in_progress()
             # Because it stops the timer of another timesheet than our
             # it needs to search it to be able to add the minutes_spent

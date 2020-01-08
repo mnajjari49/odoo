@@ -27,7 +27,7 @@ class TimerTimer(models.Model):
         """
         self.ensure_one()
         if not self.timer_start:
-            self.update({'timer_start': fields.Datetime.now()})
+            self.write({'timer_start': fields.Datetime.now()})
 
     def action_timer_stop(self):
         """ Stop the timer and return the spent minutes since it started
@@ -38,7 +38,7 @@ class TimerTimer(models.Model):
         if not self.timer_start:
             return False
         minutes_spent = self._get_minutes_spent()
-        self.update({'timer_start': False, 'timer_pause': False})
+        self.write({'timer_start': False, 'timer_pause': False})
         return minutes_spent
 
     def _get_minutes_spent(self):
@@ -50,11 +50,11 @@ class TimerTimer(models.Model):
         return (stop_time - start_time).total_seconds() / 60
 
     def action_timer_pause(self):
-        self.update({'timer_pause': fields.Datetime.now()})
+        self.write({'timer_pause': fields.Datetime.now()})
 
     def action_timer_resume(self):
         new_start = self.timer_start + (fields.Datetime.now() - self.timer_pause)
-        self.update({'timer_start': new_start, 'timer_pause': False})
+        self.write({'timer_start': new_start, 'timer_pause': False})
 
     @api.model
     def get_server_time(self):

@@ -8,28 +8,39 @@ class TimerMixin(models.AbstractModel):
     _name = 'timer.mixin'
     _description = 'Timer Mixin'
 
-    timer_id = fields.Many2one('timer.timer', compute='_compute_user_timer')
-    timer_ids = fields.One2many('timer.timer', compute='_compute_user_timer')
-    timer_start = fields.Datetime(related='timer_id.timer_start')
-    timer_pause = fields.Datetime(related='timer_id.timer_pause')
-    is_timer_running = fields.Boolean(related='timer_id.is_timer_running')
+    # timer_id = fields.Many2one('timer.timer', compute='_compute_user_timer')
+    # timer_ids = fields.One2many('timer.timer', compute='_compute_user_timer')
+    timer_start = fields.Datetime(compute='_compute_is_timer_running')
+    timer_pause = fields.Datetime(compute='_compute_is_timer_running')
+    is_timer_running = fields.Boolean(compute='_compute_is_timer_running')
 
-    def _compute_user_timer(self):
-        self.timer_ids = self.env['timer.timer'].search([
-            ('user_id', '=', self.env.user.id)
-        ])
-
+    def _compute_is_timer_running(self):
         for record in self:
-            record.timer_id = self.timer_ids.filtered(lambda t: t.res_id == str(record.id))
+            record_timer = record._get_record_timer()
+            record.is_timer_running = record_timer.is_timer_running
+            record.timer_start = record_timer.timer_start
+            record.timer_pause = record_timer.timer_pause
+
+    def _get_record_timer(self):
+        self.ensure_one()
+        return self.env['timer.timer'].search([
+            ('user_id', '=', self.env.user.id),
+            ('res_id', '=', self.id)
+        ], limit=1)
+
+    def _is_timer_user_running(self):
+        return self._get_record_timer().is_timer_running
+
+    @api.model
+    def _get_user_timers(self):
+        return self.env['timer.timer'].search([('user_id', '=', self.env.user.id)])
 
     def action_timer_start(self):
-        """ 
-        
-        """
         self.ensure_one()
         
-        if not self.timer_id:
-            self.timer_id = self.env['timer.timer'].create({
+        timer = self._get_record_timer()
+        if not timer:
+            timer = self.env['timer.timer'].create({
                 'timer_start' : False,
                 'timer_pause' : False,
                 'is_timer_running' : False,
@@ -37,13 +48,13 @@ class TimerMixin(models.AbstractModel):
                 'res_id' : self.id,
                 'user_id' : self.env.user.id,
             })
-            self.timer_id.action_timer_start()
+            timer.action_timer_start()
         else:
             # Check if it is in pause then resume it or start it
-            if(self.timer_id.timer_pause):
-                self.timer_id.action_timer_resume()
+            if timer.timer_pause:
+                timer.action_timer_resume()
             else:
-                self.timer_id.action_timer_start()
+                timer.action_timer_start()
         
 
     def action_timer_stop(self):
@@ -71,15 +82,13 @@ class TimerMixin(models.AbstractModel):
 
     def stop_timer_in_progress(self):
         # Cancel the timer in progress if there is one
-        if any(timer.is_timer_running for timer in self.timer_ids):
-            for timer in self.timer_ids.filtered(lambda t: t.is_timer_running):
-                result = { 
-                    "minutes_spent" : timer.action_timer_stop(),
-                    "res_id" : timer.res_id
-                }
-                self.env['timer.timer'].search([
-                    ('id', '=', timer.id)
-                ]).unlink()
-                import pdb; pdb.set_trace()
-                return result
-                # Pause or Stop ?
+        for timer in self._get_user_timers().filtered(lambda t: t.is_timer_running):
+            result = { 
+                "minutes_spent" : timer.action_timer_stop(),
+                "res_id" : timer.res_id
+            }
+            self.env['timer.timer'].search([
+                ('id', '=', timer.id)
+            ]).unlink()
+            return result
+            # Pause or Stop ?
