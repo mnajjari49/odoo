@@ -2952,26 +2952,22 @@ class AccountMoveLine(models.Model):
         for line in self:
             if line.id and (line.account_id.reconcile or line.account_id.internal_type == 'liquidity'):
                 # Compute the residual amount in both foreign / company currencies.
-                rate = line.balance and line.amount_currency / line.balance or 0.0
                 reconciled_amount = 0.0
                 reconciled_amount_currency = 0.0
-                reconciled_amount_to_convert = 0.0
 
                 for partial in line.matched_debit_ids:
                     reconciled_amount -= partial.amount
                     if partial.currency_id == line.currency_id:
                         reconciled_amount_currency -= partial.amount_currency
                     else:
-                        reconciled_amount_to_convert -= partial.amount
+                        reconciled_amount_currency -= partial.currency_id._convert(partial.amount, line.currency_id, line.company_id, partial.debit_move_id.date)
 
                 for partial in line.matched_credit_ids:
                     reconciled_amount += partial.amount
                     if partial.currency_id == line.currency_id:
                         reconciled_amount_currency += partial.amount_currency
                     else:
-                        reconciled_amount_to_convert += partial.amount
-
-                reconciled_amount_currency += line.currency_id.round(reconciled_amount_to_convert * rate)
+                        reconciled_amount_currency += partial.currency_id._convert(partial.amount, line.currency_id, line.company_id, partial.credit_move_id.date)
 
                 line.amount_residual = line.balance - reconciled_amount
                 line.amount_residual_currency = line.amount_currency - reconciled_amount_currency
