@@ -663,7 +663,7 @@ class MrpProduction(models.Model):
                 })
             production._generate_finished_moves()
             production.move_raw_ids._adjust_procure_method()
-            (production.move_raw_ids | production.move_finished_ids)._action_confirm()
+            (production.move_raw_ids | production.move_finished_ids).filtered(lambda move: move.product_uom_qty > 0.0)._action_confirm()
         return True
 
     def action_assign(self):
@@ -895,7 +895,7 @@ class MrpProduction(models.Model):
     def post_inventory(self):
         for order in self:
             moves_not_to_do = order.move_raw_ids.filtered(lambda x: x.state == 'done')
-            moves_to_do = order.move_raw_ids.filtered(lambda x: x.state not in ('done', 'cancel'))
+            moves_to_do = order.move_raw_ids.filtered(lambda x: x.state not in ('done', 'cancel') and x.product_uom_qty > 0)
             for move in moves_to_do.filtered(lambda m: m.product_qty == 0.0 and m.quantity_done > 0):
                 move.product_uom_qty = move.quantity_done
             # MRP do not merge move, catch the result of _action_done in order
@@ -919,6 +919,8 @@ class MrpProduction(models.Model):
                 else:
                     # Link with everything
                     moveline.write({'consume_line_ids': [(6, 0, [x for x in consume_move_lines.ids])]})
+            (self.move_raw_ids | self.move_finished_ids).filtered(lambda x: x.state == 'draft' and x.product_uom_qty == 0).write({'state': 'done'})
+
         return True
 
     def button_mark_done(self):
