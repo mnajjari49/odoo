@@ -62,10 +62,12 @@ odoo.define('web.test_env', async function (require) {
                     }
                     throw new Error(`No method to perform RPC`);
                 },
+                url: session.url,
             }, env.session),
             device: Object.assign({
                 isMobile: false,
             }, env.device),
+            isDebug: () => false,
         };
         const testEnv = Object.assign(proxiedEnv, defaultEnv);
         return testEnv;

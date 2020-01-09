@@ -708,6 +708,7 @@
                 <script type="text/javascript" src="/web/static/tests/core/dialog_tests.js"></script>
                 <script type="text/javascript" src="/web/static/tests/core/dom_tests.js"></script>
 
+                <script type="text/javascript" src="/web/static/tests/chrome/web_client_tests.js"></script>
                 <script type="text/javascript" src="/web/static/tests/chrome/action_manager_tests.js"></script>
                 <script type="text/javascript" src="/web/static/tests/chrome/pager_tests.js"></script>
                 <script type="text/javascript" src="/web/static/tests/chrome/keyboard_navigation_mixin_tests.js"></script>

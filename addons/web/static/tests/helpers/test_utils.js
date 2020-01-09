@@ -11,7 +11,6 @@ odoo.define('web.test_utils', function (require) {
  */
 
 var ajax = require('web.ajax');
-var concurrency = require('web.concurrency');
 var core = require('web.core');
 var relationalFields = require('web.relational_fields');
 var session = require('web.session');
@@ -194,6 +193,7 @@ return Promise.all([
         createView: testUtilsCreate.createView,
         createModel: testUtilsCreate.createModel,
         createParent: testUtilsCreate.createParent,
+        createWebClient: testUtilsCreate.createWebClient,
         makeTestPromise: makeTestPromise,
         makeTestPromiseWithAssert: makeTestPromiseWithAssert,
         nextMicrotaskTick: nextMicrotaskTick,

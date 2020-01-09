@@ -11,7 +11,6 @@ odoo.define('web.test_utils_create', function (require) {
  */
 
 var ActionManager = require('web.ActionManager');
-// var config = require('web.config');
 var ControlPanelView = require('web.ControlPanelView');
 var concurrency = require('web.concurrency');
 var DebugManager = require('web.DebugManager.Backend');
@@ -20,29 +19,26 @@ const makeTestEnvironment = require('web.test_env');
 const MockServer = require('web.MockServer');
 var testUtilsMock = require('web.test_utils_mock');
 var Widget = require('web.Widget');
+var WebClient = require('web.WebClient');
 
 const AbstractStorageService = require('web.AbstractStorageService');
 const RamStorage = require('web.RamStorage');
 
 
-const { Component, hooks, QWeb, tags } = owl;
+const { Component, hooks, tags } = owl;
 
 /**
- * create and return an instance of ActionManager with all rpcs going through a
- * mock method using the data, actions and archs objects as sources.
+ * Returns a mocked environment to be used by OWL components in tests.
  *
- * @param {Object} [params]
+ * @param {Object} params
  * @param {Object} [params.actions] the actions given to the mock server
  * @param {Object} [params.archs] this archs given to the mock server
  * @param {Object} [params.data] the business data given to the mock server
+ * @param {boolean} [params.debug]
  * @param {function} [params.mockRPC]
- * @returns {ActionManager}
+ * @returns {Object}
  */
-async function createActionManager(params) {
-    params = params || {};
-    const target = prepareTarget(params.debug);
-
-    // build env and mockServer
+function getMockedOwlEnv(params) {
     let Server = MockServer;
     if (params.mockRPC) {
         Server = MockServer.extend({ _performRpc: params.mockRPC });
@@ -96,7 +92,49 @@ async function createActionManager(params) {
             session_storage: new RamStorageService(),
         },
     };
-    Component.env = makeTestEnvironment(env, server.performRpc.bind(server));
+    return makeTestEnvironment(env, server.performRpc.bind(server));
+}
+
+/**
+ * Create and return an instance of WebClient with a mocked environment. For
+ * instance, all rpcs are going through a mock method using the data, actions
+ * and archs objects as sources.
+ *
+ * @param {Object} [params]
+ * @param {Object} [params.actions] the actions given to the mock server
+ * @param {Object} [params.archs] this archs given to the mock server
+ * @param {Object} [params.data] the business data given to the mock server
+ * @param {boolean} [params.debug]
+ * @param {function} [params.mockRPC]
+ * @returns {WebClient}
+ */
+async function createWebClient(params) {
+    params = params || {};
+    const target = prepareTarget(params.debug);
+    Component.env = getMockedOwlEnv(params);
+
+    const webClient = new WebClient();
+    await webClient.mount(target);
+    return webClient;
+}
+
+/**
+ * Create and return an instance of ActionManager with a mocked environment. For
+ * instance, all rpcs are going through a mock method using the data, actions
+ * and archs objects as sources.
+ *
+ * @param {Object} [params]
+ * @param {Object} [params.actions] the actions given to the mock server
+ * @param {Object} [params.archs] this archs given to the mock server
+ * @param {Object} [params.data] the business data given to the mock server
+ * @param {boolean} [params.debug]
+ * @param {function} [params.mockRPC]
+ * @returns {ActionManager}
+ */
+async function createActionManager(params) {
+    params = params || {};
+    const target = prepareTarget(params.debug);
+    Component.env = getMockedOwlEnv(params);
 
     // define Parent component, embedding an ActionManager
     class Parent extends Component {
@@ -489,6 +527,7 @@ return {
     createModel: createModel,
     createParent: createParent,
     createView: createView,
+    createWebClient: createWebClient,
     prepareTarget: prepareTarget,
 };
 
