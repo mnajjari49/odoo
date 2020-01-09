@@ -13,14 +13,23 @@ class AdapterComponent extends Component {
     constructor(parent, props) {
         if (!props.Component) {
             throw Error(`AdapterComponent: 'component' prop is missing.`);
-        } else if (!(props.Component.prototype instanceof Component)) {
-            AdapterComponent.template = tags.xml`<div/>`;
-            super(...arguments);
-            this.template = AdapterComponent.template;
-            AdapterComponent.template = null;
-        } else {
-            super(...arguments);
         }
+        let template;
+        if (!(props.Component.prototype instanceof Component)) {
+            template = tags.xml`<div/>`;
+        } else {
+            let propsStr = '';
+            for (let p in props) {
+                if (p !== 'Component') {
+                    propsStr += ` ${p}="props.${p}"`;
+                }
+            }
+            template = tags.xml`<t t-component="props.Component"${propsStr}/>`;
+        }
+        AdapterComponent.template = template;
+        super(...arguments);
+        this.template = AdapterComponent.template;
+        AdapterComponent.template = null;
 
         this.widget = null;
     }

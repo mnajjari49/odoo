@@ -13,7 +13,7 @@
     <t t-if="controllerID">
         <t t-set="controller" t-value="controllers[controllerID]"/>
         <LoadingAction t-if="controller.loading"/>
-        <Action t-else="" t-key="controller.jsID"
+        <Action t-else="" class="o_action" t-key="controller.jsID"
                 Component="controller.Component"
                 action="actions[controller.actionID]"
                 options="controller.options"/>
