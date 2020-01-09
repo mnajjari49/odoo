@@ -39,8 +39,10 @@ class EventTypeMail(models.Model):
     interval_type = fields.Selection([
         ('after_sub', 'After each registration'),
         ('before_event', 'Before the event'),
-        ('after_event', 'After the event')],
+        ('after_event', 'After the event'),
+        ('stage_update', 'On stage update')],
         string='Trigger', default="before_event", required=True)
+    on_update_stage_id = fields.Many2one('event.stage', string='Stage triggering')
     template_id = fields.Many2one(
         'mail.template', string='Email Template',
         domain=[('model', '=', 'event.registration')], ondelete='restrict',
@@ -49,7 +51,7 @@ class EventTypeMail(models.Model):
     def _get_event_mail_fields_whitelist(self):
         """ Whitelist of fields that are copied from event_type_mail_ids to event_mail_ids when
         changing the event_type_id field of event.event """
-        return ['notification_type', 'template_id', 'interval_nbr', 'interval_unit', 'interval_type']
+        return ['notification_type', 'template_id', 'interval_nbr', 'interval_unit', 'interval_type', 'on_update_stage_id']
 
     def write(self, vals):
         if 'notification_type' in vals and vals.get('notification_type') != 'mail':
@@ -68,7 +70,8 @@ class EventTypeMail(models.Model):
             'template_id': self.template_id,
             'interval_nbr': self.interval_nbr,
             'interval_unit': self.interval_unit,
-            'interval_type': self.interval_type
+            'interval_type': self.interval_type,
+            'on_update_stage_id': self.on_update_stage_id,
         }
 
 
@@ -92,8 +95,11 @@ class EventMailScheduler(models.Model):
     interval_type = fields.Selection([
         ('after_sub', 'After each registration'),
         ('before_event', 'Before the event'),
-        ('after_event', 'After the event')],
+        ('after_event', 'After the event'),
+        ('stage_update', 'On stage update')],
         string='Trigger ', default="before_event", required=True)
+    on_update_stage_id = fields.Many2one('event.stage', string='Stage triggering')
+    on_update_stage_date = fields.Datetime('Stage change date', help='Date when the event was moved to the sage')
     template_id = fields.Many2one(
         'mail.template', string='Email Template',
         domain=[('model', '=', 'event.registration')], ondelete='restrict',
@@ -106,18 +112,20 @@ class EventMailScheduler(models.Model):
     @api.depends('mail_sent', 'interval_type', 'event_id.registration_ids', 'mail_registration_ids')
     def _compute_done(self):
         for mail in self:
-            if mail.interval_type in ['before_event', 'after_event']:
+            if mail.interval_type in ['before_event', 'after_event', 'stage_update']:
                 mail.done = mail.mail_sent
             else:
                 mail.done = len(mail.mail_registration_ids) == len(mail.event_id.registration_ids) and all(mail.mail_sent for mail in mail.mail_registration_ids)
 
-    @api.depends('event_id.date_begin', 'interval_type', 'interval_unit', 'interval_nbr')
+    @api.depends('event_id.date_begin', 'interval_type', 'interval_unit', 'interval_nbr', 'on_update_stage_date')
     def _compute_scheduled_date(self):
         for mail in self:
             if mail.interval_type == 'after_sub':
                 date, sign = mail.event_id.create_date, 1
             elif mail.interval_type == 'before_event':
                 date, sign = mail.event_id.date_begin, -1
+            elif mail.interval_type == 'stage_update':
+                date, sign = mail.on_update_stage_date, 1
             else:
                 date, sign = mail.event_id.date_end, 1
 

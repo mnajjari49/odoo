@@ -3,7 +3,7 @@
 import datetime
 from dateutil.relativedelta import relativedelta
 
-from odoo import fields, tools
+from odoo import fields
 from odoo.addons.event.tests.common import TestEventCommon
 from odoo.tools import mute_logger
 
@@ -75,3 +75,42 @@ class TestMailSchedule(TestEventCommon):
 
         mails = self.env['mail.mail'].sudo().search([('subject', 'ilike', 'TestEventMail'), ('date', '>=', now)], order='date DESC', limit=3)
         self.assertEqual(len(mails), 3, 'event: wrong number of reminders in outgoing mail queue')
+
+    @mute_logger('odoo.addons.base.models.ir_model', 'odoo.models')
+    def test_01_event_mail_schedule(self):
+        """Test mail scheduling for events."""
+        now = fields.Datetime.now()
+        event_date_begin = now + relativedelta(days=1)
+        event_date_end = now + relativedelta(days=3)
+
+        stage_trigger = self.env['event.stage'].search([('name', '=', 'Announced')])
+
+        test_event = self.env['event.event'].with_user(self.user_eventmanager).create({
+            'name': 'TestEventMail',
+            'auto_confirm': True,
+            'date_begin': event_date_begin,
+            'date_end': event_date_end,
+            'seats_max': 10,
+            'stage_id': self.env['event.stage'].search([('name', '=', 'New')]).id
+        })
+
+        test_event_mail = self.env['event.mail'].with_user(self.user_eventmanager).create({
+            'event_id': test_event.id,
+            'interval_nbr': 3,
+            'interval_unit': 'days',
+            'interval_type': 'stage_update',
+            'on_update_stage_id': stage_trigger.id,
+        })
+
+        self.assertEqual(test_event_mail.on_update_stage_date, False)
+        test_event.stage_id = self.env['event.stage'].search([('name', '=', 'Booked')])
+        self.assertEqual(test_event_mail.on_update_stage_date, False)
+        test_event.stage_id = stage_trigger
+        self.assertAlmostEqual(test_event_mail.on_update_stage_date, now, delta=relativedelta(minutes=1))
+        self.assertAlmostEqual(test_event_mail.scheduled_date, now + datetime.timedelta(days=3), delta=datetime.timedelta(minutes=1))
+
+        # changing the stage should not affect the `on_update_stage_date` if it's already set
+        test_event_mail.on_update_stage_date = now - relativedelta(days=1)
+        test_event.stage_id = self.env['event.stage'].search([('name', '=', 'Booked')])
+        test_event.stage_id = stage_trigger
+        self.assertAlmostEqual(test_event_mail.on_update_stage_date, now - relativedelta(days=1), delta=relativedelta(minutes=1))

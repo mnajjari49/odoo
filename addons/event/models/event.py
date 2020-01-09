@@ -348,6 +348,15 @@ class EventEvent(models.Model):
         res = super(EventEvent, self).write(vals)
         if vals.get('organizer_id'):
             self.message_subscribe([vals['organizer_id']])
+        if 'stage_id' in vals:
+            for event in self:
+                event_mail_ids = event.event_mail_ids.filtered(
+                    lambda event_mail:
+                    event_mail.interval_type == 'stage_update'
+                    and not event_mail.on_update_stage_date
+                    and event_mail.on_update_stage_id.id == event.stage_id.id)
+                if event_mail_ids:
+                    event_mail_ids.on_update_stage_date = fields.Datetime.now()
         return res
 
     @api.returns('self', lambda value: value.id)
