@@ -817,7 +817,7 @@ QUnit.module('Views', {
     });
 
     QUnit.test('create event with timezone in week mode with formViewDialog European locale', async function (assert) {
-        assert.expect(7);
+        assert.expect(8);
 
         this.data.event.records = [];
         this.data.event.onchanges = {
@@ -945,7 +945,7 @@ QUnit.module('Views', {
           "stop": "2016-12-12 08:00:00"
         };
         testUtils.dom.triggerPositionalMouseEvent(left, top, "mousedown");
-        left = calendar.$('.fc-day:eq(1)').offset().left + 5;
+        left = calendar.$('.fc-day:eq(1)').offset().left + 15;
         testUtils.dom.triggerPositionalMouseEvent(left, top, "mousemove");
         testUtils.dom.triggerPositionalMouseEvent(left, top, "mouseup");
         await testUtils.nextTick();
@@ -957,7 +957,7 @@ QUnit.module('Views', {
           "stop": "2016-12-12 00:00:00"
         };
         testUtils.dom.triggerPositionalMouseEvent(left, top, "mousedown");
-        top = calendar.$('.fc-day:eq(1)').offset().top + 5;
+        top = calendar.$('.fc-day:eq(1)').offset().top + 15;
         testUtils.dom.triggerPositionalMouseEvent(left, top, "mousemove");
         testUtils.dom.triggerPositionalMouseEvent(left, top, "mouseup");
         await testUtils.nextTick();
@@ -1101,7 +1101,7 @@ QUnit.module('Views', {
     });
 
     QUnit.test('create event with timezone in week mode with formViewDialog American locale', async function (assert) {
-        assert.expect(7);
+        assert.expect(8);
 
         this.data.event.records = [];
         this.data.event.onchanges = {
@@ -1229,7 +1229,7 @@ QUnit.module('Views', {
           "stop": "2016-12-12 08:00:00"
         };
         testUtils.dom.triggerPositionalMouseEvent(left, top, "mousedown");
-        left = calendar.$('.fc-day:eq(1)').offset().left + 5;
+        left = calendar.$('.fc-day:eq(1)').offset().left + 15;
         testUtils.dom.triggerPositionalMouseEvent(left, top, "mousemove");
         testUtils.dom.triggerPositionalMouseEvent(left, top, "mouseup");
         await testUtils.nextTick();
@@ -1241,7 +1241,7 @@ QUnit.module('Views', {
           "stop": "2016-12-12 00:00:00"
         };
         testUtils.dom.triggerPositionalMouseEvent(left, top, "mousedown");
-        top = calendar.$('.fc-day:eq(1)').offset().top + 5;
+        top = calendar.$('.fc-day:eq(1)').offset().top + 15;
         testUtils.dom.triggerPositionalMouseEvent(left, top, "mousemove");
         testUtils.dom.triggerPositionalMouseEvent(left, top, "mouseup");
         await testUtils.nextTick();
