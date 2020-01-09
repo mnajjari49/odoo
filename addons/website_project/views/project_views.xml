@@ -10,4 +10,19 @@
             </xpath>
         </field>
     </record>
+
+    <record model="ir.ui.view" id="view_project_kanban_extend">
+        <field name="name">project.project.kanban</field>
+        <field name="model">project.project</field>
+        <field name="inherit_id" ref="project.view_project_kanban"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='rating_percentage_satisfaction_exists']" position="replace">
+                <div name="rating_percentage_satisfaction_exists">
+                    <a name="open_website_url" type="object" context="{'search_default_rating_last_30_days':1}">
+                        <i class="fa fa-smile-o" role="img" aria-label="Percentage of satisfaction" title="Percentage of satisfaction"/> <t t-esc="record.rating_percentage_satisfaction.value"/>%
+                    </a>
+                </div>
+            </xpath>
+        </field>
+    </record>
 </odoo>

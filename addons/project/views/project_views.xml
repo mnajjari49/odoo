@@ -317,14 +317,14 @@
                                         </div>
                                         <div class="mt16" attrs="{'invisible':[('rating_active','==',False)]}">
                                             <field name="rating_status" widget="radio" />
+                                            <div  attrs="{'required': [('rating_status','=','periodic')], 'invisible': [('rating_status','!=','periodic')]}">
+                                                <label for="rating_status_period"/>
+                                                <field name="rating_status_period"  class="oe_inline"/>
+                                            </div>
                                             <div class="content-group">
                                                     <div class="mt8">
                                                         <button name="%(project.open_task_type_form_domain)d" context="{'project_id':id}" icon="fa-arrow-right" type="action" string="Set a Rating Email Template on Stages" class="btn-link"/>
                                                     </div>
-                                            </div>
-                                            <div  attrs="{'required': [('rating_status','=','periodic')], 'invisible': [('rating_status','!=','periodic')]}">
-                                                <label for="rating_status_period"/>
-                                                <field name="rating_status_period"  class="oe_inline"/>
                                             </div>
                                         </div>
                                     </div>
@@ -515,9 +515,9 @@
                                                         <i class="fa fa-smile-o"/> No rating yet
                                                     </t>
                                                     <t t-if="record.rating_percentage_satisfaction.value != -1">
-                                                        <a name="open_website_url" type="object" context="{'search_default_rating_last_30_days':1}">
+                                                        <div name="rating_percentage_satisfaction_exists">
                                                             <i class="fa fa-smile-o" role="img" aria-label="Percentage of satisfaction" title="Percentage of satisfaction"/> <t t-esc="record.rating_percentage_satisfaction.value"/>%
-                                                        </a>
+                                                        </div>
                                                     </t>
                                                 </b>
                                             </div>
