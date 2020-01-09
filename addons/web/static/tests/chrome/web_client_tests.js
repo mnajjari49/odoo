@@ -1,9 +1,12 @@
 odoo.define('web.web_client_tests', function (require) {
 "use strict";
 
+const SystrayMenu = require('web.SystrayMenu');
 const testUtils = require('web.test_utils');
 
 const { createWebClient, nextTick } = testUtils;
+
+let SystrayItems;
 
 QUnit.module('WebClient', {
     beforeEach: function () {
@@ -110,10 +113,16 @@ QUnit.module('WebClient', {
             await nextTick();
             resolve(this.menus);
         });
+
+        SystrayItems = SystrayMenu.Items;
+        SystrayMenu.Items = [];
     },
+    afterEach: function () {
+        SystrayMenu.Items = SystrayItems;
+    }
 }, function () {
     QUnit.test('initial rendering (should open first menu)', async function (assert) {
-        assert.expect(6);
+        assert.expect(10);
 
         const webClient = await createWebClient({
             data: this.data,
@@ -122,9 +131,13 @@ QUnit.module('WebClient', {
         });
 
         assert.containsOnce(webClient, 'header .o_main_navbar');
+        assert.containsOnce(webClient, 'header .o_main_navbar .o_menu_brand');
+        assert.containsOnce(webClient, 'header .o_main_navbar .o_menu_sections');
+        assert.containsOnce(webClient, 'header .o_main_navbar .o_menu_systray');
         assert.containsOnce(webClient, '.o_action_manager');
 
         assert.strictEqual(webClient.el.querySelector('.o_menu_brand').innerText, 'Partners');
+        assert.containsN(webClient, 'header .o_main_navbar .o_menu_sections li a', 2);
         assert.containsN(webClient, '.o_menu_sections li', 2);
 
         assert.strictEqual(webClient.el.querySelector('.breadcrumb').innerText, 'Partners');
