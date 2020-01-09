@@ -104,6 +104,7 @@
 </t>
 
 <ul t-name="web.SystrayMenu" class="o_menu_systray" role="menu" owl="1">
+    <ItemAdapter t-foreach="Items" t-as="Item" t-key="Item_index" Component="Item"/>
     <UserMenu/>
 </ul>
 
