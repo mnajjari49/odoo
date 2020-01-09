@@ -93,6 +93,7 @@ class HrEmployeePrivate(models.Model):
     emergency_contact = fields.Char("Emergency Contact", groups="hr.group_hr_user", tracking=True)
     emergency_phone = fields.Char("Emergency Phone", groups="hr.group_hr_user", tracking=True)
     km_home_work = fields.Integer(string="Km Home-Work", groups="hr.group_hr_user", tracking=True)
+    license_plate = fields.Char(string="License Plate", groups="hr.group_hr_user", tracking=True)
 
     image_1920 = fields.Image(default=_default_image)
     phone = fields.Char(related='address_home_id.phone', related_sudo=False, string="Private Phone", groups="hr.group_hr_user")

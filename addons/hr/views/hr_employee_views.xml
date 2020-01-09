@@ -10,6 +10,7 @@
                     <field name="name" string="Employee" filter_domain="['|', ('work_email', 'ilike', self), ('name', 'ilike', self)]"/>
                     <field name="category_ids" groups="hr.group_hr_user"/>
                     <field name="job_id"/>
+                    <field string="License Plate" name="license_plate" filter_domain="[('license_plate', 'ilike', self)]"/>
                     <separator/>
                     <filter string="Unread Messages" name="message_needaction" domain="[('message_needaction', '=', True)]"/>
                     <separator/>
@@ -134,6 +135,7 @@
                                         <field name="phone" groups="hr.group_hr_user" string="Phone"/>
                                         <field name="bank_account_id" context="{'default_partner_id': address_home_id}"/>
                                         <field name="km_home_work" groups="hr.group_hr_user"/>
+                                        <field name="license_plate" groups="hr.group_hr_user"/>
                                     </group>
                                     <group string="Citizenship">
                                         <field name="country_id" options='{"no_open": True, "no_create": True}'/>
