@@ -93,6 +93,14 @@ class SurveyQuestion(models.Model):
     matrix_row_ids = fields.One2many(
         'survey.question.answer', 'matrix_question_id', string='Matrix Rows', copy=True,
         help='Labels used for proposed choices: rows of matrix')
+    # -- scoreable/answerable simple answer_types: numerical_box / date / datetime
+    is_scored_question = fields.Boolean(
+        'Is a scored question', compute='_compute_is_scored_question', readonly=False, store=True, copy=True,
+        help="Include this question as part of quiz scoring. Requires an answer and answer score to be taken into account.")
+    numerical_box_answer = fields.Float('Numerical answer', help="Correct number answer for this question.")
+    date_answer = fields.Date('Date answer', help="Correct date answer for this question.")
+    datetime_answer = fields.Datetime('Datetime answer', help="Correct date and time answer for this question.")
+    answer_score = fields.Float('Score', help="Score value for a correct answer to this question.")
     # -- display options
     column_nb = fields.Selection([
         ('12', '1'), ('6', '2'), ('4', '3'), ('3', '4'), ('2', '6')],
@@ -127,7 +135,8 @@ class SurveyQuestion(models.Model):
         ('validation_length', 'CHECK (validation_length_min <= validation_length_max)', 'Max length cannot be smaller than min length!'),
         ('validation_float', 'CHECK (validation_min_float_value <= validation_max_float_value)', 'Max value cannot be smaller than min value!'),
         ('validation_date', 'CHECK (validation_min_date <= validation_max_date)', 'Max date cannot be smaller than min date!'),
-        ('validation_datetime', 'CHECK (validation_min_datetime <= validation_max_datetime)','Max datetime cannot be smaller than min datetime!')
+        ('validation_datetime', 'CHECK (validation_min_datetime <= validation_max_datetime)', 'Max datetime cannot be smaller than min datetime!'),
+        ('positive_answer_score', 'CHECK (answer_score >= 0)', 'An answer score for a non-multiple choice question cannot be negative!')
     ]
 
     @api.onchange('validation_email')
@@ -177,6 +186,12 @@ class SurveyQuestion(models.Model):
         for question in self:
             if question.question_type != 'char_box' or not question.validation_email:
                 question.save_as_email = False
+
+    @api.depends('question_type')
+    def _compute_is_scored_question(self):
+        for question in self:
+            if question.is_scored_question is None or question.question_type not in ['numerical_box', 'date', 'datetime']:
+                question.is_scored_question = False
 
     # Validation methods
     def validate_question(self, answer, comment=None):
@@ -283,6 +298,14 @@ class SurveyQuestion(models.Model):
         However, the order of the recordset is always correct so we can rely on the index method."""
         self.ensure_one()
         return list(self.survey_id.question_and_page_ids).index(self)
+
+    def _get_answer(self):
+        if self.question_type == 'numerical_box':
+            return self.numerical_box_answer
+        elif self.question_type == 'date':
+            return self.date_answer
+        elif self.question_type == 'datetime':
+            return self.datetime_answer
 
     # ------------------------------------------------------------
     # STATISTICS / REPORTING
@@ -394,11 +417,14 @@ class SurveyQuestion(models.Model):
         return table_data, graph_data
 
     def _get_stats_summary_data(self, user_input_lines):
+        stats = {}
         if self.question_type in ['simple_choice', 'multiple_choice']:
-            return self._get_stats_summary_data_choice(user_input_lines)
-        if self.question_type in ['numerical_box']:
-            return self._get_stats_summary_data_numerical(user_input_lines)
-        return {}
+            stats.update(self._get_stats_summary_data_choice(user_input_lines))
+        elif self.question_type in ['numerical_box', 'date', 'datetime']:
+            stats.update(self._get_stats_summary_simple(user_input_lines))
+            if self.question_type == 'numerical_box':
+                stats.update(self._get_stats_summary_data_numerical(user_input_lines))
+        return stats
 
     def _get_stats_summary_data_choice(self, user_input_lines):
         right_inputs, partial_inputs = self.env['survey.user_input'], self.env['survey.user_input']
@@ -428,6 +454,10 @@ class SurveyQuestion(models.Model):
             'numerical_common_lines': collections.Counter(all_values).most_common(5),
         }
 
+    def _get_stats_summary_simple(self, user_input_lines):
+        return {
+            'right_inputs': user_input_lines.filtered(lambda line: line.answer_is_correct).mapped('user_input_id'),
+        }
 
 class SurveyQuestionAnswer(models.Model):
     """ A preconfigured answer for a question. This model stores values used

@@ -49,13 +49,16 @@ class SurveyUserInput(models.Model):
         ('unique_token', 'UNIQUE (access_token)', 'An access token must be unique!'),
     ]
 
-    @api.depends('user_input_line_ids.answer_score', 'user_input_line_ids.question_id')
+    @api.depends('user_input_line_ids.answer_score', 'user_input_line_ids.question_id', 'user_input_line_ids.answer_type')
     def _compute_scoring_percentage(self):
         for user_input in self:
-            total_possible_score = sum([
-                answer_score if answer_score > 0 else 0
-                for answer_score in user_input.predefined_question_ids.mapped('suggested_answer_ids.answer_score')
-            ])
+            # sum(multi-choice question scores) + sum(simple answer_type scores)
+            total_possible_score = 0
+            for question in user_input.predefined_question_ids:
+                if question.question_type in ['simple_choice', 'multiple_choice']:
+                    total_possible_score += sum(score for score in question.mapped('suggested_answer_ids.answer_score') if score > 0)
+                elif question.is_scored_question:
+                    total_possible_score += question.answer_score
 
             if total_possible_score == 0:
                 user_input.scoring_percentage = 0
@@ -263,6 +266,8 @@ class SurveyUserInput(models.Model):
             vals.update(answer_type=None, skipped=True)
             return vals
 
+        vals.update(self._get_answer_score_values(question, answer, answer_type))
+
         if answer_type == 'suggestion':
             vals['suggested_answer_id'] = int(answer)
         elif answer_type == 'numerical_box':
@@ -280,6 +285,38 @@ class SurveyUserInput(models.Model):
             'value_char_box': comment,
         }
 
+    def _get_answer_score_values(self, question, answer, answer_type):
+        """ Get answer_is_correct and its associated answer_score values.
+
+            Calculates whether an answer_is_correct and its score based on
+            'answer_type' and 'is_scored_question' (when appropriate). Handles
+            choice (answer_type == 'suggestion') questions separately from other
+            question types. Each selected choice answer is handled as an individual
+            answer. Defaults to 'answer_is_correct' = False and 'answer_score' = 0.
+
+        """
+        # default and non-scored questions
+        vals = {'answer_score': 0, 'answer_is_correct': False}
+        # record selected suggested choice assigned score (can be: pos, neg, or 0)
+        if answer_type in ['suggestion']:
+            if answer:
+                question_answer = self.env['survey.question.answer'].browse(int(answer))
+                vals.update({'answer_score': question_answer.answer_score,
+                             'answer_is_correct': question_answer.is_correct})
+        # record assigned score only when correct in all other scored question cases (can be: pos or 0)
+        elif question.is_scored_question:
+            answer_score = question.answer_score
+            if answer_type == 'numerical_box':
+                answer = float(answer)
+            elif answer_type == 'date':
+                answer = fields.Date.from_string(answer)
+            elif answer_type == 'datetime':
+                answer = fields.Datetime.from_string(answer)
+            if answer == question._get_answer():
+                vals.update({'answer_score': answer_score,
+                             'answer_is_correct': True})
+        return vals
+
     # ------------------------------------------------------------
     # STATISTICS / RESULTS
     # ------------------------------------------------------------
@@ -293,24 +330,18 @@ class SurveyUserInput(models.Model):
         }) for user_input in self)
 
         scored_questions = self.mapped('predefined_question_ids').filtered(
-            lambda question: question.question_type in ['simple_choice', 'multiple_choice']
+            lambda question: question.question_type in ['simple_choice', 'multiple_choice'] or question.is_scored_question
         )
 
         for question in scored_questions:
-            question_answer_correct = question.suggested_answer_ids.filtered(lambda answer: answer.is_correct)
+            if question.question_type in ['simple_choice', 'multiple_choice']:
+                question_answer_correct = question.suggested_answer_ids.filtered(lambda answer: answer.is_correct)
             for user_input in self:
-                user_answer_lines_question = user_input.user_input_line_ids.filtered(lambda line: line.question_id == question)
-                user_answer_correct = user_answer_lines_question.filtered(lambda line: line.answer_is_correct and not line.skipped).mapped('suggested_answer_id')
-                user_answer_incorrect = user_answer_lines_question.filtered(lambda line: not line.answer_is_correct and not line.skipped)
-
-                if user_answer_correct == question_answer_correct:
-                    res[user_input]['correct'] += 1
-                elif user_answer_correct and user_answer_correct < question_answer_correct:
-                    res[user_input]['partial'] += 1
-                if not user_answer_correct and user_answer_incorrect:
-                    res[user_input]['incorrect'] += 1
-                if not user_answer_correct and not user_answer_incorrect:
-                    res[user_input]['skipped'] += 1
+                user_answer_lines = user_input.user_input_line_ids.filtered(lambda line: line.question_id == question)
+                if question.question_type in ['simple_choice', 'multiple_choice']:
+                    res[user_input][self._choice_question_answer_result(user_answer_lines, question_answer_correct)] += 1
+                else:
+                    res[user_input][self._simple_question_answer_result(user_answer_lines)] += 1
 
         return [[
             {'text': _("Correct"), 'count': res[user_input]['correct']},
@@ -319,6 +350,25 @@ class SurveyUserInput(models.Model):
             {'text': _("Unanswered"), 'count': res[user_input]['skipped']}
         ] for user_input in self]
 
+    def _choice_question_answer_result(self, user_answer_lines, question_answer_correct):
+        user_answer_correct = user_answer_lines.filtered(lambda line: line.answer_is_correct and not line.skipped).mapped('suggested_answer_id')
+        user_answer_incorrect = user_answer_lines.filtered(lambda line: not line.answer_is_correct and not line.skipped)
+        if user_answer_correct == question_answer_correct:
+            return 'correct'
+        elif user_answer_correct and user_answer_correct < question_answer_correct:
+            return 'partial'
+        elif not user_answer_correct and user_answer_incorrect:
+            return 'incorrect'
+        else:
+            return 'skipped'
+
+    def _simple_question_answer_result(self, user_answer_line):
+        if user_answer_line.skipped:
+            return 'skipped'
+        elif user_answer_line.answer_is_correct:
+            return 'correct'
+        else:
+            return 'incorrect'
 
 class SurveyUserInputLine(models.Model):
     _name = 'survey.user_input.line'
@@ -350,20 +400,12 @@ class SurveyUserInputLine(models.Model):
     matrix_row_id = fields.Many2one('survey.question.answer', string="Row answer")
     # scoring
     answer_score = fields.Float('Score')
-    answer_is_correct = fields.Boolean('Correct', compute='_compute_answer_is_correct')
-
-    @api.depends('suggested_answer_id', 'question_id')
-    def _compute_answer_is_correct(self):
-        for answer in self:
-            if answer.suggested_answer_id and answer.question_id.question_type in ['simple_choice', 'multiple_choice']:
-                answer.answer_is_correct = answer.suggested_answer_id.is_correct
-            else:
-                answer.answer_is_correct = False
+    answer_is_correct = fields.Boolean('Correct')
 
     @api.constrains('skipped', 'answer_type')
     def _check_answered_or_skipped(self):
         if any(line.skipped == bool(line.answer_type) for line in self):
-            raise ValidationError(_('A question is either skipped, either answered. Not both.'))
+            raise ValidationError(_('A question is either skipped or answered. Not both.'))
 
     @api.constrains('answer_type')
     def _check_answer_type(self):
@@ -378,17 +420,3 @@ class SurveyUserInputLine(models.Model):
             # allow 0 for numerical box
             if field_name and not line[field_name] and (line.answer_type != 'numerical_box' or line[field_name] != 0):
                 raise ValidationError(_('The answer must be in the right type'))
-
-    @api.model_create_multi
-    def create(self, vals_list):
-        for vals in vals_list:
-            suggested_answer_id = vals.get('suggested_answer_id')
-            if suggested_answer_id:
-                vals.update({'answer_score': self.env['survey.question.answer'].browse(int(suggested_answer_id)).answer_score})
-        return super(SurveyUserInputLine, self).create(vals_list)
-
-    def write(self, vals):
-        suggested_answer_id = vals.get('suggested_answer_id')
-        if suggested_answer_id:
-            vals.update({'answer_score': self.env['survey.question.answer'].browse(int(suggested_answer_id)).answer_score})
-        return super(SurveyUserInputLine, self).write(vals)

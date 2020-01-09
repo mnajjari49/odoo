@@ -103,6 +103,13 @@
                             <field name="page_id" invisible="1" required="0"/>
                             <field name="survey_id" invisible="1" readonly="1"/>
                             <field name="scoring_type" invisible="1"/>
+                            <group attrs="{'invisible': ['|', ('parent.scoring_type', '=', 'no_scoring'), ('question_type', 'not in', ['numerical_box','date','datetime'])]}">
+                                <field name="is_scored_question"/>
+                                <field name="numerical_box_answer" string="Answer" attrs="{'invisible': ['|', ('is_scored_question', '=', False), ('question_type', '!=', 'numerical_box')]}"/>
+                                <field name="date_answer" string="Answer" attrs="{'invisible': ['|', ('is_scored_question', '=', False), ('question_type', '!=', 'date')]}"/>
+                                <field name="datetime_answer" string="Answer" attrs="{'invisible': ['|', ('is_scored_question', '=', False), ('question_type', '!=', 'datetime')]}"/>
+                                <field name="answer_score" attrs="{'invisible': ['|', ('is_scored_question', '=', False)]}"/>
+                            </group>
                             <separator />
                             <label for="suggested_answer_ids" string="Columns of the Matrix" attrs="{'invisible': [('question_type', '!=', 'matrix')]}" />
                             <field name="suggested_answer_ids" string="Type of answers" context="{'default_question_id': active_id}" attrs="{'invisible': [('question_type', 'not in', ['simple_choice', 'multiple_choice', 'matrix'])]}">
