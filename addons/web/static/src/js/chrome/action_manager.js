@@ -424,11 +424,12 @@ class ActionManager extends Component {
             return;
         }
         this.currentStack = this.state.pendingStack.slice();
+        const controllerID = this.currentStack[this.currentStack.length - 1];
+        const controller = this.controllers[controllerID];
+        // Triggers the final rendering
         this.state.pendingStack = null;
         this._cleanActions();
 
-        const controllerID = this.currentStack[this.currentStack.length - 1];
-        const controller = this.controllers[controllerID];
 
         // store the action into the sessionStorage so that it can be fully restored on F5
         const action = this.actions[controller.actionID];
