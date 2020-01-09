@@ -2,7 +2,7 @@
 <templates id="template" xml:space="preserve">
 
 <body t-name="web.WebClient" class="o_web_client" owl="1" t-on-do-action.stop="_onDoAction">
-    <Menu menus="menus" initialMenuID="initialMenuID" t-on-open-menu="_onOpenMenu"/>
+    <Menu t-ref="menu" menus="menus" initialMenuID="initialMenuID" t-on-open-menu="_onOpenMenu"/>
     <ActionManager t-ref="actionManager" initialAction="initialAction"/>
 </body>
 <div t-name="web.ActionManager" class="o_action_manager" owl="1"

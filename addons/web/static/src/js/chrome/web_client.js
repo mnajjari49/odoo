@@ -106,9 +106,10 @@ class WebClient extends Component {
      */
     _onOpenMenu(ev) {
         const action = this.menus[ev.detail.menuID].actionID;
-        this.actionManager.comp.doAction(action, { clear_breadcrumbs: true });
-        // TODO: change menu (in postprocessAction??)
-        // this.state.currentMenuID = ev.detail.menuID;
+        this.actionManager.comp.doAction(action, {
+            clear_breadcrumbs: true,
+            callback: () => this.menu.comp.setCurrentMenuID(ev.detail.menuID),
+        });
     }
 
 }

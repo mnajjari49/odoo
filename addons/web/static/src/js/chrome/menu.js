@@ -3,20 +3,29 @@ odoo.define('web.Menu', function (require) {
 
 const SystrayMenu = require('web.SystrayMenu');
 
-const { Component } = owl;
+const { Component, useState } = owl;
 
 class Menu extends Component {
     constructor() {
         super(...arguments);
-        this.currentMenuID = this.props.initialMenuID;
+        this.state = useState({
+            currentMenuID: this.props.initialMenuID,
+        });
         this.menus = this.props.menus;
     }
     get apps() {
         return this.menus.root.children.map(childID => this.menus[childID]);
     }
     get currentApp() {
-        const currentAppID = this.menus[this.currentMenuID].appID;
+        const currentAppID = this.menus[this.state.currentMenuID].appID;
         return this.menus[currentAppID];
+    }
+
+    /**
+     * @param {integer} menuID
+     */
+    setCurrentMenuID(menuID) {
+        this.state.currentMenuID = menuID;
     }
 
     //--------------------------------------------------------------------------

@@ -319,7 +319,7 @@ class ActionManager extends Component {
      * @param {Object} options @see doAction for details
      * @returns {Promise} resolved when the action has been executed
      */
-    async _executeServerAction(action) {
+    async _executeServerAction(action, options) {
         const runActionProm = this.rpc({
             route: '/web/action/run',
             params: {
@@ -329,7 +329,7 @@ class ActionManager extends Component {
         });
         action = await this._resolveLast(runActionProm);
         action = action || { type: 'ir.actions.act_window_close' };
-        return this.doAction(action);
+        return this.doAction(action, options);
     }
     /**
      * Returns a description of the controllers in the given controller stack.
@@ -434,10 +434,10 @@ class ActionManager extends Component {
         const action = this.actions[controller.actionID];
         this.env.services.session_storage.setItem('current_action', action._originalAction);
 
-        // TODO: callback
-        // if (this.actionRequest.callback) {
-        //     this.actionRequest.callback();
-        // }
+        if (controller.options && controller.options.callback) {
+            controller.options.callback();
+            delete controller.options.callback;
+        }
 
         console.warn(this.currentStack);
         console.warn(this.controllers);
