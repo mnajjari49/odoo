@@ -8,14 +8,19 @@ from odoo.addons.http_routing.models.ir_http import slug
 class EventType(models.Model):
     _inherit = 'event.type'
 
-    website_track = fields.Boolean('Tracks on Website')
-    website_track_proposal = fields.Boolean('Tracks Proposals on Website')
+    website_track = fields.Boolean(
+        string='Tracks on Website', compute='_compute_website_data',
+        readonly=False, store=True)
+    website_track_proposal = fields.Boolean(
+        string='Tracks Proposals on Website', compute='_compute_website_data',
+        readonly=False, store=True)
 
-    @api.onchange('website_menu')
-    def _onchange_website_menu(self):
-        if not self.website_menu:
-            self.website_track = False
-            self.website_track_proposal = False
+    @api.depends('website_menu')
+    def _compute_website_data(self):
+        for event_type in self:
+            if not event_type.website_menu:
+                event_type.website_track = False
+                event_type.website_track_proposal = False
 
 
 class EventMenu(models.Model):
@@ -36,8 +41,8 @@ class Event(models.Model):
     sponsor_ids = fields.One2many('event.sponsor', 'event_id', 'Sponsors')
     sponsor_count = fields.Integer('Sponsor Count', compute='_compute_sponsor_count')
 
-    website_track = fields.Boolean('Tracks on Website', compute='_compute_from_event_type', store=True, readonly=False)
-    website_track_proposal = fields.Boolean('Proposals on Website', compute='_compute_from_event_type', store=True, readonly=False)
+    website_track = fields.Boolean('Tracks on Website', compute='_compute_website_menu_data', store=True, readonly=False)
+    website_track_proposal = fields.Boolean('Proposals on Website', compute='_compute_website_menu_data', store=True, readonly=False)
 
     track_menu_ids = fields.One2many('website.event.menu', 'event_id', string='Event Tracks Menus', domain=[('menu_type', '=', 'track')])
     track_proposal_menu_ids = fields.One2many('website.event.menu', 'event_id', string='Event Proposals Menus', domain=[('menu_type', '=', 'track_proposal')])
@@ -102,26 +107,12 @@ class Event(models.Model):
         for event in self:
             event.tracks_tag_ids = event.track_ids.mapped('tag_ids').filtered(lambda tag: tag.color != 0).ids
 
-    @api.depends('event_type_id')
-    def _compute_from_event_type(self):
-        super(Event, self)._compute_from_event_type()
-        for record in self:
-            if record.event_type_id and record.website_menu:
-                record.website_track = record.event_type_id.website_track
-                record.website_track_proposal = record.event_type_id.website_track_proposal
-
-    @api.onchange('website_menu')
-    def _onchange_website_menu(self):
-        if not self.website_menu:
-            self.website_track = False
-            self.website_track_proposal = False
-
-    @api.onchange('website_track')
-    def _onchange_website_track(self):
-        if not self.website_track:
-            self.website_track_proposal = False
-
-    @api.onchange('website_track_proposal')
-    def _onchange_website_track_proposal(self):
-        if self.website_track_proposal:
-            self.website_track = True
+    @api.depends('event_type_id', 'website_menu')
+    def _compute_website_menu_data(self):
+        for event in self:
+            if event.website_menu and event.event_type_id:
+                event.website_track = event.event_type_id.website_track
+                event.website_track_proposal = event.event_type_id.website_track_proposal
+            elif not event.website_menu:
+                event.website_track = False
+                event.website_track_proposal = False

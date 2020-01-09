@@ -33,9 +33,10 @@ class Event(models.Model):
         'Cover Properties',
         default='{"background-image": "none", "background-color": "oe_blue", "opacity": "0.4", "resize_class": "o_half_screen_height"}')
 
-    website_menu = fields.Boolean('Dedicated Menu',
+    website_menu = fields.Boolean(
+        string='Dedicated Menu', compute='_compute_from_event_type', store=True, readonly=False,
         help="Creates menus Introduction, Location and Register on the page "
-             " of the event on the website.", copy=False, compute='_compute_from_event_type', store=True, readonly=False)
+             "of the event on the website.")
     menu_id = fields.Many2one('website.menu', 'Event Menu', copy=False)
 
     def _compute_is_participating(self):
@@ -58,9 +59,9 @@ class Event(models.Model):
     @api.depends('event_type_id')
     def _compute_from_event_type(self):
         super(Event, self)._compute_from_event_type()
-        for record in self:
-            if record.event_type_id:
-                record.website_menu = record.event_type_id.website_menu
+        for event in self:
+            if event.event_type_id:
+                event.website_menu = event.event_type_id.website_menu
 
     def _get_menu_entries(self):
         """ Method returning menu entries to display on the website view of the

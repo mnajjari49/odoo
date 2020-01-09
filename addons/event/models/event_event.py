@@ -182,7 +182,9 @@ class EventEvent(models.Model):
     auto_confirm = fields.Boolean(
         string='Autoconfirm Registrations',
         compute='_compute_from_event_type', store=True, readonly=False)
-    is_online = fields.Boolean('Online Event', compute='_compute_from_event_type', store=True, readonly=False)
+    is_online = fields.Boolean(
+        string='Online Event',
+        compute='_compute_from_event_type', store=True, readonly=False)
     address_id = fields.Many2one(
         'res.partner', string='Location',
         default=lambda self: self.env.company.partner_id,
@@ -190,7 +192,9 @@ class EventEvent(models.Model):
         domain="['|', ('company_id', '=', False), ('company_id', '=', company_id)]",
         tracking=True)
     country_id = fields.Many2one('res.country', 'Country',  related='address_id.country_id', store=True, readonly=False)
-    twitter_hashtag = fields.Char('Twitter Hashtag', compute='_compute_from_event_type', store=True, readonly=False)
+    twitter_hashtag = fields.Char(
+        string='Twitter Hashtag',
+        compute='_compute_from_event_type', store=True, readonly=False)
     description = fields.Html(
         string='Description', translate=html_translate, sanitize_attributes=False,
         readonly=False)
