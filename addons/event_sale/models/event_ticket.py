@@ -17,12 +17,14 @@ class EventTicket(models.Model):
     event_id = fields.Many2one('event.event', string="Event", ondelete='cascade')
     company_id = fields.Many2one('res.company', related='event_id.company_id')
     # product
-    product_id = fields.Many2one('product.product', string='Product',
-        required=True, domain=[("event_ok", "=", True)],
-        default=_default_product_id)
-    price = fields.Float(string='Price', digits='Product Price')
+    product_id = fields.Many2one(
+        'product.product', string='Product', required=True,
+        domain=[("event_ok", "=", True)], default=_default_product_id)
+    price = fields.Float(
+        string='Price', compute='_compute_price',
+        readonly=False, store=True, digits='Product Price')
     price_reduce = fields.Float(string="Price Reduce", compute="_compute_price_reduce", digits='Product Price')
-    price_reduce_taxinc = fields.Float(compute='_get_price_reduce_tax', string='Price Reduce Tax inc')
+    price_reduce_taxinc = fields.Float(string='Price Reduce Tax inc', compute='_compute_price_reduce_taxinc')
     # sale
     start_sale_date = fields.Date(string="Sales Start")
     end_sale_date = fields.Date(string="Sales End")
@@ -30,20 +32,23 @@ class EventTicket(models.Model):
     sale_available = fields.Boolean(string='Is Available', compute='_compute_sale_available')
     registration_ids = fields.One2many('event.registration', 'event_ticket_id', string='Registrations')
     # seats fields
-    seats_availability = fields.Selection([('limited', 'Limited'), ('unlimited', 'Unlimited')],
-        string='Available Seat', required=True, store=True, compute='_compute_seats', default="limited")
-    seats_max = fields.Integer(string='Maximum Available Seats',
-       help="Define the number of available tickets. If you have too much registrations you will "
-            "not be able to sell tickets anymore. Set 0 to ignore this rule set as unlimited.")
+    seats_availability = fields.Selection([
+        ('limited', 'Limited'), ('unlimited', 'Unlimited')], string='Available Seat',
+        compute='_compute_seats', store=True)
+    seats_max = fields.Integer(
+        string='Maximum Available Seats',
+        help="Define the number of available tickets. If you have too much registrations you will "
+             "not be able to sell tickets anymore. Set 0 to ignore this rule set as unlimited.")
     seats_reserved = fields.Integer(string='Reserved Seats', compute='_compute_seats', store=True)
     seats_available = fields.Integer(string='Available Seats', compute='_compute_seats', store=True)
     seats_unconfirmed = fields.Integer(string='Unconfirmed Seat Reservations', compute='_compute_seats', store=True)
-    seats_used = fields.Integer(compute='_compute_seats', store=True)
+    seats_used = fields.Integer(string='Used Seats', compute='_compute_seats', store=True)
 
+    @api.depends('end_sale_date', 'event_id', 'event_type_id')
     def _compute_is_expired(self):
         for ticket in self:
             if ticket.end_sale_date:
-                current_date = fields.Date.context_today(ticket.with_context(tz=ticket.event_id.date_tz))
+                current_date = fields.Date.context_today(ticket.with_context(tz=ticket.event_id.date_tz or self.env.user.tz or 'UTC'))
                 ticket.is_expired = ticket.end_sale_date < current_date
             else:
                 ticket.is_expired = False
@@ -61,13 +66,20 @@ class EventTicket(models.Model):
             else:
                 ticket.sale_available = True
 
+    @api.depends('product_id')
+    def _compute_price(self):
+        for ticket in self:
+            ticket.price = ticket.product_id.lst_price or 0
+
+    @api.depends('product_id')
     def _compute_price_reduce(self):
         for record in self:
             product = record.product_id
             discount = product.lst_price and (product.lst_price - product.price) / product.lst_price or 0.0
             record.price_reduce = (1.0 - discount) * record.price
 
-    def _get_price_reduce_tax(self):
+    @api.depends('price_reduce', 'product_id', 'event_id')
+    def _compute_price_reduce_taxinc(self):
         for record in self:
             # sudo necessary here since the field is most probably accessed through the website
             tax_ids = record.sudo().product_id.taxes_id.filtered(lambda r: r.company_id == record.event_id.company_id)
@@ -113,10 +125,6 @@ class EventTicket(models.Model):
     def _constrains_event(self):
         if any(ticket.event_type_id and ticket.event_id for ticket in self):
             raise UserError(_('Ticket cannot belong to both the event category and the event itself.'))
-
-    @api.onchange('product_id')
-    def _onchange_product_id(self):
-        self.price = self.product_id.list_price or 0
 
     def _get_ticket_multiline_description_sale(self):
         """ Compute a multiline description of this ticket, in the context of sales.
