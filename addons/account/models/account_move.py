@@ -2516,40 +2516,20 @@ class AccountMoveLine(models.Model):
             'check_amount_currency_balance_sign',
             '''CHECK(
                 (
+                    (currency_id != company_currency_id)
+                    AND
                     (
-                        (currency_id != company_currency_id)
-                        AND
-                        (
-                            (debit - credit <= 0 AND amount_currency <= 0)
-                            OR
-                            (debit - credit >= 0 AND amount_currency >= 0)
-                        )
+                        (debit - credit <= 0 AND amount_currency <= 0)
+                        OR
+                        (debit - credit >= 0 AND amount_currency >= 0)
                     )
-                    OR
-                    (
-                        currency_id = company_currency_id
-                        AND
-                        debit - credit = amount_currency
-                    )                
                 )
-                AND
+                OR
                 (
-                    (
-                        debit - credit >= 0
-                        AND
-                        amount_residual >= 0
-                        AND
-                        amount_residual_currency >= 0
-                    )
-                    OR
-                    (
-                        debit - credit <= 0
-                        AND
-                        amount_residual <= 0
-                        AND
-                        amount_residual_currency <= 0
-                    )
-                )
+                    currency_id = company_currency_id
+                    AND
+                    debit - credit = amount_currency
+                )                
             )''',
             "The amount expressed in the secondary currency must be positive when account is debited and negative when account is credited."
             "If the currency is the same as the company one, this amount must strictly be equal to the balance."
@@ -3722,7 +3702,8 @@ class AccountMoveLine(models.Model):
             max_date = max(line.date, max_date)
 
         company_currency = company.currency_id
-        residual_currency_field = 'amount_residual' if currency == company_currency else 'amount_residual_currency'
+        residual_field = 'amount_residual' if currency == company_currency else 'amount_residual_currency'
+        exchange_residual_field = 'amount_residual' if residual_field == 'amount_residual_currency' else 'amount_residual_currency'
         sorted_lines = self.sorted(key=lambda aml: (aml.date_maturity or aml.date, aml.currency_id))
 
         # ==== Collect all involved lines through the existing reconciliation ====
@@ -3755,7 +3736,7 @@ class AccountMoveLine(models.Model):
                 if not debit_line:
                     break
                 debit_amount_residual = debit_line.amount_residual
-                debit_amount_residual_currency = debit_line[residual_currency_field]
+                debit_amount_residual_currency = debit_line[residual_field]
 
             # Move to the next credit line.
             if currency.is_zero(credit_amount_residual_currency):
@@ -3763,7 +3744,7 @@ class AccountMoveLine(models.Model):
                 if not credit_line:
                     break
                 credit_amount_residual = -credit_line.amount_residual
-                credit_amount_residual_currency = -credit_line[residual_currency_field]
+                credit_amount_residual_currency = -credit_line[residual_field]
 
             # Create a new partial.
             partial_amount = min(debit_amount_residual, credit_amount_residual)
@@ -3783,7 +3764,7 @@ class AccountMoveLine(models.Model):
 
         results['partials'] = self.env['account.partial.reconcile'].create(partials_to_create)
 
-        if all(currency.is_zero(line[residual_currency_field]) for line in involved_lines):
+        if all(currency.is_zero(line[residual_field]) for line in involved_lines):
 
             # ==== Create the exchange difference move ====
 
@@ -3819,8 +3800,8 @@ class AccountMoveLine(models.Model):
                 exchange_difference_move_vals['line_ids'] += [
                     (0, 0, {
                         'name': _('Currency exchange rate difference'),
-                        'debit': -line.amount_residual if line.residual < 0.0 else 0.0,
-                        'credit': line.amount_residual if line.residual > 0.0 else 0.0,
+                        'debit': -line.amount_residual if line.amount_residual < 0.0 else 0.0,
+                        'credit': line.amount_residual if line.amount_residual > 0.0 else 0.0,
                         'amount_currency': -line.amount_residual_currency,
                         'account_id': line.account_id.id,
                         'currency_id': line.currency_id.id,
@@ -3829,10 +3810,10 @@ class AccountMoveLine(models.Model):
                     }),
                     (0, 0, {
                         'name': _('Currency exchange rate difference'),
-                        'debit': line.amount_residual if line.residual > 0.0 else 0.0,
-                        'credit': -line.amount_residual if line.residual < 0.0 else 0.0,
+                        'debit': line.amount_residual if line.amount_residual > 0.0 else 0.0,
+                        'credit': -line.amount_residual if line.amount_residual < 0.0 else 0.0,
                         'amount_currency': line.amount_residual_currency,
-                        'account_id': journal.default_debit_account_id.id if line.amount_residual > 0.0 else journal.default_credit_account_id.id,
+                        'account_id': journal.default_debit_account_id.id if line[exchange_residual_field] > 0.0 else journal.default_credit_account_id.id,
                         'currency_id': line.currency_id.id,
                         'partner_id': line.partner_id.id,
                         'sequence': sequence + 1,
@@ -3856,16 +3837,16 @@ class AccountMoveLine(models.Model):
                 source_line = lines_to_process[index]
                 exchange_diff_line = exchange_move.line_ids[index * 2]
 
-                if source_line.debit > 0.0:
+                if source_line[exchange_residual_field] > 0.0:
                     debit_line = source_line
                     credit_line = exchange_diff_line
                 else:
-                    credit_line = source_line
                     debit_line = exchange_diff_line
+                    credit_line = source_line
 
                 partials_to_create.append({
-                    'amount': abs(exchange_diff_line.amount_residual),
-                    'amount_currency': abs(exchange_diff_line.amount_residual_currency),
+                    'amount': abs(exchange_diff_line.balance),
+                    'amount_currency': abs(exchange_diff_line.amount_currency),
                     'currency_id': source_line.currency_id.id,
                     'debit_move_id': debit_line.id,
                     'credit_move_id': credit_line.id,
