@@ -16,18 +16,19 @@ class EventTicket(models.Model):
     event_type_id = fields.Many2one('event.type', string='Event Category', ondelete='cascade')
     event_id = fields.Many2one('event.event', string="Event", ondelete='cascade')
     company_id = fields.Many2one('res.company', related='event_id.company_id')
+    # product
     product_id = fields.Many2one('product.product', string='Product',
         required=True, domain=[("event_ok", "=", True)],
         default=_default_product_id)
-    registration_ids = fields.One2many('event.registration', 'event_ticket_id', string='Registrations')
     price = fields.Float(string='Price', digits='Product Price')
+    price_reduce = fields.Float(string="Price Reduce", compute="_compute_price_reduce", digits='Product Price')
+    price_reduce_taxinc = fields.Float(compute='_get_price_reduce_tax', string='Price Reduce Tax inc')
+    # sale
     start_sale_date = fields.Date(string="Sales Start")
     end_sale_date = fields.Date(string="Sales End")
     is_expired = fields.Boolean(string='Is Expired', compute='_compute_is_expired')
     sale_available = fields.Boolean(string='Is Available', compute='_compute_sale_available')
-
-    price_reduce = fields.Float(string="Price Reduce", compute="_compute_price_reduce", digits='Product Price')
-    price_reduce_taxinc = fields.Float(compute='_get_price_reduce_tax', string='Price Reduce Tax inc')
+    registration_ids = fields.One2many('event.registration', 'event_ticket_id', string='Registrations')
     # seats fields
     seats_availability = fields.Selection([('limited', 'Limited'), ('unlimited', 'Unlimited')],
         string='Available Seat', required=True, store=True, compute='_compute_seats', default="limited")
