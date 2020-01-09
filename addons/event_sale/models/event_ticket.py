@@ -117,7 +117,7 @@ class EventTicket(models.Model):
     def _onchange_product_id(self):
         self.price = self.product_id.list_price or 0
 
-    def get_ticket_multiline_description_sale(self):
+    def _get_ticket_multiline_description_sale(self):
         """ Compute a multiline description of this ticket, in the context of sales.
             It will often be used as the default description of a sales order line referencing this ticket.
 
