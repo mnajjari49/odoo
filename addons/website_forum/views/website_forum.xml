@@ -755,7 +755,7 @@
 </template>
 
 <!-- Edition: ask your question -->
-<template id="new_question">
+<template id="new_question" name="New Question">
     <t t-call="website_forum.header">
         <div t-if="request.env.user.forum_waiting_posts_count" class="alert border" role="alert">
             <b>You already have a pending post.</b><br/>
@@ -1238,14 +1238,19 @@
                     <t t-set="_answer_comment_collapse_uid" t-value="'comment_%s_%s' % (answer._name.replace('.', '_'), answer.id)"/>
                     <div class="btn-toolbar mb-3">
                         <div t-if="question.uid_has_answered and answer.create_uid.id == uid"
-                            class="btn-group btn-group-sm mr-1 mr-md-2">
-                            <a class="btn btn-sm px-2 btn-primary"
-                                title="Only one answer per question is allowed"
-                                data-toggle="tooltip"
-                                t-attf-href="/forum/#{slug(forum)}/question/#{slug(question)}/edit_answer">
-                                <i class="fa fa-pencil"/>
-                                Edit<span class="d-none d-lg-inline"> your answer</span>
-                            </a>
+                           class="btn-group btn-group-sm mr-1 mr-md-2">
+                           <a t-if="question.forum_id.mode == 'discussions'" class="btn btn-sm px-2 btn-primary"
+                               t-attf-href="/forum/#{slug(forum)}/question/#{slug(question)}/edit_answer">
+                               <i class="fa fa-pencil"/>
+                               Edit<span class="d-none d-lg-inline"> your answer</span>
+                           </a>
+                           <a t-else="" class="btn btn-sm px-2 btn-primary"
+                               title="Only one answer per question is allowed"
+                               data-toggle="tooltip"
+                               t-attf-href="/forum/#{slug(forum)}/question/#{slug(question)}/edit_answer">
+                               <i class="fa fa-pencil"/>
+                               Edit<span class="d-none d-lg-inline"> your answer</span>
+                           </a>
                         </div>
                         <div class="btn-group btn-group-sm">
                             <a t-attf-class="btn border px-2 #{not answer.can_comment and 'karma_required text-muted'}"
