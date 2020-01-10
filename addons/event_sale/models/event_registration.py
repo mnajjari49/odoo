@@ -65,12 +65,9 @@ class EventRegistration(models.Model):
             })
         return att_data
 
-    def summary(self):
-        res = super(EventRegistration, self).summary()
-        if self.event_ticket_id.product_id.image_128:
-            res['image'] = '/web/image/product.product/%s/image_128' % self.event_ticket_id.product_id.id
+    def registration_summary(self):
+        res = super(EventRegistration, self).registration_summary()
         information = res.setdefault('information', {})
-        information.append((_('Name'), self.name))
         information.append((_('Ticket'), self.event_ticket_id.name or _('None')))
         order = self.sale_order_id.sudo()
         order_line = self.sale_order_line_id.sudo()

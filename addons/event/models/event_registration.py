@@ -197,6 +197,6 @@ class EventRegistration(models.Model):
         else:
             return _('on ') + format_datetime(self.env, self.event_begin_date, tz=self.event_id.date_tz, dt_format='medium')
 
-    def summary(self):
+    def registration_summary(self):
         self.ensure_one()
-        return {'information': []}
+        return {'information': [(_('Event'), self.event_id.name), (_('Name'), self.name)]}
