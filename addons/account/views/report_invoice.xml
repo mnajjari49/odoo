@@ -183,7 +183,7 @@
                             <img class="border border-dark rounded" t-att-src="o.invoice_partner_bank_id.build_qr_code_url(o.amount_residual,(o.ref) if (o.ref) else o.name)"/>
                         </p>
                         <p t-if="(o.invoice_partner_bank_id.qr_code_valid == False)">
-                            <strong class="text-center">The SEPA QR Code informations are not set correctly.</strong><br />
+                            <strong class="text-center">The SEPA QR Code informations are not set correctly.</strong><br /> <!--TODO OCO et voir comment changer pour ce message d'erreur pas du tout générique :/ (et pas très instructif)-->
                         </p>
                     </div>
                 </div>
