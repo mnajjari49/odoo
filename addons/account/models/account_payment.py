@@ -94,6 +94,7 @@ class account_payment(models.Model):
     possible_bank_partner_ids = fields.Many2many('res.partner', compute='_compute_possible_bank_partners')
     show_partner_bank_account = fields.Boolean(compute='_compute_show_partner_bank', help='Technical field used to know whether the field `partner_bank_account_id` needs to be displayed or not in the payments form views')
     require_partner_bank_account = fields.Boolean(compute='_compute_show_partner_bank', help='Technical field used to know whether the field `partner_bank_account_id` needs to be required or not in the payments form views')
+    qr_code = fields.Char(string="QR Code", compute="_compute_qr_code") #TODO OCO DOC
 
     @api.model
     def default_get(self, default_fields):
@@ -166,6 +167,21 @@ class account_payment(models.Model):
                 payment_methods = p.journal_id.outbound_payment_method_ids
             p._payment_methods = default | payment_methods
 
+    @api.depends('partner_bank_account_id', 'amount', 'communication', 'currency_id', 'journal_id')
+    def _compute_qr_code(self):
+        for record in self:
+            qr_code = record.partner_bank_account_id.build_qr_code_url(record.amount, record.communication, record.currency_id)
+            if qr_code and record.partner_type == 'supplier':
+                record.qr_code = '''
+                    <br/>
+                    <img class="border border-dark rounded" src="{qr_code}"/>
+                    <br/>
+                    <strong class="text-center">{txt}</strong>
+                    '''.format(txt = _('Scan me with your banking app.'),
+                               qr_code = qr_code)
+            else:
+                record.qr_code = None
+
     @api.constrains('amount')
     def _check_amount(self):
         for payment in self:
@@ -174,7 +190,7 @@ class account_payment(models.Model):
 
     @api.model
     def _get_method_codes_using_bank_account(self):
-        return []
+        return ['manual'] #TODO OCO ce serait pas mal de faire une condition pour ne faire ça que si on a des gestionnaires de qr code d'installés > comment ?
 
     @api.model
     def _get_method_codes_needing_bank_account(self):

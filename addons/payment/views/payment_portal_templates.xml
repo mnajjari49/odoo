@@ -93,13 +93,13 @@
                                         <span name="form_amount" class="form-control" t-esc="tx.amount" t-options="{'widget': 'monetary', 'display_currency': tx.currency_id}"/>
                                     </div>
                                 </div>
-                                <div t-if="(tx.acquirer_id.qr_code == True) and (tx.currency_id.name == 'EUR')"> <!--TODO OCO donc il y a un setting sur les acquirer aussi => bouger dans un truc dédié ?-->
-                                    <div t-if="tx.acquirer_id.journal_id.bank_account_id.qr_code_valid">
+
+                                <!--TODO OCO faire un t-call pour ce bloc? P-ê dans payment, et l'appeler ailleurs ==> attention ici, c'est tx, pas payment_tx_id ... RENOMMER-->
+                                <div t-if="(tx.acquirer_id.qr_code == True)"> <!--TODO OCO pas de condition sur le type à 'transfer' pour la transaction ??? Ca ressemble a un oubli-->
+                                    <t t-set="qr_code" t-value="tx.acquirer_id.journal_id.bank_account_id.build_qr_code_url(order.amount_total,payment_tx_id.reference, tx.currency_id)"/>
+                                    <div class="card-body" t-if="qr_code">
                                         <h3>Or scan me with your banking app.</h3>
-                                        <img class="border border-dark rounded" t-att-src="tx.acquirer_id.journal_id.bank_account_id.build_qr_code_url(tx.amount,tx.reference)"/>
-                                    </div>
-                                    <div t-if="(tx.acquirer_id.journal_id.bank_account_id.qr_code_valid == False)">
-                                        <h3>The SEPA QR Code informations are not set correctly.</h3> <!--TODO OCO c'est vraiment utile, ça ? Quand est-ce que ça va faire ça légitimement ?-->
+                                        <img class="border border-dark rounded" t-att-src="qr_code"/>
                                     </div>
                                 </div>
                                 <div>
@@ -130,13 +130,13 @@
             <div t-if="payment_tx_id.acquirer_id.provider == 'transfer' and reference"> <!--TODO OCO c'est vraiment dégueulasse; 'transfer' est autorisé dans le champ par payment_transfer ... c'est n'imp de faire ça dans le module parent !-->
                 <b>Communication: </b><span t-esc='reference'/>
             </div>
-            <div t-if="(payment_tx_id.acquirer_id.qr_code == True) and (payment_tx_id.currency_id.name == 'EUR')">
-                <div t-if="payment_tx_id.acquirer_id.journal_id.bank_account_id.qr_code_valid">
+
+            <!--TODO OCO faire un t-call pour ce bloc? P-ê dans payment, et l'appeler ailleurs-->
+            <div t-if="(payment_tx_id.acquirer_id.qr_code == True) and (payment_tx_id.acquirer_id.provider == 'transfer')">
+                <t t-set="qr_code" t-value="payment_tx_id.acquirer_id.journal_id.bank_account_id.build_qr_code_url(order.amount_total,payment_tx_id.reference, payment_tx_id.currency_id)"/>
+                <div class="card-body" t-if="qr_code">
                     <h3>Or scan me with your banking app.</h3>
-                    <img class="border border-dark rounded" t-att-src="payment_tx_id.acquirer_id.journal_id.bank_account_id.build_qr_code_url(payment_tx_id.amount,payment_tx_id.reference)"/>
-                </div>
-                <div t-if="(payment_tx_id.acquirer_id.journal_id.bank_account_id.qr_code_valid == False)">
-                    <h3>The SEPA QR Code informations are not set correctly.</h3>
+                    <img class="border border-dark rounded" t-att-src="qr_code"/>
                 </div>
             </div>
         </div>

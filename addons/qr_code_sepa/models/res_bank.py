@@ -26,4 +26,4 @@ class ResPartnerBank(models.Model):
         non_iban_codes = {'AX', 'NC', 'YT', 'TF', 'BL', 'RE', 'MF', 'GP', 'PM', 'PF', 'GF', 'MQ', 'JE', 'GG', 'IM'}
         sepa_iban_codes = {code for code in sepa_country_codes if code not in non_iban_codes}
 
-        return self.partner_id.name and self.acc_type == 'iban' and self.sanitized_acc_number[:2] in sepa_iban_codes)
+        return self.partner_id.name and self.acc_type == 'iban' and self.sanitized_acc_number[:2] in sepa_iban_codes

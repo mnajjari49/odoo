@@ -191,6 +191,12 @@
                                     </div>
                                 </div>
                             </group>
+
+                            <group>
+                                <div attrs="{'invisible': [('qr_code_url', '!=', False)]}" colspan="2" class="text-center">
+                                    <field name="qr_code_url" widget="html"/>
+                                </div>
+                            </group>
                         </group>
                     </sheet>
                     <div class="o_attachment_preview"/>
