@@ -275,7 +275,8 @@
                                         <field name="interval_type"/>
                                         <field name="on_update_stage_id" attrs="{'required': [('interval_type', '=', 'stage_update')], 'readonly':[('interval_type','!=','stage_update')]}"/>
                                         <field name="scheduled_date" groups="base.group_no_one" string="Schedule date"/>
-                                        <field name="done"/>
+                                        <field name="sent_to_message" string="Sent to"/>
+                                        <field name="state" widget="event_state_widget" string=" "/>
                                     </tree>
                                 </field>
                             </page>
@@ -724,7 +725,7 @@
                     <field name="template_id" attrs="{'required': [('notification_type', '=', 'mail')]}"/>
                     <field name="scheduled_date"/>
                     <field name="mail_sent"/>
-                    <field name="done"/>
+                    <field name="state"/>
                 </tree>
             </field>
         </record>

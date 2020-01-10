@@ -107,7 +107,8 @@ class EventMailScheduler(models.Model):
     scheduled_date = fields.Datetime('Scheduled Sent Mail', compute='_compute_scheduled_date', store=True)
     mail_registration_ids = fields.One2many('event.mail.registration', 'scheduler_id')
     mail_sent = fields.Boolean('Mail Sent on Event', copy=False)
-    done = fields.Boolean('Sent', compute='_compute_done', store=True)
+    state = fields.Selection([('automated', 'Automated'), ('scheduled', 'Scheduled'), ('sent', 'Sent')], compute='_compute_state')
+    sent_to_message = fields.Char('Sent to message', compute='_compute_sent_to_message')
 
     @api.depends('mail_sent', 'interval_type', 'event_id.registration_ids', 'mail_registration_ids')
     def _compute_done(self):
@@ -130,6 +131,27 @@ class EventMailScheduler(models.Model):
                 date, sign = mail.event_id.date_end, 1
 
             mail.scheduled_date = date + _INTERVALS[mail.interval_unit](sign * mail.interval_nbr) if date else False
+
+    @api.depends('mail_sent', 'interval_type', 'event_id.registration_ids', 'mail_registration_ids')
+    def _compute_state(self):
+        for mail in self:
+            if mail.interval_type in ['before_event', 'after_event', 'stage_update']:
+                mail.state = 'sent' if mail.mail_sent else 'scheduled'
+            else:
+                sent = (
+                    len(mail.mail_registration_ids)
+                    and len(mail.mail_registration_ids) == len(mail.event_id.registration_ids)
+                    and all(mail_reg.mail_sent for mail_reg in mail.mail_registration_ids))
+                mail.state = 'sent' if sent else 'automated'
+
+    @api.depends('mail_registration_ids', 'mail_registration_ids.mail_sent')
+    def _compute_sent_to_message(self):
+        for mail in self:
+            if mail.interval_type == 'after_sub':
+                sent_to = len([mail_reg for mail_reg in mail.mail_registration_ids if mail_reg.mail_sent])
+            else:
+                sent_to = len(mail.event_id.registration_ids.filtered(lambda reg: reg.state != 'cancel'))
+            mail.sent_to_message = '%i Attendees' % sent_to
 
     def execute(self):
         for mail in self:
@@ -185,7 +207,7 @@ class EventMailScheduler(models.Model):
 
     @api.model
     def run(self, autocommit=False):
-        schedulers = self.search([('done', '=', False), ('scheduled_date', '<=', datetime.strftime(fields.datetime.now(), tools.DEFAULT_SERVER_DATETIME_FORMAT))])
+        schedulers = self.search([('state', '!=', 'sent'), ('scheduled_date', '<=', datetime.strftime(fields.datetime.now(), tools.DEFAULT_SERVER_DATETIME_FORMAT))])
         for scheduler in schedulers:
             try:
                 with self.env.cr.savepoint():

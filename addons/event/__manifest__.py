@@ -37,4 +37,7 @@ Key Features
     ],
     'installable': True,
     'auto_install': False,
+    'qweb': [
+        'static/src/xml/event_state_widget.xml',
+    ],
 }
