@@ -11,7 +11,8 @@
                     <group>
                          <group>
                              <field name="reason"/>
-                             <field name="date" string="Adjustment Date"/>
+                             <field name="date" string="Debit Note Date"/>
+                             <field name="copy_lines"/>
                          </group>
                          <group>
                              <field name="journal_id"/>
