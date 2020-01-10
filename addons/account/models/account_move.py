@@ -3773,10 +3773,10 @@ class AccountMoveLine(models.Model):
             # Check the configuration of the exchange difference journal.
             if not journal:
                 raise UserError(_("You should configure the 'Exchange Rate Journal' in the accounting settings, to manage automatically the booking of accounting entries related to differences between exchange rates."))
-            if not company.income_currency_exchange_account_id.id:
-                raise UserError(_("You should configure the 'Gain Exchange Rate Account' in the accounting settings, to manage automatically the booking of accounting entries related to differences between exchange rates."))
-            if not company.expense_currency_exchange_account_id.id:
+            if not journal.default_debit_account_id.id:
                 raise UserError(_("You should configure the 'Loss Exchange Rate Account' in the accounting settings, to manage automatically the booking of accounting entries related to differences between exchange rates."))
+            if not journal.default_credit_account_id.id:
+                raise UserError(_("You should configure the 'Gain Exchange Rate Account' in the accounting settings, to manage automatically the booking of accounting entries related to differences between exchange rates."))
 
             exchange_difference_move_vals = {
                 'date': max(company._get_user_fiscal_lock_date(), max_date),
