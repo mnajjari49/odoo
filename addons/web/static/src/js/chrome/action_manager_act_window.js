@@ -200,6 +200,14 @@ patch(ActionManager, 'ActionManagerActWindow', {
         });
         return views;
     },
+    _getCurrentAction() {
+        const currentControllerID = this.currentStack[this.currentStack.length - 1];
+        const currentController = this.controllers[currentControllerID];
+        return {
+            action: this.actions[currentController.actionID],
+            controller: currentController,
+        }
+    },
     /**
      * Overrides to handle the 'ir.actions.act_window' actions.
      *
@@ -514,9 +522,7 @@ patch(ActionManager, 'ActionManagerActWindow', {
     _onSwitchView(ev) {
         const detail = ev.detail;
         const viewType = ev.detail.view_type;
-        const currentControllerID = this.currentStack[this.currentStack.length - 1];
-        const currentController = this.controllers[currentControllerID];
-        const action = this.actions[currentController.actionID];
+        const { action } = this._getCurrentAction();
         // TODO: find a way to save/restore state
         // const currentController = action.controller;
         // var currentControllerState = currentController.widget.exportState();
@@ -530,6 +536,12 @@ patch(ActionManager, 'ActionManagerActWindow', {
         }
         console.log('switch view', viewType);
         this._switchController(action, viewType, options);
+    },
+    _onReloadingLegacy(ev) {
+        const detail = ev.detail;
+        const { action } = this._getCurrentAction();
+        Object.assign(action, detail.commonState);
+        action.controllerState = Object.assign({}, action.controllerState, detail.controllerState);
     },
 });
 

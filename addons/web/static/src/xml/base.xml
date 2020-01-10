@@ -8,7 +8,8 @@
 <div t-name="web.ActionManager" class="o_action_manager" owl="1"
     t-on-breadcrumb-clicked.stop="_onBreadcrumbClicked"
     t-on-switch-view.stop="_onSwitchView"
-    t-on-execute-action.stop="_onExecuteAction">
+    t-on-execute-action.stop="_onExecuteAction"
+    t-on-reloading-legacy.stop="_onReloadingLegacy">
     <t t-set="controllerID" t-value="state.pendingStack ? state.pendingStack[state.pendingStack.length - 1] : currentStack[currentStack.length - 1]"/>
     <t t-if="controllerID">
         <t t-set="controller" t-value="controllers[controllerID]"/>
