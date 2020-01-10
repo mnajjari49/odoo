@@ -132,11 +132,8 @@ class EventEvent(models.Model):
     # Seats and computation
     seats_max = fields.Integer(
         string='Maximum Attendees Number',
-        readonly=True,
         help="For each event you can define a maximum registration of seats(number of attendees), above this numbers the registrations are not accepted.")
-    seats_availability = fields.Selection(
-        [('limited', 'Limited'), ('unlimited', 'Unlimited')],
-        'Maximum Attendees', required=True, default='unlimited')
+    seats_limited = fields.Boolean('Maximum Attendees', required=True, default=False)
     seats_min = fields.Integer(
         string='Minimum Attendees',
         help="For each event you can define a minimum reserved seats (number of attendees), if it does not reach the mentioned registrations the event can not be confirmed (keep 0 to ignore this rule)")
@@ -222,10 +219,10 @@ class EventEvent(models.Model):
                 event.seats_available = event.seats_max - (event.seats_reserved + event.seats_used)
             event.seats_expected = event.seats_unconfirmed + event.seats_reserved + event.seats_used
 
-    @api.depends('date_end', 'seats_available', 'seats_availability')
+    @api.depends('date_end', 'seats_available', 'seats_limited')
     def _compute_event_registrations_open(self):
         for event in self:
-            event.event_registrations_open = event.date_end > fields.Datetime.now() and (event.seats_available or event.seats_availability == 'unlimited')
+            event.event_registrations_open = event.date_end > fields.Datetime.now() and (event.seats_available or not event.seats_limited)
 
     @api.depends('stage_id', 'kanban_state')
     def _compute_kanban_state_label(self):
@@ -281,7 +278,7 @@ class EventEvent(models.Model):
             self.seats_min = self.event_type_id.default_registration_min
             self.seats_max = self.event_type_id.default_registration_max
             if self.event_type_id.default_registration_max:
-                self.seats_availability = 'limited'
+                self.seats_limited = True
 
             if self.event_type_id.auto_confirm:
                 self.auto_confirm = self.event_type_id.auto_confirm
@@ -302,14 +299,14 @@ class EventEvent(models.Model):
                         })
                     for line in self.event_type_id.event_type_mail_ids]
 
-    @api.constrains('seats_min', 'seats_max', 'seats_availability')
+    @api.constrains('seats_min', 'seats_max', 'seats_limited')
     def _check_seats_min_max(self):
-        if any(event.seats_availability == 'limited' and event.seats_min > event.seats_max for event in self):
+        if any(event.seats_limited and event.seats_min > event.seats_max for event in self):
             raise ValidationError(_('Maximum attendees number should be greater than minimum attendees number.'))
 
     @api.constrains('seats_max', 'seats_available')
     def _check_seats_limit(self):
-        if any(event.seats_availability == 'limited' and event.seats_max and event.seats_available < 0 for event in self):
+        if any(event.seats_limited and event.seats_max and event.seats_available < 0 for event in self):
             raise ValidationError(_('No more available seats.'))
 
     @api.constrains('date_begin', 'date_end')
