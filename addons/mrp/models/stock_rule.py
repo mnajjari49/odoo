@@ -134,6 +134,7 @@ class StockRule(models.Model):
         new_move_vals['production_id'] = False
         return new_move_vals
 
+
 class ProcurementGroup(models.Model):
     _inherit = 'procurement.group'
 
