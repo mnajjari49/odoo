@@ -167,20 +167,26 @@ class account_payment(models.Model):
                 payment_methods = p.journal_id.outbound_payment_method_ids
             p._payment_methods = default | payment_methods
 
-    @api.depends('partner_bank_account_id', 'amount', 'communication', 'currency_id', 'journal_id')
+    @api.depends('partner_bank_account_id', 'amount', 'communication', 'currency_id', 'journal_id', 'state', 'payment_method_id', 'payment_type')
     def _compute_qr_code(self):
         for record in self:
-            qr_code = record.partner_bank_account_id.build_qr_code_url(record.amount, record.communication, record.currency_id)
-            if qr_code and record.partner_type == 'supplier':
-                record.qr_code = '''
-                    <br/>
-                    <img class="border border-dark rounded" src="{qr_code}"/>
-                    <br/>
-                    <strong class="text-center">{txt}</strong>
-                    '''.format(txt = _('Scan me with your banking app.'),
-                               qr_code = qr_code)
-            else:
-                record.qr_code = None
+            if record.state in ('draft', 'posted') \
+                and record.partner_bank_account_id \
+                and record.payment_method_id.code == 'manual' \
+                and record.payment_type == 'outbound':
+
+                qr_code = record.partner_bank_account_id and record.partner_bank_account_id.build_qr_code_url(record.amount, record.communication, record.currency_id) or None
+                if qr_code:
+                    record.qr_code = '''
+                        <br/>
+                        <img class="border border-dark rounded" src="{qr_code}"/>
+                        <br/>
+                        <strong class="text-center">{txt}</strong>
+                        '''.format(txt = _('Scan me with your banking app.'),
+                                   qr_code = qr_code)
+                    continue
+
+            record.qr_code = None
 
     @api.constrains('amount')
     def _check_amount(self):
@@ -429,6 +435,12 @@ class account_payment(models.Model):
             'domain': [('id', 'in', [x.id for x in self.reconciled_invoice_ids])],
             'context': {'create': False},
         }
+
+    def mark_as_sent(self):
+        self.write({'state': 'sent'})
+
+    def unmark_as_sent(self):
+        self.write({'state': 'posted'})
 
     def unreconcile(self):
         """ Set back the payments in 'posted' or 'sent' state, without deleting the journal entries.

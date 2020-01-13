@@ -2,12 +2,14 @@
 
 from odoo import models, fields, api
 
+import werkzeug
+
 
 class ResPartnerBank(models.Model):
     _inherit = 'res.partner.bank'
 
     def build_qr_code_url(self, amount, comment, currency): #TODO OCO currency
-        if currency.name == 'EUR' and self.eligible_for_sepa_qr_code():
+        if currency.name == 'EUR' and self._eligible_for_sepa_qr_code():
             communication = ''
             if comment:
                 communication = (comment[:137] + '...') if len(comment) > 140 else comment
