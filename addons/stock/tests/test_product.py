@@ -10,20 +10,20 @@ from odoo.addons.stock.tests.common2 import TestStockCommon
 class TestVirtualAvailable(TestStockCommon):
     def setUp(self):
         super(TestVirtualAvailable, self).setUp()
-
         # Make `product3` a storable product for this test. Indeed, creating quants
         # and playing with owners is not possible for consumables.
         self.product_3.type = 'product'
+        self.env = self.env(user=self.user_stock_manager)
 
-        self.env['stock.quant'].create({
+        self.env['stock.quant'].with_context(inventory_mode=True).create({
             'product_id': self.product_3.id,
             'location_id': self.env.ref('stock.stock_location_stock').id,
-            'quantity': 30.0})
+            'inventory_quantity': 30.0})
 
-        self.env['stock.quant'].create({
+        self.env['stock.quant'].with_context(inventory_mode=True).create({
             'product_id': self.product_3.id,
             'location_id': self.env.ref('stock.stock_location_stock').id,
-            'quantity': 10.0,
+            'inventory_quantity': 10.0,
             'owner_id': self.user_stock_user.partner_id.id})
 
         self.picking_out = self.env['stock.picking'].create({

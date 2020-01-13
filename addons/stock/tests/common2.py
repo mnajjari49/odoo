@@ -83,5 +83,6 @@ class TestStockCommon(common.TestProductCommon):
         })
 
         # Existing data
+        cls.env = cls.env(user=cls.user_stock_user)
         cls.existing_inventories = cls.env['stock.inventory'].search([])
         cls.existing_quants = cls.env['stock.quant'].search([])

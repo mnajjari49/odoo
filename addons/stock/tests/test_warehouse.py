@@ -10,7 +10,8 @@ class TestWarehouse(TestStockCommon):
 
     def setUp(self):
         super(TestWarehouse, self).setUp()
-        self.partner = self.env['res.partner'].create({'name': 'Deco Addict'})
+        self.partner = self.env['res.partner'].with_user(self.user_stock_manager).create({'name': 'Deco Addict'})
+        self.env = self.env(user=self.user_stock_manager)
 
     def test_inventory_product(self):
         self.product_1.type = 'product'
@@ -19,7 +20,7 @@ class TestWarehouse(TestStockCommon):
             'inventory_quantity': 50.0,
             'location_id': self.warehouse_1.lot_stock_id.id,
         })
-        inventory = self.env['stock.inventory'].with_user(self.user_stock_manager).create({
+        inventory = self.env['stock.inventory'].create({
             'name': 'Starting for product_1',
             'location_ids': [(4, self.warehouse_1.lot_stock_id.id)],
             'product_ids': [(4, self.product_1.id)],
@@ -453,17 +454,18 @@ class TestWarehouse(TestStockCommon):
     def test_noleak(self):
         # non-regression test to avoid company_id leaking to other warehouses (see blame)
         partner = self.env['res.partner'].create({'name': 'Chicago partner'})
-        company = self.env['res.company'].create({
+        user = self.env.ref('base.user_admin')
+        company = self.env['res.company'].with_user(user.id).create({
             'name': 'My Company (Chicago)1',
             'currency_id': self.ref('base.USD')
         })
-        self.env['stock.warehouse'].create({
+        self.env['stock.warehouse'].with_user(user.id).create({
             'name': 'Chicago Warehouse2',
             'company_id': company.id,
             'code': 'Chic2',
             'partner_id': partner.id
         })
-        wh = self.env["stock.warehouse"].search([])
+        wh = self.env["stock.warehouse"].with_user(user.id).search([])
 
         assert len(set(wh.mapped("company_id.id"))) > 1
 
