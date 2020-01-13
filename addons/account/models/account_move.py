@@ -3666,53 +3666,9 @@ class AccountMoveLine(models.Model):
         (self + writeoff_to_reconcile).check_full_reconcile()
         return True
 
-    def reconcile2(self):
-        results = {}
-
-        if not self:
-            return results
-
-        # ==== Check the lines can be reconciled together ====
-        company = None
-        account = None
-        max_date = date.min
-        for line in self:
-            if line.reconciled:
-                raise UserError(_("You are trying to reconcile some entries that are already reconciled."))
-            if not line.account_id.reconcile and line.account_id.internal_type != 'liquidity':
-                raise UserError(_("Account %s does not allow reconciliation. First change the configuration of this account to allow it.")
-                                % line.account_id.display_name)
-            if company is None:
-                company = line.company_id
-            elif line.company_id != company:
-                raise UserError(_("Entries doesn't belong to the same company: %s != %s")
-                                % (company.display_name, line.company_id.display_name))
-            if account is None:
-                account = line.account_id
-            elif line.account_id != account:
-                raise UserError(_("Entries are not from the same account: %s != %s")
-                                % (account.display_name, line.account_id.display_name))
-
-            max_date = max(line.date, max_date)
-
-        sorted_lines = self.sorted(key=lambda aml: (aml.date_maturity or aml.date, aml.currency_id))
-
-        # ==== Collect all involved lines through the existing reconciliation ====
-
-        involved_lines = sorted_lines
-        involved_partials = self.env['account.partial.reconcile']
-        current_lines = involved_lines
-        current_partials = involved_partials
-        while current_lines:
-            current_partials = (current_lines.mapped('matched_debit_ids') + current_lines.mapped('matched_credit_ids')) - current_partials
-            involved_partials += current_partials
-            current_lines = (current_partials.mapped('debit_move_id') + current_partials.mapped('credit_move_id')) - current_lines
-            involved_lines += current_lines
-
-        # ==== Create partials ====
-
-        debit_lines = iter(sorted_lines.filtered('debit'))
-        credit_lines = iter(sorted_lines.filtered('credit'))
+    def _create_reconciliation_partials(self):
+        debit_lines = iter(self.filtered('debit'))
+        credit_lines = iter(self.filtered('credit'))
         debit_line = None
         credit_line = None
 
@@ -3784,19 +3740,13 @@ class AccountMoveLine(models.Model):
                 'debit_move_id': debit_line.id,
                 'credit_move_id': credit_line.id,
             })
+        return self.env['account.partial.reconcile'].create(partials_to_create)
 
-        results['partials'] = self.env['account.partial.reconcile'].create(partials_to_create)
+    def _create_reconciliation_exchange_difference_move(self):
+            if not self:
+                return None
 
-        currencies = involved_lines.mapped('currency_id')
-        if len(currencies) == 1:
-            is_full_needed = all(line.currency_id.is_zero(line.amount_residual_currency) for line in involved_lines)
-        else:
-            is_full_needed = all(line.company_currency_id.is_zero(line.amount_residual) for line in involved_lines)
-
-        if is_full_needed:
-
-            # ==== Create the exchange difference move ====
-
+            company = self[0].company_id
             journal = company.currency_exchange_journal_id
 
             # Check the configuration of the exchange difference journal.
@@ -3807,8 +3757,8 @@ class AccountMoveLine(models.Model):
             if not journal.default_credit_account_id.id:
                 raise UserError(_("You should configure the 'Gain Exchange Rate Account' in the accounting settings, to manage automatically the booking of accounting entries related to differences between exchange rates."))
 
-            exchange_difference_move_vals = {
-                'date': max(company._get_user_fiscal_lock_date(), max_date),
+            exchange_diff_move_vals = {
+                'date': date.min,
                 'journal_id': journal.id,
                 'line_ids': [],
             }
@@ -3819,9 +3769,9 @@ class AccountMoveLine(models.Model):
 
             # Iterate all lines and prepare the exchange difference journal items.
             lines_to_process = self.env['account.move.line']
-            for line in involved_lines:
+            for line in self:
 
-                exchange_difference_move_vals['date'] = max(exchange_difference_move_vals['date'], line.date)
+                exchange_diff_move_vals['date'] = max(exchange_diff_move_vals['date'], line.date)
 
                 # TODO: check if the right account is used: to compare in the GUI
 
@@ -3844,7 +3794,7 @@ class AccountMoveLine(models.Model):
                 else:
                     continue
 
-                exchange_difference_move_vals['line_ids'] += [
+                exchange_diff_move_vals['line_ids'] += [
                     (0, 0, {
                         'name': _('Currency exchange rate difference'),
                         'debit': -line.amount_residual if line.amount_residual < 0.0 else 0.0,
@@ -3871,12 +3821,11 @@ class AccountMoveLine(models.Model):
                 sequence += 2
 
             if lines_to_process:
-                exchange_move = self.env['account.move'].create(exchange_difference_move_vals)
+                exchange_diff_move_vals['date'] = max(exchange_diff_move_vals['date'], company._get_user_fiscal_lock_date())
 
-                # Track also the lines created by the exchange difference journal entry.
-                involved_lines += exchange_move.line_ids
+                exchange_move = self.env['account.move'].create(exchange_diff_move_vals)
             else:
-                exchange_move = None
+                return None
 
             # Reconcile lines to the newly created exchange difference journal entry by creating more partials.
             partials_to_create = []
@@ -3899,8 +3848,80 @@ class AccountMoveLine(models.Model):
                     'credit_move_id': credit_line.id,
                 })
 
-            results['partials'] += self.env['account.partial.reconcile'].create(partials_to_create)
-            involved_partials += results['partials']
+            self.env['account.partial.reconcile'].create(partials_to_create)
+
+            return exchange_move
+
+    def reconcile2(self):
+        results = {}
+
+        if not self:
+            return results
+
+        # ==== Check the lines can be reconciled together ====
+        company = None
+        account = None
+        for line in self:
+            if line.reconciled:
+                raise UserError(_("You are trying to reconcile some entries that are already reconciled."))
+            if not line.account_id.reconcile and line.account_id.internal_type != 'liquidity':
+                raise UserError(_("Account %s does not allow reconciliation. First change the configuration of this account to allow it.")
+                                % line.account_id.display_name)
+            if company is None:
+                company = line.company_id
+            elif line.company_id != company:
+                raise UserError(_("Entries doesn't belong to the same company: %s != %s")
+                                % (company.display_name, line.company_id.display_name))
+            if account is None:
+                account = line.account_id
+            elif line.account_id != account:
+                raise UserError(_("Entries are not from the same account: %s != %s")
+                                % (account.display_name, line.account_id.display_name))
+
+        sorted_lines = self.sorted(key=lambda aml: (aml.date_maturity or aml.date, aml.currency_id))
+
+        # ==== Collect all involved lines through the existing reconciliation ====
+
+        involved_lines = sorted_lines
+        involved_partials = self.env['account.partial.reconcile']
+        current_lines = involved_lines
+        current_partials = involved_partials
+        while current_lines:
+            current_partials = (current_lines.mapped('matched_debit_ids') + current_lines.mapped('matched_credit_ids')) - current_partials
+            involved_partials += current_partials
+            current_lines = (current_partials.mapped('debit_move_id') + current_partials.mapped('credit_move_id')) - current_lines
+            involved_lines += current_lines
+
+        # ==== Create partials ====
+
+        partials = sorted_lines._create_reconciliation_partials()
+
+        # Track newly created partials.
+        results['partials'] = partials
+        involved_partials += partials
+
+        # ==== Check if a full reconcile is needed ====
+
+        currencies = involved_lines.mapped('currency_id')
+        if len(currencies) == 1:
+            is_full_needed = all(line.currency_id.is_zero(line.amount_residual_currency) for line in involved_lines)
+        else:
+            is_full_needed = all(line.company_currency_id.is_zero(line.amount_residual) for line in involved_lines)
+
+        if is_full_needed:
+
+            # ==== Create the exchange difference move ====
+
+            exchange_move = involved_lines._create_reconciliation_exchange_difference_move()
+            if exchange_move:
+
+                # Track newly created lines.
+                involved_lines += exchange_move.line_ids
+
+                # Track newly created partials.
+                exchange_diff_partials = exchange_move.line_ids.mapped('matched_debit_ids') + exchange_move.line_ids.mapped('matched_credit_ids')
+                involved_partials += exchange_diff_partials
+                results['partials'] += exchange_diff_partials
 
             # ==== Create the full reconcile ====
 
