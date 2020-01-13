@@ -1,9 +1,9 @@
-odoo.define('hr_timesheet.timer', function (require) {
+odoo.define('timer.timer', function (require) {
 "use strict";
 
 var fieldRegistry = require('web.field_registry');
 var AbstractField = require('web.AbstractField');
-var Timer = require('hr_timesheet.Timer');
+var Timer = require('timer.Timer');
 
 var TimerFieldWidget = AbstractField.extend({
 
@@ -58,6 +58,6 @@ var TimerFieldWidget = AbstractField.extend({
     }
 });
 
-fieldRegistry.add('timesheet_timer', TimerFieldWidget);
+fieldRegistry.add('timer_timer', TimerFieldWidget);
 
 });

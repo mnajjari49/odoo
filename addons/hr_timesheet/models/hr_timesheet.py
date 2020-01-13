@@ -199,7 +199,7 @@ class AccountAnalyticLine(models.Model):
     def _compute_display_timer(self):
         uom_hour = self.env.ref('uom.product_uom_hour')
         for analytic_line in self:
-            analytic_line.display_timer = analytic_line.encoding_uom_id == uom_hour
+            analytic_line.display_timer = analytic_line.encoding_uom_id == uom_hour and analytic_line.project_id.allow_timesheet_timer
 
     def action_timer_start(self):
         """ Start timer and search if another timer hasn't been launched.
@@ -208,16 +208,10 @@ class AccountAnalyticLine(models.Model):
         if not self._get_record_timer().timer_start and self.display_timer:
             # Stop an existing timer if it is running
             # YTI Should be done in the mixin IMO
-            ts_info = self.stop_timer_in_progress()
+
             # Because it stops the timer of another timesheet than our
             # it needs to search it to be able to add the minutes_spent
             # on the right unit_amount field
-            if(ts_info):
-                timesheet = self.env['account.analytic.line'].search([
-                    ('id', '=', ts_info['res_id'])
-                ])
-                if(timesheet):
-                    timesheet._compute_timer_time(ts_info['minutes_spent'])
 
             super().action_timer_start()
 

@@ -15,6 +15,7 @@ It adds a timer to a view for time recording purpose
     """,
     'depends': ['base', 'web'],
     'data': [
+        'views/assets.xml',
         'security/ir.model.access.csv',
     ],
     'demo': [],

@@ -1,4 +1,4 @@
-odoo.define('hr_timesheet.timer_toggle_button', function (require) {
+odoo.define('timer.timer_toggle_button', function (require) {
 "use strict";
 
 const fieldRegistry = require('web.field_registry');
@@ -51,9 +51,8 @@ const TimerToggleButton = FieldToggleBoolean.extend({
      */
     _onToggleButton: async function (event) {
         event.stopPropagation();
-        console.log("triggered : ", this.res_id, this.value);
         const result = await this._rpc({
-            model: 'account.analytic.line',
+            model: this.model,
             method: this._getActionButton(),
             args: [this.res_id]
         });
@@ -66,7 +65,6 @@ const TimerToggleButton = FieldToggleBoolean.extend({
         this._setValue(!this.value);
     },
     _getActionButton: function () {
-        console.log("action : ", this.value);
         return this.value ? 'action_timer_stop' : 'action_timer_start';
     }
 });

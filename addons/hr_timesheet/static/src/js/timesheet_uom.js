@@ -6,7 +6,7 @@ const fieldUtils = require('web.field_utils');
 
 const fieldRegistry = require('web.field_registry');
 
-const Timer = require('hr_timesheet.Timer');
+const Timer = require('timer.Timer');
 
 // We need the field registry to be populated, as we bind the
 // timesheet_uom widget on existing field widgets.

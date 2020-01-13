@@ -38,6 +38,7 @@ class TimerMixin(models.AbstractModel):
     def action_timer_start(self):
         self.ensure_one()
         
+        self.stop_timer_in_progress()
         timer = self._get_record_timer()
         if not timer:
             timer = self.env['timer.timer'].create({
@@ -77,19 +78,24 @@ class TimerMixin(models.AbstractModel):
 
     def action_timer_resume(self):
         self.ensure_one()
+        self.stop_timer_in_progress()
         timer = self._get_record_timer()
         timer.action_timer_resume()
 
     def stop_timer_in_progress(self):
         # Cancel the timer in progress if there is one
-        
+        # Depending of the timer source, stop it or pause it
         for timer in self._get_user_timers().filtered(lambda t: t.is_timer_running):
-            result = { 
-                "minutes_spent" : timer.action_timer_stop(),
-                "res_id" : timer.res_id
-            }
-            self.env['timer.timer'].search([
-                ('id', '=', timer.id)
-            ]).unlink()
-            return result
-            # TODO : Pause or Stop ?
+            if timer.res_model != 'account.analytic.line':
+                timer.action_timer_pause()
+            else:
+                minutes_spent = timer.action_timer_stop()
+                timesheet = self.env['account.analytic.line'].search([
+                        ('id', '=', timer.res_id)
+                    ])
+                if(timesheet):
+                    timesheet._compute_timer_time(minutes_spent)
+
+                self.env['timer.timer'].search([
+                        ('id', '=', timer.id)
+                    ]).unlink()

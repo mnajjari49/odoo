@@ -77,6 +77,13 @@ class Project(models.Model):
     def _init_data_analytic_account(self):
         self.search([('analytic_account_id', '=', False), ('allow_timesheets', '=', True)])._create_analytic_account()
 
+    @api.model
+    def is_project_allow_timer(self, project_id):
+        project = self.env['project.project'].search([
+            ('id', '=', project_id)
+        ], limit=1)
+        # import pdb; pdb.set_trace()
+        return project.allow_timesheet_timer
 
 class Task(models.Model):
     _name = "project.task"
@@ -91,8 +98,8 @@ class Task(models.Model):
     subtask_effective_hours = fields.Float("Sub-tasks Hours Spent", compute='_compute_subtask_effective_hours', store=True, help="Sum of actually spent hours on the subtask(s)")
     timesheet_ids = fields.One2many('account.analytic.line', 'task_id', 'Timesheets')
 
-    timer_start = fields.Datetime("Timesheet Timer Start")
-    timer_pause = fields.Datetime("Timesheet Timer Last Pause")
+    # timer_start = fields.Datetime("Timesheet Timer Start")
+    # timer_pause = fields.Datetime("Timesheet Timer Last Pause")
     # YTI FIXME: Those field seems quite useless
     timesheet_timer_first_start = fields.Datetime("Timesheet Timer First Use", readonly=True)
     timesheet_timer_last_stop = fields.Datetime("Timesheet Timer Last Use", readonly=True)
@@ -171,7 +178,7 @@ class Task(models.Model):
 
     def action_timer_start(self):
         self.ensure_one()
-        # Stop existing timer
+    
         super(Task, self).action_timer_start()
 
     def action_timer_stop(self):
