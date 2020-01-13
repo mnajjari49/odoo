@@ -38,6 +38,7 @@ EMPTY_DICT = frozendict()
 
 RENAMED_ATTRS = [('select', 'index'), ('digits_compute', 'digits')]
 DEPRECATED_ATTRS = [("oldname", "use an upgrade script instead.")]
+POST_CREATE_FIELDS = ['create_date', 'create_uid', 'write_date', 'write_uid']
 
 IR_MODELS = (
     'ir.model', 'ir.model.data', 'ir.model.fields', 'ir.model.fields.selection',
@@ -231,6 +232,7 @@ class Field(MetaField('DummyField', (object,), {})):
         'depends_context': None,        # collection of context key dependencies
         'recursive': False,             # whether self depends on itself
         'compute': None,                # compute(recs) computes field on recs
+        'pre_compute': True,            # whether field has to be computed before creation
         'compute_sudo': False,          # whether field should be recomputed as superuser
         'inverse': None,                # inverse(recs) inverses field on recs
         'search': None,                 # search(recs, operator, value) searches on self
@@ -357,6 +359,7 @@ class Field(MetaField('DummyField', (object,), {})):
             attrs['compute_sudo'] = attrs.get('compute_sudo', store)
             attrs['copy'] = attrs.get('copy', False)
             attrs['readonly'] = attrs.get('readonly', not attrs.get('inverse'))
+            attrs['pre_compute'] = attrs.get('pre_compute', store)
         if attrs.get('related'):
             # by default, related fields are not stored, computed in superuser
             # mode, not copied and readonly
@@ -364,6 +367,7 @@ class Field(MetaField('DummyField', (object,), {})):
             attrs['compute_sudo'] = attrs.get('compute_sudo', attrs.get('related_sudo', True))
             attrs['copy'] = attrs.get('copy', False)
             attrs['readonly'] = attrs.get('readonly', True)
+            attrs['pre_compute'] = attrs.get('pre_compute', store)
         if attrs.get('company_dependent'):
             # by default, company-dependent fields are not stored, not computed
             # in superuser mode and not copied
@@ -679,6 +683,9 @@ class Field(MetaField('DummyField', (object,), {})):
                 if field is self and index:
                     self.recursive = True
 
+                if not field.pre_compute or fname in POST_CREATE_FIELDS:
+                    self.pre_compute = False
+
                 field_seq.append(field)
 
                 # do not make self trigger itself: for instance, a one2many
@@ -839,7 +846,10 @@ class Field(MetaField('DummyField', (object,), {})):
 
         # create/update the column, not null constraint, indexes
         self.update_db_column(model, column)
-        self.update_db_notnull(model, column)
+        if not self.compute:
+            # postpone not null constraints for fields
+            # until their effective computation.
+            self.update_db_notnull(model, column)
         self.update_db_index(model, column)
 
         return not column
@@ -2545,6 +2555,11 @@ class Many2one(_Relational):
             valid_records = records.filtered_domain(invf.get_domain_list(corecord))
             if not valid_records:
                 continue
+            # Ensure new records cannot impact real records (and inversely)
+            if not corecord.id:
+                valid_records = valid_records.filtered(lambda r: not r.id)
+            else:
+                valid_records = valid_records.filtered('id')
             ids0 = cache.get(corecord, invf, None)
             # if the value for the corecord is not in cache, but this is a new
             # record, assign it anyway, as you won't be able to fetch it from

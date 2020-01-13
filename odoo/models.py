@@ -2453,6 +2453,7 @@ class BaseModel(MetaModel('DummyModel', (object,), {'_register': False})):
         if self._auto:
             if must_create_table:
                 tools.create_model_table(cr, self._table, self._description)
+                must_create_table = not tools.table_exists(cr, self._table)
 
             if self._parent_store:
                 if not tools.column_exists(cr, self._table, 'parent_path'):
@@ -2478,9 +2479,15 @@ class BaseModel(MetaModel('DummyModel', (object,), {'_register': False})):
                 @self.pool.post_init
                 def mark_fields_to_compute():
                     recs = self.with_context(active_test=False).search([])
-                    for field in fields_to_compute:
-                        _logger.info("Storing computed values of %s", field)
-                        self.env.add_to_compute(recs._fields[field], recs)
+                    for fname in fields_to_compute:
+                        _logger.info("Storing computed values of %s", fname)
+                        field = recs._fields[fname]
+                        self.env.add_to_compute(field, recs)
+                        if not must_create_table and field.required and field.column_type:
+                            # Required computed fields columns have to be
+                            # set NOT NULL after field computation
+                            # when the table already exists (IntegrityError)
+                            field.update_db_notnull(self, columns.get(field.name))
 
         if self._auto:
             self._add_sql_constraints()
@@ -3742,6 +3749,36 @@ Record ids: %(records)s
                 ])
                 for parent, data in zip(parents, parent_data_list):
                     data['stored'][parent_name] = parent.id
+
+        stored_computed_fields = [
+            field for field in self._fields.values()
+            if field.store and field.compute and field.column_type and field.pre_compute
+        ]
+
+        for data in data_list:
+
+            missing_fields = [
+                field for field in stored_computed_fields
+                if field.name not in data['stored']
+                and field not in data['protected']
+            ]
+
+            # VFE WARNING if a default value is given for computed field A
+            # whose compute methods computes values for fields A & B:
+            # value of field B won't be computed !
+
+            if missing_fields:
+                new_obj = self.with_context(pre_compute=True).new(dict(data['stored'], **data['inversed']))
+
+                for field in missing_fields:
+                    # computed stored fields with a column
+                    # have to be computed before create
+                    # s.t. required and constraints can be applied on those fields.
+                    field_value = field.convert_to_write(new_obj[field.name], self)
+                    data['stored'][field.name] = field_value
+                    if field.inverse:
+                        data['inversed'][field.name] = field_value
+                    data['protected'].update(self._field_computed.get(field, [field]))
 
         # create records with stored fields
         records = self._create(data_list)
