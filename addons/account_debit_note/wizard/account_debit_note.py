@@ -35,7 +35,7 @@ class AccountDebitNote(models.TransientModel):
         res['move_type'] = len(move_ids) == 1 and move_ids.type or False
         return res
 
-    @api.depends('move_id')
+    @api.depends('move_ids')
     def _compute_from_moves(self):
         for record in self:
             move_ids = record.move_ids
@@ -55,20 +55,28 @@ class AccountDebitNote(models.TransientModel):
 
     def create_debit(self):
         self.ensure_one()
-        moves = self.env['account.move']
+        new_moves = self.env['account.move']
         for move in self.move_ids:
             # Create default values.
             default_values = self._prepare_default_values(move)
             if not self.copy_lines:
                 default_values['invoice_line_ids'] = []
-            moves |= move.copy(default=default_values)
+            new_moves |= move.copy(default=default_values)
 
         # Create action.
         action = {
             'name': _('Debit Notes'),
             'type': 'ir.actions.act_window',
             'res_model': 'account.move',
-            'view_mode': 'form',
-            'res_id': moves.ids,
             }
+        if len(new_moves) == 1:
+            action.update({
+                'view_mode': 'form',
+                'res_id': new_moves.id,
+            })
+        else:
+            action.update({
+                'view_mode': 'tree,form',
+                'domain': [('id', 'in', new_moves.ids)],
+            })
         return action
