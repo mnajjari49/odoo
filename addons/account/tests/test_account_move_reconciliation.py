@@ -280,7 +280,7 @@ class TestAccountMoveReconciliation(AccountTestInvoicingCommon):
         self.assertRecordValues(line_1 + line_3, [
             #                               3000.0 - (300.0 * 2)
             {'amount_residual': 700.0,      'amount_residual_currency': 2400.0,     'reconciled': False},
-            #                               -1200.0 + (300.0 * 6) /!\ sign changed
+            #                               -1200.0 + (300.0 * 6) (/!\ sign changed)
             {'amount_residual': 0.0,        'amount_residual_currency': 600.0,      'reconciled': False},
         ])
 
@@ -293,7 +293,7 @@ class TestAccountMoveReconciliation(AccountTestInvoicingCommon):
         self.assertRecordValues(line_1 + line_4, [
             #                               2400.0 - (400.0 * 2)
             {'amount_residual': 300.0,      'amount_residual_currency': 1600.0,     'reconciled': False},
-            #                               -1600.0 + (400.0 * 6) /!\ sign changed
+            #                               -1600.0 + (400.0 * 6) (/!\ sign changed)
             {'amount_residual': 0.0,        'amount_residual_currency': 800.0,      'reconciled': False},
         ])
 
@@ -319,7 +319,7 @@ class TestAccountMoveReconciliation(AccountTestInvoicingCommon):
         self.assertRecordValues(line_2 + line_5, [
             #                               600.0 - (200.0 * 2)
             {'amount_residual': 0.0,        'amount_residual_currency': 200.0,      'reconciled': False},
-            #                               -200.0 + (200.0 * 6) /!\ sign changed
+            #                               -200.0 + (200.0 * 6) (/!\ sign changed)
             {'amount_residual': 0.0,        'amount_residual_currency': 1000.0,     'reconciled': False},
         ])
 
@@ -590,19 +590,6 @@ class TestAccountMoveReconciliation(AccountTestInvoicingCommon):
 
         partials = res['partials'].sorted(lambda part: (part.currency_id.id, part.amount, part.amount_currency))
         self.assertRecordValues(partials, [
-            # Partial generated when reconciling line_1 & line_3:
-            # TODO: This partial is correct regarding the old reconcile method.
-            #       However, since line_1.currency_id == line_3.currency_id, it's strange the currency
-            #       is missing on the partial.
-            #       I didn't change this behavior right now because I want to fix existing tests first,
-            #       but it's something to check.
-            {
-                'amount': 300.0,
-                'amount_currency': 300.0,                           # TODO: expected: 600.0
-                'debit_move_id': line_1.id,
-                'credit_move_id': line_3.id,
-                'currency_id': self.company_data['currency'].id,    # TODO: expected: currency1_id
-            },
             # Partial generated when reconciling line_1 & line_4:
             {
                 'amount': 400.0,
@@ -611,11 +598,19 @@ class TestAccountMoveReconciliation(AccountTestInvoicingCommon):
                 'credit_move_id': line_4.id,
                 'currency_id': self.company_data['currency'].id,
             },
+            # Partial generated when reconciling line_1 & line_3:
+            {
+                'amount': 300.0,
+                'amount_currency': 600.0,
+                'debit_move_id': line_1.id,
+                'credit_move_id': line_3.id,
+                'currency_id': self.currency_data['currency'].id,
+            },
         ])
 
         # line_1's amount_residual_currency = 3000.0 - (300.0 * 2) - (400.0 * 2) = 1600.0
-        # line_3's amount_residual_currency = -1200.0 + (300.0 * 6) = 600.0 /!\ sign changed
-        # line_4's amount_residual_currency = -1600.0 + (400.0 * 6) = 800.0 /!\ sign changed
+        # line_3's amount_residual_currency = 0.0 (same currency)
+        # line_4's amount_residual_currency = -1600.0 + (400.0 * 6) = 800.0 (/!\ sign changed)
 
         res = (line_1 + line_5).reconcile2()
 
@@ -658,6 +653,21 @@ class TestAccountMoveReconciliation(AccountTestInvoicingCommon):
                 'currency_id': currency1_id,
                 'account_id': account_id,
             },
+            # Fix line_4:
+            {
+                'debit': 0.0,
+                'credit': 0.0,
+                'amount_currency': 800.0,
+                'currency_id': currency2_id,
+                'account_id': exchange_diff.journal_id.default_debit_account_id.id,
+            },
+            {
+                'debit': 0.0,
+                'credit': 0.0,
+                'amount_currency': -800.0,
+                'currency_id': currency2_id,
+                'account_id': account_id,
+            },
             # Fix line_5:
             {
                 'debit': 0.0,
@@ -673,21 +683,6 @@ class TestAccountMoveReconciliation(AccountTestInvoicingCommon):
                 'currency_id': currency2_id,
                 'account_id': account_id,
             },
-            # Fix line_3:
-            {
-                'debit': 0.0,
-                'credit': 0.0,
-                'amount_currency': 300.0,
-                'currency_id': currency1_id,
-                'account_id': exchange_diff.journal_id.default_debit_account_id.id,
-            },
-            {
-                'debit': 0.0,
-                'credit': 0.0,
-                'amount_currency': -300.0,
-                'currency_id': currency1_id,
-                'account_id': account_id,
-            },
             # Fix line_1:
             {
                 'debit': 0.0,
@@ -701,21 +696,6 @@ class TestAccountMoveReconciliation(AccountTestInvoicingCommon):
                 'credit': 0.0,
                 'amount_currency': -1000.0,
                 'currency_id': currency1_id,
-                'account_id': account_id,
-            },
-            # Fix line_4:
-            {
-                'debit': 0.0,
-                'credit': 0.0,
-                'amount_currency': 800.0,
-                'currency_id': currency2_id,
-                'account_id': exchange_diff.journal_id.default_debit_account_id.id,
-            },
-            {
-                'debit': 0.0,
-                'credit': 0.0,
-                'amount_currency': -800.0,
-                'currency_id': currency2_id,
                 'account_id': account_id,
             },
         ])
@@ -738,14 +718,6 @@ class TestAccountMoveReconciliation(AccountTestInvoicingCommon):
                 'credit_move_id': exchange_diff_lines[1].id,
                 'currency_id': currency1_id,
             },
-            # Partial fixing line_3 (exchange difference):
-            {
-                'amount': 0.0,
-                'amount_currency': 300.0,
-                'debit_move_id': line_3.id,
-                'credit_move_id': exchange_diff_lines[5].id,
-                'currency_id': currency1_id,
-            },
             # Partial fixing line_1 (exchange difference):
             {
                 'amount': 0.0,
@@ -759,7 +731,7 @@ class TestAccountMoveReconciliation(AccountTestInvoicingCommon):
                 'amount': 0.0,
                 'amount_currency': 800.0,
                 'debit_move_id': line_4.id,
-                'credit_move_id': exchange_diff_lines[9].id,
+                'credit_move_id': exchange_diff_lines[3].id,
                 'currency_id': currency2_id,
             },
             # Partial fixing line_5 (exchange difference):
@@ -767,7 +739,7 @@ class TestAccountMoveReconciliation(AccountTestInvoicingCommon):
                 'amount': 0.0,
                 'amount_currency': 1000.0,
                 'debit_move_id': line_5.id,
-                'credit_move_id': exchange_diff_lines[3].id,
+                'credit_move_id': exchange_diff_lines[5].id,
                 'currency_id': currency2_id,
             },
         ])

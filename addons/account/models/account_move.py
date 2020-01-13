@@ -3675,7 +3675,6 @@ class AccountMoveLine(models.Model):
         # ==== Check the lines can be reconciled together ====
         company = None
         account = None
-        currency = None
         max_date = date.min
         for line in self:
             if line.reconciled:
@@ -3694,16 +3693,8 @@ class AccountMoveLine(models.Model):
                 raise UserError(_("Entries are not from the same account: %s != %s")
                                 % (account.display_name, line.account_id.display_name))
 
-            if currency is None:
-                currency = line.currency_id
-            elif line.currency_id != currency:
-                currency = line.company_currency_id
-
             max_date = max(line.date, max_date)
 
-        company_currency = company.currency_id
-        residual_field = 'amount_residual' if currency == company_currency else 'amount_residual_currency'
-        exchange_residual_field = 'amount_residual' if residual_field == 'amount_residual_currency' else 'amount_residual_currency'
         sorted_lines = self.sorted(key=lambda aml: (aml.date_maturity or aml.date, aml.currency_id))
 
         # ==== Collect all involved lines through the existing reconciliation ====
@@ -3722,41 +3713,73 @@ class AccountMoveLine(models.Model):
 
         debit_lines = iter(sorted_lines.filtered('debit'))
         credit_lines = iter(sorted_lines.filtered('credit'))
+        debit_line = None
+        credit_line = None
 
+        debit_amount_residual = 0.0
         debit_amount_residual_currency = 0.0
+        credit_amount_residual = 0.0
         credit_amount_residual_currency = 0.0
 
         partials_to_create = []
 
         while True:
 
-            # Move to the next debit_line.
-            if currency.is_zero(debit_amount_residual_currency):
+            if not debit_line:
                 debit_line = next(debit_lines, None)
                 if not debit_line:
                     break
                 debit_amount_residual = debit_line.amount_residual
-                debit_amount_residual_currency = debit_line[residual_field]
+                debit_amount_residual_currency = debit_line.amount_residual_currency
 
-            # Move to the next credit line.
-            if currency.is_zero(credit_amount_residual_currency):
+            if not credit_line:
                 credit_line = next(credit_lines, None)
                 if not credit_line:
                     break
-                credit_amount_residual = -credit_line.amount_residual
-                credit_amount_residual_currency = -credit_line[residual_field]
+                credit_amount_residual = credit_line.amount_residual
+                credit_amount_residual_currency = credit_line.amount_residual_currency
 
-            # Create a new partial.
-            partial_amount = min(debit_amount_residual, credit_amount_residual)
-            partial_amount_currency = min(debit_amount_residual_currency, credit_amount_residual_currency)
-            debit_amount_residual -= partial_amount
-            debit_amount_residual_currency -= partial_amount_currency
-            credit_amount_residual -= partial_amount
-            credit_amount_residual_currency -= partial_amount_currency
+            # Compute the partial's currency.
+            if debit_line.currency_id == credit_line.currency_id:
+                currency = debit_line.currency_id
+            else:
+                currency = debit_line.company_currency_id
+
+            # Compute the partial's amount/amount_currency.
+            if currency == debit_line.company_currency_id:
+
+                if currency.is_zero(debit_amount_residual):
+                    debit_line = None
+                    continue
+
+                if currency.is_zero(credit_amount_residual):
+                    credit_line = None
+                    continue
+
+                amount = min(debit_amount_residual, -credit_amount_residual)
+                amount_currency = amount
+
+            else:
+
+                if currency.is_zero(debit_amount_residual_currency):
+                    debit_line = None
+                    continue
+
+                if currency.is_zero(credit_amount_residual_currency):
+                    credit_line = None
+                    continue
+
+                amount = min(debit_amount_residual, -credit_amount_residual)
+                amount_currency = min(debit_amount_residual_currency, -credit_amount_residual_currency)
+
+            debit_amount_residual -= amount
+            debit_amount_residual_currency -= amount_currency
+            credit_amount_residual += amount
+            credit_amount_residual_currency += amount_currency
 
             partials_to_create.append({
-                'amount': partial_amount,
-                'amount_currency': partial_amount_currency,
+                'amount': amount,
+                'amount_currency': amount_currency,
                 'currency_id': currency.id,
                 'debit_move_id': debit_line.id,
                 'credit_move_id': credit_line.id,
@@ -3764,7 +3787,13 @@ class AccountMoveLine(models.Model):
 
         results['partials'] = self.env['account.partial.reconcile'].create(partials_to_create)
 
-        if all(currency.is_zero(line[residual_field]) for line in involved_lines):
+        currencies = involved_lines.mapped('currency_id')
+        if len(currencies) == 1:
+            is_full_needed = all(line.currency_id.is_zero(line.amount_residual_currency) for line in involved_lines)
+        else:
+            is_full_needed = all(line.company_currency_id.is_zero(line.amount_residual) for line in involved_lines)
+
+        if is_full_needed:
 
             # ==== Create the exchange difference move ====
 
@@ -3794,7 +3823,25 @@ class AccountMoveLine(models.Model):
 
                 exchange_difference_move_vals['date'] = max(exchange_difference_move_vals['date'], line.date)
 
-                if line.company_currency_id.is_zero(line.amount_residual) and line.currency_id.is_zero(line.amount_residual_currency):
+                # TODO: check if the right account is used: to compare in the GUI
+
+                if not line.company_currency_id.is_zero(line.amount_residual):
+                    # amount_residual_currency == 0 and amount_residual has to be fixed.
+
+                    if line.amount_residual > 0.0:
+                        exchange_line_account = journal.default_debit_account_id
+                    else:
+                        exchange_line_account = journal.default_credit_account_id
+
+                elif not line.currency_id.is_zero(line.amount_residual_currency):
+                    # amount_residual == 0 and amount_residual_currency has to be fixed.
+
+                    if line.amount_residual_currency > 0.0:
+                        exchange_line_account = journal.default_debit_account_id
+                    else:
+                        exchange_line_account = journal.default_credit_account_id
+
+                else:
                     continue
 
                 exchange_difference_move_vals['line_ids'] += [
@@ -3813,7 +3860,7 @@ class AccountMoveLine(models.Model):
                         'debit': line.amount_residual if line.amount_residual > 0.0 else 0.0,
                         'credit': -line.amount_residual if line.amount_residual < 0.0 else 0.0,
                         'amount_currency': line.amount_residual_currency,
-                        'account_id': journal.default_debit_account_id.id if line[exchange_residual_field] > 0.0 else journal.default_credit_account_id.id,
+                        'account_id': exchange_line_account.id,
                         'currency_id': line.currency_id.id,
                         'partner_id': line.partner_id.id,
                         'sequence': sequence + 1,
@@ -3837,12 +3884,12 @@ class AccountMoveLine(models.Model):
                 source_line = lines_to_process[index]
                 exchange_diff_line = exchange_move.line_ids[index * 2]
 
-                if source_line[exchange_residual_field] > 0.0:
-                    debit_line = source_line
-                    credit_line = exchange_diff_line
-                else:
+                if exchange_diff_line.amount_currency > 0.0:
                     debit_line = exchange_diff_line
                     credit_line = source_line
+                else:
+                    debit_line = source_line
+                    credit_line = exchange_diff_line
 
                 partials_to_create.append({
                     'amount': abs(exchange_diff_line.balance),
