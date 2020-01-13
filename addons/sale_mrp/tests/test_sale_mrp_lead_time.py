@@ -55,9 +55,12 @@ class TestSaleMrpLeadTime(TestStockCommon):
         order = order_form.save()
         # Confirm sale order
         order.action_confirm()
+        order.flush()
 
         # Check manufacturing order created or not
-        manufacturing_order = self.env['mrp.production'].search([('product_id', '=', self.product_1.id), ('move_dest_ids', 'in', order.picking_ids[0].move_lines.ids)])
+        manufacturing_order = self.env['mrp.production'].search(
+            [('product_id', '=', self.product_1.id),
+            ('move_dest_ids', 'in', order.picking_ids.move_lines.ids)])
         self.assertTrue(manufacturing_order, 'Manufacturing order should be created.')
 
         # Check schedule date of picking

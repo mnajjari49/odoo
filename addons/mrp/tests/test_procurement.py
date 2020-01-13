@@ -37,6 +37,7 @@ class TestProcurement(TestMrpCommon):
         production_product_6 = production_form.save()
         production_product_6.action_confirm()
         production_product_6.action_assign()
+        production_product_6.flush()
 
         # check production state is Confirmed
         self.assertEqual(production_product_6.state, 'confirmed', 'Production order should be for Confirmed state')
