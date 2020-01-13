@@ -97,9 +97,9 @@
                                 <field name="start_sale_date"/>
                                 <field name="end_sale_date"/>
                                 <field name="price"/>
-                                <field name="seats_max"/>
-                                <field name="seats_reserved" readonly="1"/>
-                                <field name="seats_unconfirmed" readonly="1"/>
+                                <field name="seats_max" string="Maximum" width="100px"/>
+                                <field name="seats_reserved" string="Reserved" width="100px" readonly="1"/>
+                                <field name="seats_unconfirmed" string="Unconfirmed" width="100px" readonly="1"/>
                             </tree>
                             <kanban class="o_kanban_mobile">
                                 <field name="product_id"/>

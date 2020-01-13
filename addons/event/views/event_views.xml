@@ -718,7 +718,7 @@
                     <field name="notification_type" invisible="1"/>
                     <field name="template_id" attrs="{'required': [('notification_type', '=', 'mail')]}"/>
                     <field name="scheduled_date"/>
-                    <field name="mail_sent"/>
+                    <field name="mail_sent" string="Sent" />
                     <field name="done"/>
                 </tree>
             </field>

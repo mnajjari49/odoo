@@ -27,8 +27,8 @@
                             <field name="email_from"/>
                             <field name="phone"/>
                             <field name="stage_id"/>
-                            <field name="user_id"/>
-                            <field name="team_id"/>
+                            <field name="user_id" optional="hide"/>
+                            <field name="team_id" optional="hide"/>
                         </tree>
                     </field>
                 </group>
