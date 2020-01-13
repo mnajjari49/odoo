@@ -1091,54 +1091,60 @@ class LastOrderedSet(OrderedSet):
 class AggCallbacks:
     """ A collection of callbacks with support for aggregated arguments.  Upon
     call, every registered function is called once with positional arguments.
-    When registering a function, a list of positional arguments is returned, so
-    that the caller can modify the arguments in place, or the list of arguments
-    itself.  This allows to accumulate some data to process once::
+    When registering a function, a tuple of positional arguments is returned, so
+    that the caller can modify the arguments in place.  This allows to
+    accumulate some data to process once::
 
         callbacks = AggCallbacks()
 
-        # call print (by default with a list)
-        args = callbacks.add(print, list)
-        args[0].append(42)
+        # register print (by default with a list)
+        [args] = callbacks.register(print, list)
+        args.append(42)
 
         # add an element to the list to print
-        args = callbacks.add(print, list)
-        args[0].append(43)
+        [args] = callbacks.register(print, list)
+        args.append(43)
 
-        # add an extra argument to print
-        args = callbacks.add(print)
-        args.append("extra")
-
-        # print "[42, 43] extra"
+        # print "[42, 43]"
         callbacks()
     """
     def __init__(self):
-        self._callbacks = {}
+        self._func_spec = {}            # {func: (recurrent, args)}
 
     def __call__(self):
         """ Call all the registered functions (in first addition order) with
-        their respective arguments.
+        their respective arguments.  Only recurrent functions remain registered
+        after the call.
         """
-        callbacks = self._callbacks
-        while callbacks:
-            func = next(iter(callbacks))
-            args = callbacks.pop(func)
+        current = self._func_spec
+        prepare = {}
+        while current:
+            func = next(iter(current))
+            spec = recurrent, args = current.pop(func)
             func(*args)
+            if recurrent:
+                prepare[func] = spec
+        self._func_spec = prepare
 
-    def register(self, func, *types):
-        """ Register the given function, and return the list of positional
+    def register(self, func, *types, recurrent=False):
+        """ Register the given function, and return the tuple of positional
         arguments to call the function with.  If the function is not registered
         yet, the list of arguments is made up by invoking the given types.
         """
         try:
-            return self._callbacks[func]
+            spec = self._func_spec[func]
         except KeyError:
-            args = self._callbacks[func] = [type_() for type_ in types]
-            return args
+            spec = (recurrent, tuple(type_() for type_ in types))
+            self._func_spec[func] = spec
+        return spec[1]
 
     def clear(self):
-        """ Empty the collection. """
-        self._callbacks.clear()
+        """ Remove non-recurrent callbacks from self. """
+        self._func_spec = {
+            func: spec
+            for func, spec in self._func_spec.items()
+            if spec[0]
+        }
 
 
 class IterableGenerator:

@@ -288,22 +288,20 @@ class TestAggCallbacks(BaseCase):
         def baz():
             log.append("baz")
 
-        callbacks.register(foo)
+        callbacks.register(foo, recurrent=True)
 
-        args = callbacks.register(bar, list)
-        args[0].append("bar1")
+        callbacks.register(bar, list)[0].append("bar1")
 
-        args = callbacks.register(bar, list)
-        args[0].append("bar2")
+        callbacks.register(bar, list)[0].append("bar2")
 
         self.assertEqual(log, [])
         callbacks()
         self.assertEqual(log, ["foo", "bar1", "bar2", "baz"])
 
         callbacks()
-        self.assertEqual(log, ["foo", "bar1", "bar2", "baz"])
+        self.assertEqual(log, ["foo", "bar1", "bar2", "baz", "foo"])
 
         callbacks.register(bar, list)[0].append("bar3")
         callbacks.clear()
         callbacks()
-        self.assertEqual(log, ["foo", "bar1", "bar2", "baz"])
+        self.assertEqual(log, ["foo", "bar1", "bar2", "baz", "foo", "foo"])
