@@ -1089,11 +1089,11 @@ class LastOrderedSet(OrderedSet):
 
 
 class AggCallbacks:
-    """ A collection of callbacks with support for aggregated arguments. When
-    processing callbacks, a given function is always called once with positional
-    arguments.  When registering the function, its current positional arguments
-    are returned, so that the caller can modify them in place (or the list of
-    arguments itself).  This allows to accumulate some data to process once::
+    """ A collection of callbacks with support for aggregated arguments.  Upon
+    call, every registered function is called once with positional arguments.
+    When registering a function, a list of positional arguments is returned, so
+    that the caller can modify the arguments in place, or the list of arguments
+    itself.  This allows to accumulate some data to process once::
 
         callbacks = AggCallbacks()
 
@@ -1106,7 +1106,7 @@ class AggCallbacks:
         args[0].append(43)
 
         # add an extra argument to print
-        args = callbacks.add(print, list)
+        args = callbacks.add(print)
         args.append("extra")
 
         # print "[42, 43] extra"
@@ -1125,7 +1125,7 @@ class AggCallbacks:
             args = callbacks.pop(func)
             func(*args)
 
-    def add(self, func, *types):
+    def register(self, func, *types):
         """ Register the given function, and return the list of positional
         arguments to call the function with.  If the function is not registered
         yet, the list of arguments is made up by invoking the given types.
