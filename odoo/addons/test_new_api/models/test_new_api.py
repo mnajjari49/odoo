@@ -801,8 +801,8 @@ class ModelChildM2o(models.Model):
     @api.depends('parent_id.name')
     def _compute_sizes(self):
         for record in self:
-            record.size1 = len(self.parent_id.name)
-            record.size2 = len(self.parent_id.name)
+            record.size1 = len(self.parent_id.name or "")
+            record.size2 = len(self.parent_id.name or "")
 
     def write(self, vals):
         res = super(ModelChildM2o, self).write(vals)
