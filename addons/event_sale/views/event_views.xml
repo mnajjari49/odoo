@@ -1,5 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+        <record id="sale_order_action_view_from_event" model="ir.actions.act_window">
+            <field name="name">Sales Order</field>
+            <field name="res_model">sale.order</field>
+            <field name="view_id" ref="sale.view_order_tree"/>
+            <field name="domain">[('state', '!=', 'cancel'), ('order_line.event_id', '=', active_id)]</field>
+            <field name="context">{'create': 0}</field>
+        </record>
+
         <record id="view_event_registration_ticket_search" model="ir.ui.view">
             <field name="name">event.registration.search.inherit</field>
             <field name="model">event.registration</field>
@@ -88,6 +96,20 @@
             <field name="model">event.event</field>
             <field name="inherit_id" ref="event.view_event_form"/>
             <field name="arch" type="xml">
+                <xpath expr="//div[hasclass('oe_button_box')]" position="inside">
+                    <field name="currency_id" invisible="1"/>
+                    <button name="%(event_sale.sale_order_action_view_from_event)d"
+                            type="action"
+                            class="oe_stat_button"
+                            icon="fa-dollar"
+                            help="Total sale for this event">
+                        <span class="mh-100">
+                            <field name="currency_id" invisible="1"/>
+                            <field name="sale_total_price" widget="monetary" string="Sales" class="pt-2" options="{'currency_field': 'currency_id'}"/>
+                            <p>Sales</p>
+                        </span>
+                    </button>
+                </xpath>
                 <page name="event_communication" position="before">
                     <page string="Tickets" name="tickets">
                         <field name="event_ticket_ids" context="{'default_name': name}" mode="tree,kanban">
@@ -142,18 +164,6 @@
                         </field>
                     </page>
                 </page>
-            </field>
-        </record>
-
-        <record id="event_view_kanban" model="ir.ui.view">
-            <field name="name">event.kanban.inherit</field>
-            <field name="model">event.event</field>
-            <field name="inherit_id" ref="event.view_event_kanban"/>
-            <field name="arch" type="xml">
-                <xpath expr="//div[hasclass('o_event_duration_str')]" position="after">
-                    <field name="currency_id" invisible="1"/>
-                    <div attrs="{'invisible': [('sale_total_price', '&lt;=', 0)]}">Sales <field name="sale_total_price" widget="monetary"/></div>
-                </xpath>
             </field>
         </record>
 

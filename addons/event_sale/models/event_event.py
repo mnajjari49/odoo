@@ -45,7 +45,7 @@ class Event(models.Model):
     sale_total_price = fields.Monetary(compute='_compute_sale_total_price')
     currency_id = fields.Many2one(
         'res.currency', string='Currency',
-        default=lambda self: self.env.company.currency_id.id, readonly=True)
+        compute='_compute_sale_total_price')
 
     start_sale_date = fields.Date('Start sale date', compute='_compute_start_sale_date')
 
@@ -70,6 +70,7 @@ class Event(models.Model):
     @api.depends('sale_order_lines_ids')
     def _compute_sale_total_price(self):
         for event in self:
+            event.currency_id = self.env.company.currency_id.id
             event.sale_total_price = sum([
                 event.currency_id._convert(
                     sale_order_line_id.price_reduce_taxexcl,

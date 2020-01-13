@@ -340,13 +340,12 @@
                     <field name="legend_blocked"/>
                     <field name="legend_normal"/>
                     <field name="legend_done"/>
-                    <field name="duration_str"/>
                     <field name="activity_ids"/>
                     <field name="activity_state"/>
                     <templates>
                         <t t-name="kanban-box">
                             <div t-attf-class="{{!selection_mode ? 'oe_kanban_color_' + kanban_getcolor(record.color.raw_value) : ''}} oe_kanban_card oe_kanban_global_click">
-                                <div class="o_event_left text-center">
+                                <div class="o_event_left text-center d-flex flex-column justify-content-center">
                                     <div class="o_day"><t t-esc="record.date_begin.raw_value.getDate()"/></div>
                                     <div>
                                         <t t-esc="moment(record.date_begin.raw_value).format('MMM')"/>
@@ -354,36 +353,30 @@
                                     </div>
                                     <div><t t-esc="moment(record.date_begin.raw_value).format('LT')"/></div>
                                 </div>
-                                <div class="o_event_right d-flex flex-column justify-content-between">
+                                <div class="o_event_right d-flex flex-column justify-content-between pt-3">
                                     <div>
                                         <h1 class="o_kanban_record_title"><field name="name"/></h1>
-                                        <p t-esc="record.address_id.value"/>
+                                        <div><i class="fa fa-map-marker" title="Location"/> <span class="o_text_overflow" t-esc="record.address_id.value" style="max-width: 85%!important"/></div>
+                                        <div t-if="moment(record.date_begin.raw_value).format('MMM D') !== moment(record.date_end.raw_value).format('MMM D')">
+                                            <i class="fa fa-arrow-right" title="End date"/>
+                                            <t t-esc="moment(record.date_end.raw_value).format('MMM D')"/>
+                                         </div>
                                     </div>
-                                    <div class="o_event_duration_str">Duration <field name="duration_str"/></div>
-                                    <div class="o_event_stat text-left d-flex justify-content-between">
-                                        <div class="text-left inline-block mr-2">
-                                            <button
-                                                type="action"
-                                                class="btn btn-link p-0"
-                                                name="%(event_registration_action_tree)d"
-                                                t-esc="record.seats_expected.raw_value"/>
-                                            <p>Expected</p>
-                                        </div>
-                                        <div class="text-left inline-block">
-                                            <button
-                                                type="action"
-                                                class="btn btn-link my-0 p-0"
-                                                name="%(event_registration_action_tree)d"
-                                                context="{'search_default_confirmed': True}"
-                                                t-esc="record.seats_reserved.raw_value"/>
-                                            <p>Confirmed</p>
-                                        </div>
+                                    <h5 class="o_event_stat">
+                                        <a name="%(act_event_registration_from_event)d" type="action">
+                                            <t t-esc="record.seats_expected.raw_value"/> Expected attendees
+                                        </a>
+                                        <t t-if="(record.seats_reserved.raw_value + record.seats_used.raw_value) > 0 "><br/>
+                                            <a name="%(event_event_action_pivot)d" type="action">
+                                                <t t-esc="record.seats_reserved.raw_value + record.seats_used.raw_value"/> Confirmed attendees
+                                            </a>
+                                        </t>
+                                    </h5>
+                                    <div class="o_event_bottom_right text-right w-100">
+                                        <div class="float-left"><field name="activity_ids" widget="kanban_activity"/></div>
+                                        <field name="kanban_state" widget="state_selection"/>
+                                        <img class="ml-2" t-att-src="kanban_image('res.users', 'image_128', record.user_id.raw_value)" t-att-title="record.user_id.value" t-att-alt="record.user_id.value"/>
                                     </div>
-                                </div>
-                                <div class="o_event_bottom_right d-flex justify-content-between align-items-center position-absolute">
-                                    <field name="activity_ids" widget="kanban_activity"/>
-                                    <field name="kanban_state" widget="state_selection"/>
-                                    <img t-att-src="kanban_image('res.users', 'image_128', record.user_id.raw_value)" t-att-title="record.user_id.value" t-att-alt="record.user_id.value"/>
                                 </div>
                             </div>
                         </t>

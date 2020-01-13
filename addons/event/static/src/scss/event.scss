@@ -3,6 +3,7 @@
         position: relative;
         padding: 0;
         display: flex;
+        height: 140px;
         .o_kanban_record_title {
             font-size: 1.2em;
         }
@@ -11,19 +12,19 @@
             color: white;
             background-color: $o-brand-primary;
             padding: 8px;
+            box-sizing: border-box;
             .o_day {
+                height: 35px;
                 font-size: 26px;
             }
         }
         .o_event_right {
             padding: 8px;
-            margin-left: 8px;
-            width: 70%;
+            width: 75%;
 
             .o_event_stat {
+                font-size: 1.12rem;
                 padding: 0;
-                height: 35px;
-                width: 60%;
             }
         }
         .o_event_float_right {
@@ -31,7 +32,7 @@
             top: 40px;
         }
         .o_event_bottom_right {
-            width: 60px;
+            width: 40px;
             right: 8px;
             bottom: 8px;
             img {
