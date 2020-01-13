@@ -429,7 +429,7 @@ class MailThread(models.AbstractModel):
         if not fields:
             return
         func = self.browse()._finalize_tracking
-        [initial_values] = self.env.toflush.add(func, dict)
+        [initial_values] = self.env.toflush.register(func, dict)
         for record in self:
             if not record.id:
                 continue
@@ -443,7 +443,7 @@ class MailThread(models.AbstractModel):
         if not self._get_tracked_fields():
             return
         func = self.browse()._finalize_tracking
-        [initial_values] = self.env.toflush.add(func, dict)
+        [initial_values] = self.env.toflush.register(func, dict)
         # disable tracking by setting initial values to None
         for id_ in self.ids:
             initial_values[id_] = None
