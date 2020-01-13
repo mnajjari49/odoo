@@ -44,6 +44,7 @@ class Mailing(models.Model):
 
     @api.depends('sms_template_id', 'mailing_type')
     def _compute_body_plaintext(self):
+        self.body_plaintext = ""
         for mailing in self:
             if mailing.mailing_type == 'sms' and mailing.sms_template_id:
                 mailing.body_plaintext = mailing.sms_template_id.body

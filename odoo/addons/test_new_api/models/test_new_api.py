@@ -516,6 +516,8 @@ class ComputeOnchange(models.Model):
         for record in self:
             if record.active:
                 record.baz = record.foo
+            else:
+                record.baz = record.baz or False
 
 
 class ModelBinary(models.Model):

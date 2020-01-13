@@ -174,6 +174,7 @@ class SurveyQuestion(models.Model):
 
     @api.depends('question_type', 'validation_email')
     def _compute_save_as_email(self):
+        self.save_as_email = False
         for question in self:
             if question.question_type != 'char_box' or not question.validation_email:
                 question.save_as_email = False

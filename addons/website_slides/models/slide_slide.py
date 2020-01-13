@@ -251,7 +251,8 @@ class Slide(models.Model):
     @api.depends('slide_partner_ids.vote')
     @api.depends_context('uid')
     def _compute_user_info(self):
-        slide_data = dict.fromkeys(self.ids, dict({'likes': 0, 'dislikes': 0, 'user_vote': False}))
+        default_vals = {'likes': 0, 'dislikes': 0, 'user_vote': False}
+        slide_data = dict.fromkeys(self.ids, dict(default_vals))
         slide_partners = self.env['slide.slide.partner'].sudo().search([
             ('slide_id', 'in', self.ids)
         ])
@@ -265,7 +266,7 @@ class Slide(models.Model):
                 if slide_partner.partner_id == self.env.user.partner_id:
                     slide_data[slide_partner.slide_id.id]['user_vote'] = -1
         for slide in self:
-            slide.update(slide_data[slide.id])
+            slide.update(slide_data.get(slide.id, default_vals))
 
     @api.depends('slide_partner_ids.slide_id')
     def _compute_slide_views(self):
