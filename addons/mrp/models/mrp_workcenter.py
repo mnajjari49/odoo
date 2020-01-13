@@ -2,10 +2,14 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
 from dateutil import relativedelta
+from datetime import timedelta
+from functools import partial
 import datetime
 
 from odoo import api, exceptions, fields, models, _
 from odoo.exceptions import ValidationError
+from odoo.addons.resource.models.resource import make_aware, Intervals
+from odoo.tools.float_utils import float_compare
 
 
 class MrpWorkcenter(models.Model):
@@ -203,6 +207,47 @@ class MrpWorkcenter(models.Model):
         """
         unavailability_ressources = self.resource_id._get_unavailable_intervals(start_datetime, end_datetime)
         return {wc.id: unavailability_ressources.get(wc.resource_id.id, []) for wc in self}
+
+    def _get_first_available_slot(self, start_datetime, duration):
+        """Get the first available interval for the workcenter in `self`.
+
+        The available interval is disjoinct with all other workorders planned on this workcenter, but
+        can overlap the time-off of the related calendar (inverse of the working hours).
+        Return the first available interval (start datetime, end datetime) or,
+        if there is none before 700 days, a tuple error (False, 'error message').
+
+        :param start_datetime: begin the search at this datetime
+        :param duration: hours needed to make the workorder (float)
+        :rtype: tuple
+        """
+        self.ensure_one()
+        start_datetime, revert = make_aware(start_datetime)
+
+        get_available_intervals = partial(self.resource_calendar_id._work_intervals, domain=[('time_type', 'in', ['other', 'leave'])], resource=self.resource_id)
+        get_workorder_intervals = partial(self.resource_calendar_id._leave_intervals, domain=[('time_type', '=', 'other')], resource=self.resource_id)
+
+        remaining = duration
+        start_interval = start_datetime
+        delta = timedelta(days=14)
+
+        for n in range(50):  # 50 * 14 = 700 days in advance (hardcoded)
+            dt = start_datetime + delta * n
+            available_intervals = get_available_intervals(dt, dt + delta)
+            workorder_intervals = get_workorder_intervals(dt, dt + delta)
+            for start, stop, dummy in available_intervals:
+                interval_hours = (stop - start).total_seconds() / 3600
+                # If the remain hours has never decrease update start_interval
+                if remaining == duration:
+                    start_interval = start
+                # If there is a overlap between the possible available interval and a others WO
+                if Intervals([(start_interval, start + timedelta(hours=min(remaining, interval_hours)), dummy)]) & workorder_intervals:
+                    remaining = duration
+                    start_interval = start
+                elif float_compare(interval_hours, remaining, precision_digits=5) >= 0:
+                    return revert(start_interval), revert(start + timedelta(hours=remaining))
+                # Decrease a part of the remaining duration
+                remaining -= interval_hours
+        return False, 'Not available slot 700 days after the planned start'
 
 
 class MrpWorkcenterProductivityLossType(models.Model):
