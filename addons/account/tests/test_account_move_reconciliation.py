@@ -745,3 +745,243 @@ class TestAccountMoveReconciliation(AccountTestInvoicingCommon):
         ])
 
         self.assertFullReconcile(res['full_reconcile'], line_1 + line_2 + line_3 + line_4 + line_5)
+
+    def test_cash_basis_single_currency(self):
+        ''' Test the generation of cash basis taxes journal entries in single currency:
+        - Check dealing with multiple receivable / payable accounts on the same entry.
+        - Check dealing with receivable / payable accounts both on debit and credit.
+        - Check for rounding issues.
+        '''
+        cash_basis_base_account = self.env['account.account'].create({
+            'code': 'cash_basis_base_account',
+            'name': 'cash_basis_base_account',
+            'user_type_id': self.env.ref('account.data_account_type_revenue').id,
+            'company_id': self.company_data['company'].id,
+        })
+
+        cash_basis_transfer_account = self.env['account.account'].create({
+            'code': 'cash_basis_transfer_account',
+            'name': 'cash_basis_transfer_account',
+            'user_type_id': self.env.ref('account.data_account_type_revenue').id,
+            'reconcile': True,
+            'company_id': self.company_data['company'].id,
+        })
+
+        receivable_account_1 = self.company_data['default_account_receivable']
+        receivable_account_2 = self.company_data['default_account_receivable'].copy()
+
+        tax_1 = self.env['account.tax'].create({
+            'name': 'tax_1',
+            'amount': 33.34,
+            'cash_basis_base_account_id': cash_basis_base_account.id,
+            'company_id': self.company_data['company'].id,
+        })
+
+        tax_2 = self.env['account.tax'].create({
+            'name': 'tax_2',
+            'amount': 0.01,
+            'cash_basis_base_account_id': cash_basis_base_account.id,
+            'company_id': self.company_data['company'].id,
+        })
+
+        move_1 = self.env['account.move'].create({
+            'type': 'entry',
+            'date': fields.Date.from_string('2016-01-01'),
+            'line_ids': [
+                # Base Tax line
+                (0, 0, {
+                    'debit': 0.0,
+                    'credit': 100.0,
+                    'account_id': self.company_data['default_account_revenue'].id,
+                    'tax_ids': [(6, 0, (tax_1 + tax_2).ids)],
+                    'tax_exigible': False,
+                }),
+
+                # Tax lines
+                (0, 0, {
+                    'debit': 0.0,
+                    'credit': 33.34,
+                    'account_id': cash_basis_transfer_account.id,
+                    'tax_repartition_line_id': tax_1.invoice_repartition_line_ids.filtered(lambda line: line.repartition_type == 'tax').id,
+                    'tax_exigible': False,
+                }),
+                (0, 0, {
+                    'debit': 0.0,
+                    'credit': 0.01,
+                    'account_id': cash_basis_transfer_account.id,
+                    'tax_repartition_line_id': tax_2.invoice_repartition_line_ids.filtered(lambda line: line.repartition_type == 'tax').id,
+                    'tax_exigible': False,
+                }),
+
+                # Receivable lines
+                (0, 0, {'debit': 66.67,     'credit': 0.0,      'account_id': receivable_account_2.id}),
+                (0, 0, {'debit': 66.66,     'credit': 0.0,      'account_id': receivable_account_1.id}),
+                (0, 0, {'debit': 0.0,       'credit': 66.66,    'account_id': receivable_account_1.id}),
+
+                # Remaining amount
+                (0, 0, {'debit': 66.68,     'credit': 0.0,      'account_id': self.company_data['default_account_revenue'].id}),
+            ]
+        })
+
+        move_2 = self.env['account.move'].create({
+            'type': 'entry',
+            'date': fields.Date.from_string('2016-01-01'),
+            'line_ids': [
+                (0, 0, {'debit': 0.0,       'credit': 66.66,    'account_id': receivable_account_2.id}),
+                (0, 0, {'debit': 0.0,       'credit': 0.01,     'account_id': receivable_account_2.id}),
+                (0, 0, {'debit': 66.67,     'credit': 0.0,      'account_id': self.company_data['default_account_revenue'].id}),
+            ]
+        })
+
+        (move_1 + move_2).post()
+
+        # There is 66.66 + 66.66 + 66.67 = 199.99 to reconcile on move_1.
+
+        res = move_1.line_ids.filtered(lambda line: line.account_id == receivable_account_1).reconcile2()
+
+        self.assertEquals(len(res.get('tax_cash_basis_moves', [])), 1)
+
+        # Reconciliation made with a ratio of (66.66 + 66.66) / 199.99 = 0.666633332.
+        self.assertRecordValues(res['tax_cash_basis_moves'].line_ids, [
+            # Base amount x 2 because there is two taxes:
+            {
+                'debit': 66.66,
+                'credit': 0.0,
+                'account_id': cash_basis_base_account.id,
+            },
+            {
+                'debit': 0.0,
+                'credit': 66.66,
+                'account_id': cash_basis_base_account.id,
+            },
+            {
+                'debit': 66.66,
+                'credit': 0.0,
+                'account_id': cash_basis_base_account.id,
+            },
+            {
+                'debit': 0.0,
+                'credit': 66.66,
+                'account_id': cash_basis_base_account.id,
+            },
+            # tax_1:
+            {
+                'debit': 22.23,
+                'credit': 0.0,
+                'account_id': cash_basis_transfer_account.id,
+            },
+            {
+                'debit': 0.0,
+                'credit': 22.23,
+                'account_id': cash_basis_transfer_account.id,
+            },
+            # tax_2:
+            {
+                'debit': 0.01,
+                'credit': 0.0,
+                'account_id': cash_basis_transfer_account.id,
+            },
+            {
+                'debit': 0.0,
+                'credit': 0.01,
+                'account_id': cash_basis_transfer_account.id,
+            },
+        ])
+
+        res = (move_1 + move_2).line_ids.filtered(lambda line: line.account_id == receivable_account_2).reconcile2()
+
+        self.assertEquals(len(res.get('tax_cash_basis_moves', [])), 2)
+
+        # Reconciliation made with a ratio of 66.66 / 199.99 = 0.3333.
+        self.assertRecordValues(res['tax_cash_basis_moves'][0].line_ids, [
+            # Base amount x 2 because there is two taxes:
+            {
+                'debit': 33.33,
+                'credit': 0.0,
+                'account_id': cash_basis_base_account.id,
+            },
+            {
+                'debit': 0.0,
+                'credit': 33.33,
+                'account_id': cash_basis_base_account.id,
+            },
+            {
+                'debit': 33.33,
+                'credit': 0.0,
+                'account_id': cash_basis_base_account.id,
+            },
+            {
+                'debit': 0.0,
+                'credit': 33.33,
+                'account_id': cash_basis_base_account.id,
+            },
+            # tax_1:
+            {
+                'debit': 11.11,
+                'credit': 0.0,
+                'account_id': cash_basis_transfer_account.id,
+            },
+            {
+                'debit': 0.0,
+                'credit': 11.11,
+                'account_id': cash_basis_transfer_account.id,
+            },
+            # tax_2:
+            {
+                'debit': 0.0,
+                'credit': 0.0,
+                'account_id': cash_basis_transfer_account.id,
+            },
+            {
+                'debit': 0.0,
+                'credit': 0.0,
+                'account_id': cash_basis_transfer_account.id,
+            },
+        ])
+
+        # Reconciliation made with a ratio of 0.01 / 199.99 = 0.000050003.
+        self.assertRecordValues(res['tax_cash_basis_moves'][1].line_ids, [
+            # Base amount x 2 because there is two taxes:
+            {
+                'debit': 0.01,
+                'credit': 0.0,
+                'account_id': cash_basis_base_account.id,
+            },
+            {
+                'debit': 0.0,
+                'credit': 0.01,
+                'account_id': cash_basis_base_account.id,
+            },
+            {
+                'debit': 0.01,
+                'credit': 0.0,
+                'account_id': cash_basis_base_account.id,
+            },
+            {
+                'debit': 0.0,
+                'credit': 0.01,
+                'account_id': cash_basis_base_account.id,
+            },
+            # tax_1:
+            {
+                'debit': 0.0,
+                'credit': 0.0,
+                'account_id': cash_basis_transfer_account.id,
+            },
+            {
+                'debit': 0.0,
+                'credit': 0.0,
+                'account_id': cash_basis_transfer_account.id,
+            },
+            # tax_2:
+            {
+                'debit': 0.0,
+                'credit': 0.0,
+                'account_id': cash_basis_transfer_account.id,
+            },
+            {
+                'debit': 0.0,
+                'credit': 0.0,
+                'account_id': cash_basis_transfer_account.id,
+            },
+        ])
