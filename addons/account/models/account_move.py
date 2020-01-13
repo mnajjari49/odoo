@@ -109,7 +109,7 @@ class AccountMove(models.Model):
             ('in_refund', 'Vendor Credit Note'),
             ('out_receipt', 'Sales Receipt'),
             ('in_receipt', 'Purchase Receipt'),
-        ], string='Type', required=True, store=True, index=True, readonly=True, tracking=True,
+        ], string='Type', required=True, index=True, readonly=True, tracking=True,
         default="entry", change_default=True)
     type_name = fields.Char('Type Name', compute='_compute_type_name')
     to_check = fields.Boolean(string='To Check', default=False,
@@ -118,8 +118,8 @@ class AccountMove(models.Model):
         states={'draft': [('readonly', False)]},
         domain="[('company_id', '=', company_id)]",
         default=_get_default_journal)
-    company_id = fields.Many2one(string='Company', store=True, readonly=True,
-        related='journal_id.company_id', change_default=True)
+    company_id = fields.Many2one(
+        related='journal_id.company_id', store=True, change_default=True)
     company_currency_id = fields.Many2one(string='Company Currency', readonly=True,
         related='journal_id.company_id.currency_id')
     currency_id = fields.Many2one('res.currency', store=True, readonly=True, tracking=True, required=True,
@@ -132,8 +132,9 @@ class AccountMove(models.Model):
         states={'draft': [('readonly', False)]},
         domain="['|', ('company_id', '=', False), ('company_id', '=', company_id)]",
         string='Partner', change_default=True)
-    commercial_partner_id = fields.Many2one('res.partner', string='Commercial Entity', store=True, readonly=True,
-        compute='_compute_commercial_partner_id')
+    commercial_partner_id = fields.Many2one(
+        related="partner_id.commercial_partner_id", depends=['partner_id'],
+        string='Commercial Entity', store=True)
 
     # === Amount fields ===
     amount_untaxed = fields.Monetary(string='Untaxed Amount', store=True, readonly=True, tracking=True,
@@ -926,11 +927,6 @@ class AccountMove(models.Model):
                 move.invoice_filter_type_domain = 'purchase'
             else:
                 move.invoice_filter_type_domain = False
-
-    @api.depends('partner_id')
-    def _compute_commercial_partner_id(self):
-        for move in self:
-            move.commercial_partner_id = move.partner_id.commercial_partner_id
 
     @api.depends('commercial_partner_id')
     def _compute_bank_partner_id(self):

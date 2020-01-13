@@ -234,8 +234,7 @@ class AccountBankStatement(models.Model):
     currency_id = fields.Many2one('res.currency', compute='_compute_currency', string="Currency")
     journal_id = fields.Many2one('account.journal', string='Journal', required=True, states={'confirm': [('readonly', True)]}, default=_default_journal)
     journal_type = fields.Selection(related='journal_id.type', help="Technical field used for usability purposes")
-    company_id = fields.Many2one('res.company', related='journal_id.company_id', string='Company', store=True, readonly=True,
-        default=lambda self: self.env.company)
+    company_id = fields.Many2one(related='journal_id.company_id', store=True)
 
     total_entry_encoding = fields.Monetary('Transactions Subtotal', compute='_end_balance', store=True, help="Total of transaction lines.")
     balance_end = fields.Monetary('Computed Balance', compute='_end_balance', store=True, help='Balance as calculated based on Opening Balance and transaction lines')
@@ -431,8 +430,9 @@ class AccountBankStatementLine(models.Model):
     name = fields.Char(string='Label', required=True)
     date = fields.Date(required=True, default=lambda self: self._context.get('date', fields.Date.context_today(self)))
     amount = fields.Monetary(currency_field='journal_currency_id')
-    journal_currency_id = fields.Many2one('res.currency', string="Journal's Currency", related='statement_id.currency_id',
-        help='Utility field to express amount currency', readonly=True)
+    journal_currency_id = fields.Many2one(
+        string="Journal's Currency", related='statement_id.currency_id',
+        help='Utility field to express amount currency')
     partner_id = fields.Many2one('res.partner', string='Partner')
     account_number = fields.Char(string='Bank Account Number', help="Technical field used to store the bank account number before its creation, upon the line's processing")
     bank_account_id = fields.Many2one('res.partner.bank', string='Bank Account', help="Bank account that was used in this transaction.")
