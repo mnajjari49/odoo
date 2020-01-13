@@ -53,7 +53,7 @@ class ResPartner(models.Model):
         'res.partner', 'assigned_partner_id',
         string='Implementation References',
     )
-    implemented_count = fields.Integer(compute='_compute_implemented_partner_count', store=True)
+    implemented_count = fields.Integer(compute='_compute_implemented_partner_count', store=True, pre_compute=False)
 
     @api.depends('implemented_partner_ids', 'implemented_partner_ids.website_published', 'implemented_partner_ids.active')
     def _compute_implemented_partner_count(self):

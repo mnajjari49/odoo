@@ -142,19 +142,19 @@ class EventEvent(models.Model):
         help="For each event you can define a minimum reserved seats (number of attendees), if it does not reach the mentioned registrations the event can not be confirmed (keep 0 to ignore this rule)")
     seats_reserved = fields.Integer(
         string='Reserved Seats',
-        store=True, readonly=True, compute='_compute_seats')
+        store=True, readonly=True, compute='_compute_seats', pre_compute=False)
     seats_available = fields.Integer(
         string='Available Seats',
-        store=True, readonly=True, compute='_compute_seats')
+        store=True, readonly=True, compute='_compute_seats', pre_compute=False)
     seats_unconfirmed = fields.Integer(
         string='Unconfirmed Seat Reservations',
-        store=True, readonly=True, compute='_compute_seats')
+        store=True, readonly=True, compute='_compute_seats', pre_compute=False)
     seats_used = fields.Integer(
         string='Number of Participants',
-        store=True, readonly=True, compute='_compute_seats')
+        store=True, readonly=True, compute='_compute_seats', pre_compute=False)
     seats_expected = fields.Integer(
         string='Number of Expected Attendees',
-        compute_sudo=True, readonly=True, compute='_compute_seats')
+        compute_sudo=True, readonly=True, compute='_compute_seats', pre_compute=False)
     # Registration fields
     registration_ids = fields.One2many(
         'event.registration', 'event_id', string='Attendees',

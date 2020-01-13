@@ -249,7 +249,9 @@ class AccountBankStatement(models.Model):
     cashbox_start_id = fields.Many2one('account.bank.statement.cashbox', string="Starting Cashbox")
     cashbox_end_id = fields.Many2one('account.bank.statement.cashbox', string="Ending Cashbox")
     is_difference_zero = fields.Boolean(compute='_is_difference_zero', string='Is zero', help="Check if difference is zero.")
-    previous_statement_id = fields.Many2one('account.bank.statement', help='technical field to compute starting balance correctly', compute='_get_previous_statement', store=True)
+    previous_statement_id = fields.Many2one(
+        'account.bank.statement', help='technical field to compute starting balance correctly',
+        compute='_get_previous_statement', store=True, pre_compute=False)
     is_valid_balance_start = fields.Boolean(string="Is Valid Balance Start", compute="_compute_is_valid_balance_start", help="technical field to display a warning message in case starting balance is different than previous ending balance")
 
     def write(self, values):

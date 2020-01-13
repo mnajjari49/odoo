@@ -31,14 +31,14 @@ class EventTicket(models.Model):
     registration_ids = fields.One2many('event.registration', 'event_ticket_id', string='Registrations')
     # seats fields
     seats_availability = fields.Selection([('limited', 'Limited'), ('unlimited', 'Unlimited')],
-        string='Available Seat', required=True, store=True, compute='_compute_seats', default="limited")
+        string='Available Seat', store=True, compute='_compute_seats', pre_compute=False)
     seats_max = fields.Integer(string='Maximum Available Seats',
        help="Define the number of available tickets. If you have too much registrations you will "
             "not be able to sell tickets anymore. Set 0 to ignore this rule set as unlimited.")
-    seats_reserved = fields.Integer(string='Reserved Seats', compute='_compute_seats', store=True)
-    seats_available = fields.Integer(string='Available Seats', compute='_compute_seats', store=True)
-    seats_unconfirmed = fields.Integer(string='Unconfirmed Seat Reservations', compute='_compute_seats', store=True)
-    seats_used = fields.Integer(compute='_compute_seats', store=True)
+    seats_reserved = fields.Integer(string='Reserved Seats', compute='_compute_seats', store=True, pre_compute=False)
+    seats_available = fields.Integer(string='Available Seats', compute='_compute_seats', store=True, pre_compute=False)
+    seats_unconfirmed = fields.Integer(string='Unconfirmed Seat Reservations', compute='_compute_seats', store=True, pre_compute=False)
+    seats_used = fields.Integer(compute='_compute_seats', store=True, pre_compute=False)
 
     def _compute_is_expired(self):
         for ticket in self:

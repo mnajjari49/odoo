@@ -68,7 +68,7 @@ class SurveyQuestion(models.Model):
         'Random questions count', default=1,
         help="Used on randomized sections to take X random questions from all the questions of that section.")
     # question specific
-    page_id = fields.Many2one('survey.question', string='Page', compute="_compute_page_id", store=True)
+    page_id = fields.Many2one('survey.question', string='Page', compute="_compute_page_id", store=True, pre_compute=False)
     question_type = fields.Selection([
         ('text_box', 'Multiple Lines Text Box'),
         ('char_box', 'Single Line Text Box'),

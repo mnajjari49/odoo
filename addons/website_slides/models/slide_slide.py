@@ -191,13 +191,13 @@ class Slide(models.Model):
     channel_type = fields.Selection(related="channel_id.channel_type", string="Channel type")
     channel_allow_comment = fields.Boolean(related="channel_id.allow_comment", string="Allows comment")
     # Statistics in case the slide is a category
-    nbr_presentation = fields.Integer("Number of Presentations", compute='_compute_slides_statistics', store=True)
-    nbr_document = fields.Integer("Number of Documents", compute='_compute_slides_statistics', store=True)
-    nbr_video = fields.Integer("Number of Videos", compute='_compute_slides_statistics', store=True)
-    nbr_infographic = fields.Integer("Number of Infographics", compute='_compute_slides_statistics', store=True)
-    nbr_webpage = fields.Integer("Number of Webpages", compute='_compute_slides_statistics', store=True)
-    nbr_quiz = fields.Integer("Number of Quizs", compute="_compute_slides_statistics", store=True)
-    total_slides = fields.Integer(compute='_compute_slides_statistics', store=True)
+    nbr_presentation = fields.Integer("Number of Presentations", compute='_compute_slides_statistics', store=True, pre_compute=False)
+    nbr_document = fields.Integer("Number of Documents", compute='_compute_slides_statistics', store=True, pre_compute=False)
+    nbr_video = fields.Integer("Number of Videos", compute='_compute_slides_statistics', store=True, pre_compute=False)
+    nbr_infographic = fields.Integer("Number of Infographics", compute='_compute_slides_statistics', store=True, pre_compute=False)
+    nbr_webpage = fields.Integer("Number of Webpages", compute='_compute_slides_statistics', store=True, pre_compute=False)
+    nbr_quiz = fields.Integer("Number of Quizs", compute="_compute_slides_statistics", store=True, pre_compute=False)
+    total_slides = fields.Integer(compute='_compute_slides_statistics', store=True, pre_compute=False)
 
     _sql_constraints = [
         ('exclusion_html_content_and_url', "CHECK(html_content IS NULL OR url IS NULL)", "A slide is either filled with a document url or HTML content. Not both.")
