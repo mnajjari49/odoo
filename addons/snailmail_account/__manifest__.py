@@ -9,6 +9,7 @@ Allows users to send invoices by post
     'version': '0.1',
     'depends': ['account', 'snailmail'],
     'data': [
+        'security/ir.model.access.csv',
         'views/res_config_settings_views.xml',
         'views/assets.xml',
         'wizard/account_invoice_send_views.xml',

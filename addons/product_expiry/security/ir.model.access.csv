@@ -1,0 +1,2 @@
+"id","name","model_id:id","group_id:id","perm_read","perm_write","perm_create","perm_unlink"
+"access_expiry_picking_confirmation","access.expiry.picking.confirmation","model_expiry_picking_confirmation","base.group_system",1,0,1,0

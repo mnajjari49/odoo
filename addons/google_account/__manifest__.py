@@ -10,6 +10,7 @@ The module adds google user in res user.
 """,
     'depends': ['base_setup'],
     'data': [
+        'security/ir.model.access.csv',
         'data/google_account_data.xml',
     ],
 }
