@@ -456,6 +456,11 @@ class Environment(Mapping):
         self.toflush = envs.toflush
         self.all = envs
         envs.add(self)
+
+        # flush/clear automatically upon commit/rollback
+        cr.precommit(self.flush, recurrent=True)
+        cr.prerollback(self.clear, recurrent=True)
+
         return self
 
     #
@@ -606,6 +611,10 @@ class Environment(Mapping):
         :rtype: str
         """
         return self.context.get('lang')
+
+    def flush(self):
+        """ Process all fields to recompute, and store all fields to write. """
+        self['base'].flush()
 
     def clear(self):
         """ Clear all record caches, and discard all fields to recompute.

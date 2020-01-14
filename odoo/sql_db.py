@@ -401,7 +401,6 @@ class Cursor(object):
     def commit(self):
         """ Perform an SQL `COMMIT`
         """
-        flush_env(self)
         self._precommit()
         result = self._cnx.commit()
         self._prerollback.clear()
@@ -413,7 +412,6 @@ class Cursor(object):
     def rollback(self):
         """ Perform an SQL `ROLLBACK`
         """
-        clear_env(self)
         self._precommit.clear()
         self._postcommit.clear()
         self._prerollback()
@@ -444,19 +442,16 @@ class Cursor(object):
         """context manager entering in a new savepoint"""
         name = uuid.uuid1().hex
         if flush:
-            flush_env(self)
             self._precommit()
             self._prerollback.clear()
         self.execute('SAVEPOINT "%s"' % name)
         try:
             yield
             if flush:
-                flush_env(self)
                 self._precommit()
                 self._prerollback.clear()
         except Exception:
             if flush:
-                clear_env(self)
                 self._precommit.clear()
                 self._prerollback()
             self.execute('ROLLBACK TO SAVEPOINT "%s"' % name)
