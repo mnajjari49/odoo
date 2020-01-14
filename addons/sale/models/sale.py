@@ -938,10 +938,6 @@ class SaleOrder(models.Model):
         self.ensure_one()
         return self.transaction_ids.get_last_transaction()
 
-    @api.model
-    def _get_customer_lead(self, product_tmpl_id):
-        return False
-
     def _get_report_base_filename(self):
         self.ensure_one()
         return '%s %s' % (self.type_name, self.name)
@@ -1250,7 +1246,7 @@ class SaleOrderLine(models.Model):
         " They are not copied when duplicating a sales order.")
 
     customer_lead = fields.Float(
-        'Lead Time', required=True, default=0.0,
+        string="Lead Time", compute="_compute_customer_lead", store=True, readonly=False,
         help="Number of days between the order confirmation and the shipping of the products to the customer")
 
     display_type = fields.Selection([
@@ -1271,6 +1267,9 @@ class SaleOrderLine(models.Model):
             if line.order_partner_id:
                 line = line.with_context(lang=line.order_partner_id.lang)
             line.name = line._get_sale_description()
+
+    def _compute_customer_lead(self):
+        self.customer_lead = 0.0
 
     @api.depends('order_id.fiscal_position_id', 'company_id', 'product_id')
     def _compute_tax_id(self):

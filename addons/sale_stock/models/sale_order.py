@@ -186,10 +186,10 @@ class SaleOrder(models.Model):
         invoice_vals['invoice_incoterm_id'] = self.incoterm.id
         return invoice_vals
 
-    @api.model
-    def _get_customer_lead(self, product_tmpl_id):
-        super(SaleOrder, self)._get_customer_lead(product_tmpl_id)
-        return product_tmpl_id.sale_delay
+    @api.depends('product_id')
+    def _compute_customer_lead(self):
+        for line in self:
+            line.customer_lead = line.product_id.sale_delay
 
     def _log_decrease_ordered_quantity(self, documents, cancel=False):
 

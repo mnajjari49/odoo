@@ -79,7 +79,6 @@ class SaleOrder(models.Model):
                 data.update({
                     'price_unit': price,
                     'discount': 100 - ((100 - discount) * (100 - line.discount) / 100),
-                    'customer_lead': self._get_customer_lead(line.product_id.product_tmpl_id),
                 })
             order_lines.append((0, 0, data))
 
