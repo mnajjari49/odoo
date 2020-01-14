@@ -1,5 +1,15 @@
 <template>
-    <div t-name="SearchView.addtogooglespreadsheet">
-        <a class="add_to_spreadsheet dropdown-item">Add to Google Spreadsheet</a>
-    </div>
+    <t t-name="AddToGoogleSpreadsheetMenu" owl="1">
+        <li class="o_menu_item o_add_to_spreadsheet" role="menuitem">
+            <a class="dropdown-item" href="#" t-on-click.prevent="_onAddToSpreadsheet">Add to Google Spreadsheet</a>
+        </li>
+    </t>
+
+    <t t-name="google_spreadsheet.FavoriteMenu" t-inherit="web.FavoriteMenu" t-inherit-mode="extension" owl="1">
+        <xpath expr="//ul[@role='menu']" position="inside">
+            <t t-if="props.action.type === 'ir.actions.act_window'">
+                <AddToGoogleSpreadsheetMenu action="props.action"/>
+            </t>
+        </xpath>
+    </t>
 </template>

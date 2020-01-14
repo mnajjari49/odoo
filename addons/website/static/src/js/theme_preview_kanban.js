@@ -25,16 +25,19 @@ var ThemePreviewKanbanView = KanbanView.extend({
     // -------------------------------------------------------------------------
     // Private
     // -------------------------------------------------------------------------
+
     /**
      * @override
-     *
      */
-    _createControlPanel: function (parent) {
-        return this._super.apply(this, arguments).then(controlPanel => {
-            var websiteLink = '<a class="btn btn-secondary ml-3" href="/"><i class="fa fa-close"></i></a>';
-            controlPanel.$('div.o_cp_searchview').after(websiteLink);
-            return controlPanel;
+    _createControlPanel: async function () {
+        const controlPanel = await this._super(...arguments);
+        const websiteLink = Object.assign(document.createElement('a'), {
+            className: 'btn btn-secondary ml-3',
+            href: '/',
+            innerHTML: '<i class="fa fa-close"/>'
         });
+        controlPanel.el.querySelector('.o_cp_top').appendChild(websiteLink);
+        return controlPanel;
     },
 });
 

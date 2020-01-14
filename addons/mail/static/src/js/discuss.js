@@ -1101,9 +1101,9 @@ var Discuss = AbstractAction.extend({
      * @private
      */
     _updateControlPanel: function () {
-        this.updateControlPanel({
+        this._updateActionProps({
             cp_content: {
-                $buttons: this.$buttons,
+                buttons: this.$buttons,
             },
         });
     },

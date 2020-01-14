@@ -91,13 +91,9 @@ FormController.include({
     _barcodePagerFirst: function () {
         var self = this;
         return this.mutex.exec(function () {}).then(function () {
-            if (!self.pager) {
-                self.do_warn(_t('Error: Pager not available'));
-                return;
-            }
-            self.pager.updateState({
-                current_min: 1,
-            }, {notifyChange: true});
+            self._updatePager({
+                currentMinimum: 1,
+            });
         });
     },
     /**
@@ -111,9 +107,9 @@ FormController.include({
                 return;
             }
             var state = self.model.get(self.handle, {raw: true});
-            self.pager.updateState({
-                current_min: state.count,
-            }, {notifyChange: true});
+            self._updatePager({
+                currentMinimum: state.count,
+            });
         });
     },
     /**

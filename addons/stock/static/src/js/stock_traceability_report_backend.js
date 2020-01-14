@@ -75,9 +75,11 @@ var stock_report_generic = AbstractAction.extend({
             this.renderButtons();
         }
         var status = {
-            cp_content: {$buttons: this.$buttons},
+            cp_content: {
+                buttons: this.$buttons,
+            },
         };
-        return this.updateControlPanel(status);
+        return this._updateActionProps(status);
     },
     renderButtons: function() {
         var self = this;
