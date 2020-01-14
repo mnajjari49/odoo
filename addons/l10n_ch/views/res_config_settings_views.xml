@@ -9,7 +9,7 @@
                 <xpath expr="//div[@id='invoicing_settings']" position="inside">
                     <div class="col-12 col-lg-6 o_setting_box" id="l10n_ch-isr_print_bank">
                         <div class="o_setting_left_pane">
-                            <field name="l10n_ch_print_qrcode"/>
+                            <field name="l10n_ch_print_qrcode"/> <!--TODO OCO-->
                         </div>
                         <div class="o_setting_right_pane">
                             <label for="l10n_ch_print_qrcode"/>

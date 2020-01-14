@@ -114,7 +114,7 @@ class ResPartnerBank(models.Model):
             return ''
 
     @api.model
-    def build_swiss_code_url(self, amount, currency, date_due, debitor, ref_type, reference, comment):
+    def build_swiss_code_url(self, amount, currency, date_due, debitor, ref_type, reference, comment): #TODO OCO
         communication = ""
         if comment:
             communication = (comment[:137] + '...') if len(comment) > 140 else comment
@@ -162,8 +162,9 @@ class ResPartnerBank(models.Model):
         if (t_street_deb == ' '):
             t_street_deb = False
 
+        #TODO OCO HERE >>>> currency est tjrs vide ici => prendre celle de la company si currency est vide (probablement à faire en 12 aussi)
         if(currency.name == 'EUR'):
-            return (self.l10n_ch_postal_subscription_eur and
+            return (self.l10n_ch_postal_subscription_eur and #TODO OCO le nom est foireux ...
                     self.company_id.zip and
                     self.company_id.city and
                     self.company_id.country_id.code and
@@ -174,7 +175,7 @@ class ResPartnerBank(models.Model):
                     debitor.country_id.code and
                     (number != False) and (number_deb != False))
         elif(currency.name == 'CHF'):
-            return (self.l10n_ch_postal_subscription_chf and
+            return (self.l10n_ch_postal_subscription_chf and #TODO OCO le nom est foireux ...
                     self.company_id.zip and
                     self.company_id.city and
                     self.company_id.country_id.code and

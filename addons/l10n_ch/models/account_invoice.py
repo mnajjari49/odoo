@@ -165,7 +165,7 @@ class AccountMove(models.Model):
         """
         return float_split_str(self.amount_total, 2)
 
-    def display_swiss_qr_code(self):
+    def display_swiss_qr_code(self): #TODO OCO
         """ Trigger the print of the Swiss QR code in the invoice report or not
         """
         self.ensure_one()
