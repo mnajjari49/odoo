@@ -20,6 +20,12 @@ class TimerMixin(models.AbstractModel):
             record.timer_pause = record_timer.timer_pause
 
     def _get_record_timer(self):
+        """ Get the timers according these conditions
+            :user_id is is the current user
+            :res_id is the current record
+            :res_model is the current model
+            limit=1 by security but the search should never have more than one record
+        """
         self.ensure_one()
         return self.env['timer.timer'].search([
             ('user_id', '=', self.env.user.id),
@@ -32,9 +38,16 @@ class TimerMixin(models.AbstractModel):
 
     @api.model
     def _get_user_timers(self):
+        # Get the running timer of a user
+        # Return a singleton
         return self.env['timer.timer'].search([('user_id', '=', self.env.user.id)])
 
     def action_timer_start(self):
+        """ Start the timer of the current record
+        First, if a timer is running, stop or pause it
+        If there isn't a timer for the current record, create one then start it
+        Otherwise, resume or start it
+        """
         self.ensure_one()
         self.stop_timer_in_progress()
         timer = self._get_record_timer()
@@ -57,6 +70,11 @@ class TimerMixin(models.AbstractModel):
         
 
     def action_timer_stop(self):
+        """ Stop the timer of the current record
+        Unlink the timer, it's useless to keep the stopped timer.
+        A new timer can be create if needed
+        Return the amount of minutes spent
+        """
         self.ensure_one()
         timer = self._get_record_timer()
         minutes_spent = timer.action_timer_stop()
@@ -78,6 +96,7 @@ class TimerMixin(models.AbstractModel):
         timer.action_timer_resume()
     
     def interruption(self):
+        # Interruption is the action called when the timer is stoped by the start of another one
         self.action_timer_pause()
 
     def stop_timer_in_progress(self):
@@ -95,10 +114,8 @@ class TimerMixin(models.AbstractModel):
             model.interruption()
     
     @api.model
-    def _timer_rounding(self, minutes_spent):
-        minimum_duration = int(self.env['ir.config_parameter'].sudo().get_param('hr_timesheet.timesheet_min_duration', 0))
-        rounding = int(self.env['ir.config_parameter'].sudo().get_param('hr_timesheet.timesheet_rounding', 0))
-        minutes_spent = max(minimum_duration, minutes_spent)
+    def _timer_rounding(self, minutes_spent, minimum, rounding):
+        minutes_spent = max(minimum, minutes_spent)
         if rounding and ceil(minutes_spent % rounding) != 0:
             minutes_spent = ceil(minutes_spent / rounding) * rounding
         return minutes_spent

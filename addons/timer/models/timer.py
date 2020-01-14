@@ -20,11 +20,6 @@ class TimerTimer(models.Model):
             record.is_timer_running = bool(record.timer_start) and not bool(record.timer_pause)
 
     def action_timer_start(self):
-        """ Action start the timer.
-            Start timer and search if another timer hasn't been launched.
-            If yes, then stop the timer before launch this timer.
-        """
-        self.ensure_one()
         if not self.timer_start:
             self.write({'timer_start': fields.Datetime.now()})
 
@@ -33,7 +28,6 @@ class TimerTimer(models.Model):
             :return minutes_spent if the timer is started,
                     otherwise return False
         """
-        self.ensure_one()
         if not self.timer_start:
             return False
         minutes_spent = self._get_minutes_spent()

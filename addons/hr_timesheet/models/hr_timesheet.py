@@ -202,23 +202,16 @@ class AccountAnalyticLine(models.Model):
             analytic_line.display_timer = analytic_line.encoding_uom_id == uom_hour and analytic_line.project_id.allow_timesheet_timer
 
     def action_timer_start(self):
-        """ Start timer and search if another timer hasn't been launched.
-            If yes, then stop the timer before launch this timer.
+        """ Start a timer if it isn't already started and the
+        timesheets allow to track time
         """
         if not self._get_record_timer().timer_start and self.display_timer:
-            # Stop an existing timer if it is running
-            # YTI Should be done in the mixin IMO
-
-            # Because it stops the timer of another timesheet than our
-            # it needs to search it to be able to add the minutes_spent
-            # on the right unit_amount field
-
             super().action_timer_start()
 
     def action_timer_stop(self):
-        """ 
+        """ Stop the current timer
         """
-        if self.display_timer:
+        if self._get_record_timer().timer_start and self.display_timer:
             minutes_spent = super().action_timer_stop()
             self._compute_timer_time(minutes_spent)
     

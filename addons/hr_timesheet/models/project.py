@@ -176,15 +176,16 @@ class Task(models.Model):
         return result
 
     def action_timer_start(self):
-        self.ensure_one()
-    
-        super(Task, self).action_timer_start()
+        if not self._get_record_timer().timer_start and self.display_timesheet_timer:
+            super(Task, self).action_timer_start()
 
     def action_timer_stop(self):
-        self.ensure_one()
-        if self._get_record_timer().timer_start:  # timer was either running or paused
+        # timer was either running or paused
+        if self._get_record_timer().timer_start and self.display_timesheet_timer:
             minutes_spent = super().action_timer_stop()
-            minutes_spent = self._timer_rounding(minutes_spent)
+            minimum_duration = int(self.env['ir.config_parameter'].sudo().get_param('hr_timesheet.timesheet_min_duration', 0))
+            rounding = int(self.env['ir.config_parameter'].sudo().get_param('hr_timesheet.timesheet_rounding', 0))
+            minutes_spent = self._timer_rounding(minutes_spent, minimum_duration, rounding)
             return self._action_create_timesheet(minutes_spent * 60 / 3600)
         return False
 
