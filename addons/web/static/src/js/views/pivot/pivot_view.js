@@ -18,7 +18,7 @@ odoo.define('web.PivotView', function (require) {
     const _t = core._t;
     const _lt = core._lt;
 
-    const controlPanelViewParameters = require('web.controlPanelViewParameters');
+    const controlPanelViewParameters = require('web.controlPanelParameters');
     const GROUPABLE_TYPES = controlPanelViewParameters.GROUPABLE_TYPES;
 
     const PivotView = AbstractView.extend({

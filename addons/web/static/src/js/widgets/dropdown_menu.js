@@ -1,145 +1,117 @@
 odoo.define('web.DropdownMenu', function (require) {
-"use strict";
+    "use strict";
 
-var core = require('web.core');
-var Widget = require('web.Widget');
+    const DropdownMenuItem = require('web.DropdownMenuItem');
+    const { useExternalListener } = require('web.custom_hooks');
 
-var QWeb = core.qweb;
+    const { Component, hooks } = owl;
+    const { useDispatch, useGetters, useRef, useState } = hooks;
 
-var _t = core._t;
+    // Used to provide unique ids to its template elements.
+    let dropdownId = 0;
 
-var DropdownMenu = Widget.extend({
-    template: 'web.DropdownMenu',
+    class DropdownMenu extends Component {
+        constructor() {
+            super(...arguments);
 
-    events: {
-        'click .o_menu_item': '_onItemClick',
-        'click .o_item_option': '_onOptionClick',
-        'click span.o_trash_button': '_onTrashButtonClick',
-        'hidden.bs.dropdown': '_onBootstrapClose',
-        'click .dropdown-item-text': '_onDropDownItemTextClick',
-    },
+            this.id = dropdownId ++;
+            this.dropdownMenu = useRef('dropdown');
+            if ('controlPanelStore' in this.env) {
+                this.dispatch = useDispatch(this.env.controlPanelStore);
+                this.getters = useGetters(this.env.controlPanelStore);
+            }
+            this.state = useState({ open: false });
+            useExternalListener(window, 'click', this._onWindowClick);
+            useExternalListener(window, 'keydown', this._onWindowKeydown);
 
-    init: function (parent, items) {
-        this._super(parent);
-        // should be specified
-        this.dropdownCategory = null;
-        this.dropdownTitle = null;
-        this.dropdownIcon = null;
-        this.dropdownSymbol = false;
-        // this parameter fixes the menu style. By default,
-        // the style used is the one used in the search view
-        this.dropdownStyle = {
-                el: {class: 'btn-group o_dropdown', attrs: {}},
-                mainButton: {
-                    class: 'o_dropdown_toggler_btn btn btn-secondary ' +
-                        'dropdown-toggle ' +
-                        (this.dropdownSymbol ? 'o-no-caret' : '')
-                },
-        };
-        this.items = items;
-        this.openItems = {};
-    },
-    /**
-     * @override
-     */
-    start: function () {
-        this.$menu = this.$('.o_dropdown_menu');
-        this.$dropdownReference = this.$('.o_dropdown_toggler_btn');
-
-         if (_t.database.parameters.direction === 'rtl') {
-            this.$menu.addClass('dropdown-menu-right');
+            this.symbol = this.env.device.isMobile ? 'fa fa-chevron-right float-right mt4' : false;
         }
-        return this._super.apply(this, arguments);
-    },
 
-    //--------------------------------------------------------------------------
-    // Public
-    //--------------------------------------------------------------------------
+        //--------------------------------------------------------------------------
+        // Getters
+        //--------------------------------------------------------------------------
 
-    /**
-     * @param {Object} items
-     */
-    update: function (items) {
-        this.items = items;
-        this._renderMenuItems();
-    },
-
-    //--------------------------------------------------------------------------
-    // Private
-    //--------------------------------------------------------------------------
-
-    /**
-     * @private
-     */
-    _renderMenuItems: function () {
-        var newMenuItems = QWeb.render('DropdownMenu.MenuItems', {widget: this});
-        this.$el.find('.o_menu_item, .dropdown-divider[data-removable="1"]').remove();
-        this.$('.o_dropdown_menu').prepend(newMenuItems);
-    },
-
-    //--------------------------------------------------------------------------
-    // Handlers
-    //--------------------------------------------------------------------------
-
-    /**
-     * This method is called when Bootstrap trigger a 'close' event (for example
-     * when the user clicks outside the dropdown menu).
-     *
-     * @private
-     * @param {jQueryEvent} event
-     */
-    _onBootstrapClose: function () {
-        this.openItems = {};
-        this._renderMenuItems();
-    },
-    /**
-     * Reacts to click on bootstrap's dropdown-item-text
-     * Protects against Bootstrap dropdown close from inside click
-     *
-     * @private
-     */
-    _onDropDownItemTextClick: function (ev) {
-        ev.stopPropagation();
-    },
-    /**
-     * @private
-     * @param {MouseEvent} event
-     */
-    _onItemClick: function (event) {
-        event.preventDefault();
-        event.stopPropagation();
-        var id = $(event.currentTarget).data('id');
-        var item = this.items.find(function (item) {
-            return item.id === id;
-        });
-        if (item.hasOptions) {
-            this.openItems[id] = !this.openItems[id];
-            this._renderMenuItems();
-        } else {
-            this.trigger_up('menu_item_clicked', {id: id});
+        /**
+         * Meant to be overriden to provide the list of items to display.
+         * @returns {Object[]}
+         */
+        get items() {
+            return this.props.items;
         }
-    },
-    /**
-     * @private
-     * @param {MouseEvent} event
-     */
-    _onOptionClick: function (event) {
-        event.preventDefault();
-        event.stopPropagation();
-        var optionId = $(event.currentTarget).data('option_id');
-        var id = $(event.currentTarget).data('item_id');
-        this.trigger_up('item_option_clicked', {id: id, optionId: optionId});
-    },
-    /**
-     * @private
-     * @param {MouseEvent} event
-     *
-     * To implement in child
-     */
-     _onTrashButtonClick: function (event) {
-     },
-});
 
-return DropdownMenu;
+        /**
+         * Overriden in case we want to keep the caret style on the button in mobile.
+         * @returns {boolean}
+         */
+        get displayCaret() {
+            return !this.env.device.isMobile;
+        }
 
+        //--------------------------------------------------------------------------
+        // Handlers
+        //--------------------------------------------------------------------------
+
+        /**
+         * @private
+         * @param {KeyboardEvent} ev
+         */
+        _onButtonKeydown(ev) {
+            switch (ev.key) {
+                case 'ArrowLeft':
+                case 'ArrowRight':
+                case 'ArrowUp':
+                case 'ArrowDown':
+                    const firstItem = this.el.querySelector('.dropdown-item');
+                    if (firstItem) {
+                        ev.preventDefault();
+                        firstItem.focus();
+                    }
+            }
+        }
+
+        /**
+         * @private
+         * @param {MouseEvent} ev
+         */
+        _onItemSelected(ev) {
+            this.trigger('item_selected', ev.detail);
+        }
+
+        /**
+         * @private
+         * @param {Event} ev
+         */
+        _onWindowClick(ev) {
+            if (this.state.open && !this.el.contains(ev.target)) {
+                this.state.open = false;
+            }
+        }
+
+        /**
+         * @private
+         * @param {KeyboardEvent} ev
+         */
+        _onWindowKeydown(ev) {
+            if (this.state.open && ev.key === 'Escape') {
+                this.state.open = false;
+            }
+        }
+    }
+
+    DropdownMenu.components = { DropdownMenuItem };
+    DropdownMenu.defaultProps = {
+        items: [],
+    };
+    DropdownMenu.props = {
+        icon: { type: String, optional: 1 },
+        items: {
+            type: Array,
+            element: Object,
+            optional: 1,
+        },
+        title: String,
+    };
+    DropdownMenu.template = 'DropdownMenu';
+
+    return DropdownMenu;
 });

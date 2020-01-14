@@ -5,14 +5,14 @@ var FormView = require('web.FormView');
 var testUtils = require('web.test_utils');
 
 var createActionManager = testUtils.createActionManager;
-var createControlPanel = testUtils.createControlPanel;
+var setUpControlPanelEnvironment = testUtils.setUpControlPanelEnvironment;
 var createView = testUtils.createView;
 var patchDate = testUtils.mock.patchDate;
 var session = require('web.session');
 
-var controlPanelViewParameters = require('web.controlPanelViewParameters');
-const PERIOD_OPTIONS_IDS = controlPanelViewParameters.PERIOD_OPTIONS.map(o => o.optionId);
-const OPTION_GENERATOR_IDS = controlPanelViewParameters.OPTION_GENERATORS.map(o => o.optionId);
+var controlPanelParameters = require('web.controlPanelParameters');
+const PERIOD_OPTIONS_IDS = controlPanelParameters.PERIOD_OPTIONS.map(o => o.optionId);
+const OPTION_GENERATOR_IDS = Object.values(controlPanelParameters.OPTION_GENERATORS).map(o => o.optionId);
 
 QUnit.module('Search View', {
     beforeEach: function () {
@@ -1167,12 +1167,14 @@ QUnit.module('Search View', {
     QUnit.test('default favorite is not activated if key search_disable_custom_filters is set to true', async function (assert) {
         assert.expect(1);
 
-        var controlPanel = await createControlPanel({
-            model: 'partner',
-            arch: '<controlpanel/>',
+        const webClient = await setUpControlPanelEnvironment({
+            arch: '<search/>',
+            context: {
+                search_disable_custom_filters: true,
+            },
             data: this.data,
             intercepts: {
-                load_filters: function (event) {
+                load_filters(ev) {
                     return Promise.resolve([{
                         context: "{}",
                         domain: "[]",
@@ -1181,16 +1183,16 @@ QUnit.module('Search View', {
                         name: "My favorite",
                         sort: "[]",
                         user_id: [2, "Mitchell Admin"],
-                    }]).then(event.data.on_success);
+                    }]).then(ev.data.on_success);
                 },
             },
-            context: {
-                search_disable_custom_filters: true,
-            },
+            model: 'partner',
         });
+        const controlPanel = webClient.controlPanel.comp;
 
         assert.containsNone(controlPanel, '.o_facet_values');
-        controlPanel.destroy();
+
+        webClient.destroy();
     });
 
     QUnit.test('toggle favorite correctly clears filter, groupbys and field "options"', async function (assert) {

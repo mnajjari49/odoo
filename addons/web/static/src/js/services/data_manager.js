@@ -6,6 +6,7 @@ var core = require('web.core');
 var rpc = require('web.rpc');
 var session = require('web.session');
 var utils = require('web.utils');
+const parseControlPanelArch = require('web.parseControlPanelArch');
 
 return core.Class.extend({
     init: function () {
@@ -99,26 +100,29 @@ return core.Class.extend({
                 },
                 model: model,
                 method: 'load_views',
-            }).then(function (result) {
+            }).then(async result => {
                 // Freeze the fields dict as it will be shared between views and
                 // no one should edit it
                 utils.deepFreeze(result.fields);
 
                 // Insert views into the fields_views cache
-                _.each(views_descr, function (view_descr) {
+                for (const view_descr of views_descr) {
                     var toolbar = options.toolbar && view_descr[1] !== 'search';
                     var fv_key = self._gen_key(model, view_descr[0], view_descr[1], toolbar, context);
                     var fvg = result.fields_views[view_descr[1]];
+                    if (view_descr[1] === 'search') {
+                        fvg.favoriteFilters = result.filters;
+                        fvg.preFilters = await parseControlPanelArch(fvg.arch, fvg.fields, context);
+                    }
                     fvg.viewFields = fvg.fields;
                     fvg.fields = result.fields;
                     self._cache.fields_views[fv_key] = Promise.resolve(fvg);
-                });
+                }
 
                 // Insert filters, if any, into the filters cache
                 if (result.filters) {
                     self._cache.filters[filters_key] = Promise.resolve(result.filters);
                 }
-
                 return result.fields_views;
             }, this._invalidate.bind(this, this._cache.views, key));
         }
@@ -190,6 +194,25 @@ return core.Class.extend({
             .then(function () {
                 self._cache.filters = {}; // invalidate cache
             });
+    },
+
+    /**
+     * Calls 'write' on 'ir_filters'.
+     *
+     * @param {Object} filter
+     * @param {Object} [filter.action_id]
+     * @param {Object} filter.id
+     * @param {Object} filter.model_id
+     * @return {Promise}
+     */
+    edit_filter: async function ({ action_id, id, model_id }, values) {
+        await rpc.query({
+            args: [[id], values],
+            model: 'ir.filters',
+            method: 'write',
+        });
+        const key = `${model_id},${action_id || false}`;
+        this._invalidate(this._cache.filters, key); // invalidate cache
     },
 
     /**

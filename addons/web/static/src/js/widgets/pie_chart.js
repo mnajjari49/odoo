@@ -49,6 +49,7 @@ var PieChart = Widget.extend({
             context: pieChartContext,
             domain: domain,
             groupBy: [],
+            timeRanges: {},
         };
 
         this.viewInfo = {

@@ -191,7 +191,7 @@ return Promise.all([
         createDebugManager: testUtilsCreate.createDebugManager,
         createAsyncView: testUtilsCreate.createView,
         createCalendarView: testUtilsCreate.createCalendarView,
-        createControlPanel: testUtilsCreate.createControlPanel,
+        setUpControlPanelEnvironment: testUtilsCreate.setUpControlPanelEnvironment,
         createView: testUtilsCreate.createView,
         createModel: testUtilsCreate.createModel,
         createParent: testUtilsCreate.createParent,

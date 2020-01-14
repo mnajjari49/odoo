@@ -17,6 +17,7 @@ var ServiceProviderMixin = {
         // as EventDispatcherMixin's init is already called, this handler has
         // to be bound manually
         this.on('call_service', this, this._call_service.bind(this));
+        core.bus.on('call_service', this, this._call_service);
 
         // add already registered services from the service registry
         _.each(core.serviceRegistry.map, function (Service, serviceName) {

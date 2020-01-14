@@ -26,10 +26,13 @@ odoo.define('web.AbstractView', function (require) {
 var AbstractModel = require('web.AbstractModel');
 var AbstractRenderer = require('web.AbstractRenderer');
 var AbstractController = require('web.AbstractController');
-var ControlPanelView = require('web.ControlPanelView');
+const ControlPanel = require('web.ControlPanel');
+const ControlPanelStore = require('web.ControlPanelStore');
 var mvc = require('web.mvc');
 var SearchPanel = require('web.SearchPanel');
 var viewUtils = require('web.viewUtils');
+
+const { Store, Component } = owl;
 
 var Factory = mvc.Factory;
 
@@ -83,7 +86,7 @@ var AbstractView = Factory.extend({
      * @param {string} [params.displayName]
      * @param {Array[]} [params.domain=[]]
      * @param {Object[]} [params.dynamicFilters] transmitted to the
-     *   ControlPanelView
+     *   ControlPanel
      * @param {number[]} [params.ids]
      * @param {boolean} [params.isEmbedded=false]
      * @param {Object} [params.searchQuery={}]
@@ -143,7 +146,6 @@ var AbstractView = Factory.extend({
             controllerID: params.controllerID,
             displayName: params.displayName,
             isEmbedded: isEmbedded,
-            isMultiRecord: this.multi_record,
             modelName: params.modelName,
             viewType: this.viewType,
         };
@@ -174,19 +176,44 @@ var AbstractView = Factory.extend({
             this._updateMVCParams(params.searchQuery);
         }
 
-        this.controlPanelParams = {
-            action: action,
+        const controlPanelStoreEnv = Object.assign(Object.create(Component.env), {
+            action: action || {},
+            context: this.loadParams.context || {},
+            domain: this.loadParams.domain || [],
+            modelName: params.modelName,
+        });
+        // TODO: Check useless params
+        this.controlPanelStoreConfig = {
+            env: controlPanelStoreEnv,
+
+            actionId: action.id,
+            actionContext: Object.assign({}, this.loadParams.context || {}),
+            actionDomain: this.loadParams.domain || [],
+            modelName: params.modelName,
+
+            // control initialization
             activateDefaultFavorite: params.activateDefaultFavorite,
             dynamicFilters: params.dynamicFilters,
+            viewInfo: params.controlPanelFieldsView,
+            withSearchBar: params.withSearchBar,
+
+            // used to avoid timeRanges in query
+            searchMenuTypes: params.searchMenuTypes,
+
+            // avoid work to initialize
+            importedState: controllerState.cpState,
+        };
+        this.controlPanelProps = {
+            // TODO: remove action from props and access it from somewhere else...
+            action: action, // needed by favorite menu subcomponents
             breadcrumbs: params.breadcrumbs,
-            context: this.loadParams.context,
-            domain: this.loadParams.domain,
+            fields: this.fields,
             modelName: params.modelName,
             searchMenuTypes: params.searchMenuTypes,
-            state: controllerState.cpState,
-            viewInfo: params.controlPanelFieldsView,
             withBreadcrumbs: params.withBreadcrumbs,
+            views: action.views && action.views.filter(v => v.multiRecord === this.multi_record),
             withSearchBar: params.withSearchBar,
+            viewType: this.viewType,
         };
         this.searchPanelParams = {
             defaultNoFilter: params.searchPanelDefaultNoFilter,
@@ -203,13 +230,13 @@ var AbstractView = Factory.extend({
     /**
      * @override
      */
-    getController: function (parent) {
+    getController: async function (parent) {
         var self = this;
         var cpDef = this.withControlPanel && this._createControlPanel(parent);
         var spDef;
         if (this.withSearchPanel) {
             var spProto = this.config.SearchPanel.prototype;
-            var viewInfo = this.controlPanelParams.viewInfo;
+            var viewInfo = this.controlPanelProps.viewInfo;
             var searchPanelParams = spProto.computeSearchPanelParams(viewInfo, this.viewType);
             if (searchPanelParams.sections) {
                 this.searchPanelParams.sections = searchPanelParams.sections;
@@ -225,9 +252,6 @@ var AbstractView = Factory.extend({
             var modelParent = self.model && self.model.getParent();
             var prom = _super(parent);
             prom.then(function (controller) {
-                if (controlPanel) {
-                    controlPanel.setParent(controller);
-                }
                 if (searchPanel) {
                     searchPanel.setParent(controller);
                 }
@@ -265,23 +289,38 @@ var AbstractView = Factory.extend({
     //--------------------------------------------------------------------------
 
     /**
-     * Instantiates and starts a ControlPanelController.
+     * Instantiates and starts a ControlPanel.
      *
      * @private
      * @param {Widget} parent
-     * @returns {Promise<ControlPanelController>} resolved when the controlPanel
+     * @param {Function} [alterQuery] a function meant to alter the fetched query.
+     * @returns {Promise<ControlPanel>} resolved when the controlPanel
      *   is ready
      */
-    _createControlPanel: function (parent) {
-        var self = this;
-        var controlPanelView = new ControlPanelView(this.controlPanelParams);
-        return controlPanelView.getController(parent).then(function (controlPanel) {
-            self.controllerParams.controlPanel = controlPanel;
-            return controlPanel.appendTo(document.createDocumentFragment()).then(function () {
-                self._updateMVCParams(controlPanel.getSearchQuery());
-                return controlPanel;
-            });
-        });
+    _createControlPanel: async function (parent, alterQuery) {
+        const controlPanelStore = await this._createControlPanelStore();
+
+        this.controlPanelProps.controlPanelStore = controlPanelStore;
+        const controlPanel = new ControlPanel(null, this.controlPanelProps);
+        await controlPanel.mount(document.createDocumentFragment());
+
+        this.controllerParams.controlPanelStore = controlPanelStore;
+        this.controllerParams.controlPanel = controlPanel;
+        const query = controlPanelStore.getQuery();
+        if (alterQuery) {
+            alterQuery(query);
+        }
+        this._updateMVCParams(query);
+
+        return controlPanel;
+    },
+    /**
+     * Create the control panel store
+     *
+     * @private
+     */
+    _createControlPanelStore: async function () {
+        return new ControlPanelStore(this.controlPanelStoreConfig);
     },
     /**
      * @private
@@ -373,33 +412,21 @@ var AbstractView = Factory.extend({
      * @private
      * @param {Object} searchQuery
      * @param {Object} searchQuery.context
-     * @param {Object} [searchQuery.context.timeRangeMenuData={}]
-     * @param {Array[]} [searchQuery.context.timeRangeMenuData.comparisonTimeRange=[]]
-     * @param {string} [searchQuery.context.timeRangeMenuData.comparisonTimeRangeDescription='']
-     * @param {string} [searchQuery.context.timeRangeMenuData.timeRangeDescription='']
-     * @param {Array[]} [searchQuery.context.timeRangeMenuData.timeRange=[]]
+     * @param {Object} [searchQuery.timeRanges]
      * @param {Array[]} searchQuery.domain
      * @param {string[]} searchQuery.groupBy
      */
     _updateMVCParams: function (searchQuery) {
-        var timeRangeMenuData = searchQuery.context.timeRangeMenuData || {};
-        var comparisonTimeRange = timeRangeMenuData.comparisonTimeRange || [];
-        var comparisonTimeRangeDescription = timeRangeMenuData.comparisonTimeRangeDescription || '';
-        var timeRangeDescription = timeRangeMenuData.timeRangeDescription || '';
         this.loadParams = _.extend(this.loadParams, {
-            compare: comparisonTimeRange.length > 0,
-            comparisonField: timeRangeMenuData.comparisonField,
-            comparisonTimeRange: comparisonTimeRange,
-            comparisonTimeRangeDescription: comparisonTimeRangeDescription,
             context: searchQuery.context,
             domain: searchQuery.domain,
             groupedBy: searchQuery.groupBy,
-            timeRange: timeRangeMenuData.timeRange || [],
-            timeRangeDescription: timeRangeMenuData.timeRangeDescription || '',
         });
         this.loadParams.orderedBy = searchQuery.orderedBy ? searchQuery.orderedBy : this.loadParams.orderedBy;
-        this.rendererParams.timeRangeDescription = timeRangeDescription;
-        this.rendererParams.comparisonTimeRangeDescription = comparisonTimeRangeDescription;
+        if (searchQuery.timeRanges) {
+            this.loadParams.timeRanges = searchQuery.timeRanges;
+            this.rendererParams.timeRanges = searchQuery.timeRanges;
+        }
     },
 });
 

@@ -5,7 +5,6 @@ var BasicController = require('web.BasicController');
 var core = require('web.core');
 var Dialog = require('web.Dialog');
 var dialogs = require('web.view_dialogs');
-var Sidebar = require('web.Sidebar');
 
 var _t = core._t;
 var qweb = core.qweb;
@@ -88,10 +87,9 @@ var FormController = BasicController.extend({
      *                            for the new record.
      * @returns {Promise}
      */
-    createRecord: function (parentID) {
-        var self = this;
-        var record = this.model.get(this.handle, {raw: true});
-        return this.model.load({
+    createRecord: async function (parentID) {
+        const record = this.model.get(this.handle, { raw: true });
+        const handle = await this.model.load({
             context: record.getContext(),
             fields: record.fields,
             fieldsInfo: record.fieldsInfo,
@@ -100,11 +98,13 @@ var FormController = BasicController.extend({
             res_ids: record.res_ids,
             type: 'record',
             viewType: 'form',
-        }).then(function (handle) {
-            self.handle = handle;
-            self._updateEnv();
-            return self._setMode('edit');
         });
+        this.handle = handle;
+        this._updateActionProps({
+            pager: this._getPagerProps(),
+            sidebar: this._getSidebarProps(),
+        });
+        return this._setMode('edit');
     },
     /**
      * Returns the current res_id, wrapped in a list. This is only used by the
@@ -180,71 +180,58 @@ var FormController = BasicController.extend({
      * @param {Object} options
      * @returns {Promise}
      */
-    renderPager: function ($node, options) {
-        options = _.extend({}, options, {
+    _getPagerProps(options={}) {
+        // Only display the pager if we are not on a new record.
+        if (this.model.isNew(this.handle)) {
+            return {};
+        }
+        return this._super(Object.assign(options, {
             validate: this.canBeDiscarded.bind(this),
-        });
-        return this._super($node, options);
+        }));
     },
     /**
-     * Instantiate and render the sidebar if a sidebar is requested
-     * Sets this.sidebar
-     * @param {jQuery} [$node] a jQuery node where the sidebar should be
-     *   inserted
-     * @return {Promise}
+     * @override
+     * @private
      **/
-    renderSidebar: function ($node) {
-        var self = this;
-        if (this.hasSidebar) {
-            var otherItems = [];
-            const activeField = this.model.getActiveField(this.initialState);
-            const activeFieldValue = this.initialState.data[activeField];
-            if (this.archiveEnabled && activeField) {
-                var classname = "o_sidebar_item_archive" + (activeFieldValue ? "" : " o_hidden")
-                otherItems.push({
-                    label: _t("Archive"),
+    _getSidebarProps: function () {
+        if (!this.hasSidebar) {
+            return null;
+        }
+        const props = this._super(...arguments);
+        const activeField = this.model.getActiveField(this.initialState);
+        const otherActionItems = [];
+        if (this.archiveEnabled && activeField) {
+            if (this.initialState.data[activeField]) {
+                otherActionItems.push({
+                    description: _t("Archive"),
                     callback: function () {
-                        Dialog.confirm(self, _t("Are you sure that you want to archive this record?"), {
-                            confirm_callback: self._toggleArchiveState.bind(self, true),
+                        Dialog.confirm(this, _t("Are you sure that you want to archive this record?"), {
+                            confirm_callback: () => this._toggleArchiveState(true),
                         });
                     },
-                    classname: classname,
                 });
-                classname = "o_sidebar_item_unarchive" + (activeFieldValue ? " o_hidden" : "")
-                otherItems.push({
-                    label: _t("Unarchive"),
-                    callback: this._toggleArchiveState.bind(this, false),
-                    classname: classname,
+            } else {
+                otherActionItems.push({
+                    description: _t("Unarchive"),
+                    callback: () => this._toggleArchiveState(false),
                 });
             }
-            if (this.is_action_enabled('delete')) {
-                otherItems.push({
-                    label: _t('Delete'),
-                    callback: this._onDeleteRecord.bind(this),
-                });
-            }
-            if (this.is_action_enabled('create') && this.is_action_enabled('duplicate')) {
-                otherItems.push({
-                    label: _t('Duplicate'),
-                    callback: this._onDuplicateRecord.bind(this),
-                });
-            }
-            this.sidebar = new Sidebar(this, {
-                editable: this.is_action_enabled('edit'),
-                viewType: 'form',
-                env: {
-                    context: this.model.get(this.handle).getContext(),
-                    activeIds: this.getSelectedIds(),
-                    model: this.modelName,
-                },
-                actions: _.extend(this.toolbarActions, {other: otherItems}),
-            });
-            return this.sidebar.appendTo($node).then(function() {
-                 // Show or hide the sidebar according to the view mode
-                self._updateSidebar();
+        }
+        if (this.activeActions.create && this.activeActions.duplicate) {
+            otherActionItems.push({
+                description: _t("Duplicate"),
+                callback: () => this._onDuplicateRecord(this),
             });
         }
-        return Promise.resolve();
+        if (this.activeActions.delete) {
+            otherActionItems.push({
+                description: _t("Delete"),
+                callback: () => this._onDeleteRecord(this),
+            });
+        }
+        return Object.assign(props, {
+            items: Object.assign(this.toolbarActions, { other: otherActionItems }),
+        });
     },
     /**
      * Show a warning message if the user modified a translated field.  For each
@@ -252,32 +239,32 @@ var FormController = BasicController.extend({
      *
      * @override
      */
-    saveRecord: function () {
-        var self = this;
-        return this._super.apply(this, arguments).then(function (changedFields) {
-            // the title could have been changed
-            self._setTitle(self.getTitle());
-            self._updateEnv();
+    saveRecord: async function () {
+        const changedFields = await this._super(...arguments);
+        // the title could have been changed
+        this._updateActionProps({
+            sidebar: this._getSidebarProps(),
+            title: this.getTitle(),
+        });
 
-            if (_t.database.multi_lang && changedFields.length) {
-                // need to make sure changed fields that should be translated
-                // are displayed with an alert
-                var fields = self.renderer.state.fields;
-                var data = self.renderer.state.data;
-                var alertFields = {};
-                for (var k = 0; k < changedFields.length; k++) {
-                    var field = fields[changedFields[k]];
-                    var fieldData = data[changedFields[k]];
-                    if (field.translate && fieldData) {
-                        alertFields[changedFields[k]] = field;
-                    }
-                }
-                if (!_.isEmpty(alertFields)) {
-                    self.renderer.updateAlertFields(alertFields);
+        if (_t.database.multi_lang && changedFields.length) {
+            // need to make sure changed fields that should be translated
+            // are displayed with an alert
+            var fields = this.renderer.state.fields;
+            var data = this.renderer.state.data;
+            var alertFields = {};
+            for (var k = 0; k < changedFields.length; k++) {
+                var field = fields[changedFields[k]];
+                var fieldData = data[changedFields[k]];
+                if (field.translate && fieldData) {
+                    alertFields[changedFields[k]] = field;
                 }
             }
-            return changedFields;
-        });
+            if (!_.isEmpty(alertFields)) {
+                this.renderer.updateAlertFields(alertFields);
+            }
+        }
+        return changedFields;
     },
     /**
      * Overrides to force the viewType to 'form', so that we ensure that the
@@ -413,15 +400,6 @@ var FormController = BasicController.extend({
         this.renderer.enableButtons();
     },
     /**
-     * Only display the pager if we are not on a new record.
-     *
-     * @override
-     * @private
-     */
-    _isPagerVisible: function () {
-        return !this.model.isNew(this.handle);
-    },
-    /**
      * Hook method, called when record(s) has been deleted.
      *
      * @override
@@ -472,16 +450,15 @@ var FormController = BasicController.extend({
      * @param {Object} state
      * @returns {Promise}
      */
-    _update: function () {
-        var self = this;
-
-        return this._super.apply(this, arguments).then(function() {
-            var title = self.getTitle();
-            self._setTitle(title);
-            self._updateButtons();
-            self._updateSidebar();
-            self.autofocus();
+    _update: async function () {
+        await this._super(...arguments);
+        const title = this.getTitle();
+        this._updateButtons();
+        this._updateActionProps({
+            sidebar: this._getSidebarProps(),
+            title: title,
         });
+        this.autofocus();
     },
     /**
      * @private
@@ -499,37 +476,6 @@ var FormController = BasicController.extend({
                          .toggleClass('o_hidden', !edit_mode);
             this.$buttons.find('.o_form_buttons_view')
                          .toggleClass('o_hidden', edit_mode);
-        }
-    },
-    /**
-     * Show or hide the sidebar according to the actual_mode
-     * @private
-     */
-    _updateSidebar: function () {
-        if (this.sidebar) {
-            this.sidebar.do_toggle(this.mode === 'readonly');
-            // Hide/Show Archive/Unarchive dropdown items
-            // We could have toggled the o_hidden class on the
-            // item theirselves, but the items are redrawed
-            // at each update, based on the initial definition
-            var archive_item = _.find(this.sidebar.items.other, function(item) {
-                return item.classname && item.classname.includes('o_sidebar_item_archive')
-            })
-            var unarchive_item = _.find(this.sidebar.items.other, function(item) {
-                return item.classname && item.classname.includes('o_sidebar_item_unarchive')
-            })
-            const state = this.model.get(this.handle, {raw: true});
-            const activeField = this.model.getActiveField(state);
-            const activeFieldValue = this.renderer.state.data[activeField];
-            if (archive_item && unarchive_item) {
-                if (activeFieldValue) {
-                    archive_item.classname = 'o_sidebar_item_archive';
-                    unarchive_item.classname = 'o_sidebar_item_unarchive o_hidden';
-                } else {
-                    archive_item.classname = 'o_sidebar_item_archive o_hidden';
-                    unarchive_item.classname = 'o_sidebar_item_unarchive';
-                }
-            }
         }
     },
 
@@ -627,14 +573,13 @@ var FormController = BasicController.extend({
      *
      * @private
      */
-    _onDuplicateRecord: function () {
-        var self = this;
-        this.model.duplicateRecord(this.handle)
-            .then(function (handle) {
-                self.handle = handle;
-                self._updateEnv();
-                self._setMode('edit');
-            });
+    _onDuplicateRecord: async function () {
+        const handle = await this.model.duplicateRecord(this.handle);
+        this.handle = handle;
+        this._updateActionProps({
+            sidebar: this._getSidebarProps(),
+        });
+        this._setMode('edit');
     },
     /**
      * Called when the user wants to edit the current record -> @see _setMode

@@ -1,35 +1,69 @@
 odoo.define('web.SearchFacet', function (require) {
 "use strict";
 
-var core = require('web.core');
-var Widget = require('web.Widget');
+const Tooltip = require('web.Tooltip');
 
-var _t = core._t;
+const { Component, hooks } = owl;
+const { useDispatch, useState } = hooks;
 
-var SearchFacet = Widget.extend({
-    template: 'SearchView.SearchFacet',
-    events: _.extend({}, Widget.prototype.events, {
-        'click .o_facet_remove': '_onFacetRemove',
-        'compositionend': '_onCompositionend',
-        'compositionstart': '_onCompositionstart',
-        'keydown': '_onKeydown',
-    }),
-    /**
-     * @override
-     * @param {Object} facet
-     */
-    init: function (parent, facet) {
-        this._super.apply(this, arguments);
+class SearchFacet extends Component {
+    constructor() {
+        super(...arguments);
 
-        var self = this;
-        this.facet = facet;
-        this.facetValues = _.map(this.facet.filters, function (filter) {
-            return self._getFilterDescription(filter);
-        });
-        this.separator = this._getSeparator();
-        this.icon = this._getIcon();
+        this.state = useState({ displayTooltip: false });
         this._isComposing = false;
-    },
+    }
+
+    //--------------------------------------------------------------------------
+    // Getters
+    //--------------------------------------------------------------------------
+
+    get domains() {
+        switch (this.props.group.type) {
+            case 'filter':
+            case 'favorite':
+                // todo avoid duplicates
+                return this.props.filters.map(filter => filter.domain);
+            case 'groupBy':
+                return [this.props.filters[0].fieldName];
+        }
+    }
+
+    /**
+     * @returns {string}
+     */
+    get icon() {
+        switch (this.props.group.type) {
+            case 'filter':
+                return 'fa-filter';
+            case 'groupBy':
+                return 'fa-bars';
+            case 'favorite':
+                return 'fa-star';
+            case 'timeRange':
+                return 'fa-calendar';
+        }
+    }
+
+    /**
+     * @returns {string}
+     */
+    get separator() {
+        switch (this.props.group.type) {
+            case 'field':
+            case 'filter':
+                return this.env._t('or');
+            case 'groupBy':
+                return '>';
+        }
+    }
+
+    /**
+     * @returns {string[]}
+     */
+    get values() {
+        return Object.values(this.props.filters).map(this._getFilterDescription.bind(this));
+    }
 
     //--------------------------------------------------------------------------
     // Private
@@ -41,91 +75,60 @@ var SearchFacet = Widget.extend({
      * @private
      * @returns {string}
      */
-    _getFilterDescription: function (filter) {
+    _getFilterDescription(filter) {
         if (filter.type === 'field') {
-            var values = _.pluck(filter.autoCompleteValues, 'label');
-            return values.join(_t(' or '));
-        }
-        var description = filter.description;
-        if (filter.hasOptions) {
-            if (filter.type === 'filter') {
-                const optionDescriptions = [];
-                const sortFunction = (o1, o2) =>
-                    filter.options.findIndex(o => o.optionId === o1) - filter.options.findIndex(o => o.optionId === o2);
-                const p = _.partition([...filter.currentOptionIds], optionId =>
-                    filter.options.find(o => o.optionId === optionId).groupId === 1);
-                const yearIds = p[1].sort(sortFunction);
-                const otherOptionIds = p[0].sort(sortFunction);
-                // the following case corresponds to years selected only
-                if (otherOptionIds.length === 0) {
-                    yearIds.forEach(yearId => {
-                        const d = filter.basicDomains[yearId];
-                        optionDescriptions.push(d.description);
-                    });
-                } else {
-                    otherOptionIds.forEach(optionId => {
-                        yearIds.forEach(yearId => {
-                            const d = filter.basicDomains[yearId + '__' + optionId];
-                            optionDescriptions.push(d.description);
-                        });
-                    });
-                }
-                description += ': ' + optionDescriptions.join('/');
-            } else {
-                description = description += ': ' +
-                                filter.options.find(o => o.optionId === filter.optionId).description;
-            }
+            return filter.autoCompleteValues.map(f => f.label).join(this.env._t(" or "));
         }
         if (filter.type === 'timeRange') {
-            var timeRangeValue =_.findWhere(filter.timeRangeOptions, {
-                optionId: filter.timeRangeId,
-            });
-            description += ': ' + timeRangeValue.description;
-            if (filter.comparisonTimeRangeId) {
-                var comparisonTimeRangeValue =_.findWhere(filter.comparisonTimeRangeOptions, {
-                    optionId: filter.comparisonTimeRangeId,
-                });
-                description += ' / ' + comparisonTimeRangeValue.description;
+            let description = `${filter.fieldDescription}: ${filter.rangeDescription}`;
+            if (filter.comparisonRangeDescription) {
+                description += ` / ${filter.comparisonRangeDescription}`;
             }
+            return description;
+        }
+
+        let description = filter.description;
+        if (filter.hasOptions) {
+
+            const currentOptions = filter.options.filter(o => o.isActive);
+            const descriptions = [];
+
+            if (filter.type === 'filter') {
+                const unsortedYearIds = [];
+                const unsortedOtherOptionIds = [];
+                currentOptions.forEach(o => {
+                    if (o.groupNumber === 2) {
+                        unsortedYearIds.push(o.optionId);
+                    } else {
+                        unsortedOtherOptionIds.push(o.optionId);
+                    }
+                });
+                const sortOptionIds = (a, b) =>
+                    filter.options.findIndex(({ optionId }) => optionId === a) -
+                    filter.options.findIndex(({ optionId }) => optionId === b);
+
+                const yearIds = unsortedYearIds.sort(sortOptionIds);
+                const otherOptionIds = unsortedOtherOptionIds.sort(sortOptionIds);
+
+                if (otherOptionIds.length) {
+                    otherOptionIds.forEach(optionId => {
+                        yearIds.forEach(yearId => {
+                            descriptions.push(filter.basicDomains[`${yearId}__${optionId}`].description);
+                        });
+                    });
+                } else {
+                    yearIds.forEach(yearId => {
+                        descriptions.push(filter.basicDomains[yearId].description);
+                    });
+                }
+            } else {
+                descriptions.push(...currentOptions.map(o => o.description));
+            }
+            description += `: ${descriptions.join(" / ")}`;
         }
         return description;
-    },
-    /**
-     * Get the correct icon according to facet type.
-     *
-     * @private
-     * @returns {string}
-     */
-    _getIcon: function () {
-        var icon;
-        if (this.facet.type === 'filter') {
-            icon = 'fa-filter';
-        } else if (this.facet.type === 'groupBy') {
-            icon = 'fa-bars';
-        } else if (this.facet.type === 'favorite') {
-            icon = 'fa-star';
-        } else if (this.facet.type === 'timeRange') {
-            icon = 'fa-calendar';
-        }
-        return icon;
-    },
-    /**
-     * Get the correct separator according to facet type.
-     *
-     * @private
-     * @returns {string}
-     */
-    _getSeparator: function () {
-        var separator;
-        if (this.facet.type === 'filter') {
-            separator = _t('or');
-        } else if (this.facet.type === 'field') {
-            separator = _t('or');
-        } else if (this.facet.type === 'groupBy') {
-            separator = '>';
-        }
-        return separator;
-    },
+
+    }
 
     //--------------------------------------------------------------------------
     // Handlers
@@ -133,40 +136,34 @@ var SearchFacet = Widget.extend({
 
     /**
      * @private
-     * @param {CompositionEvent} ev
-     */
-    _onCompositionend: function (ev) {
-        this._isComposing = false;
-    },
-    /**
-     * @private
-     * @param {CompositionEvent} ev
-     */
-    _onCompositionstart: function (ev) {
-        this._isComposing = true;
-    },
-    /**
-     * @private
-     */
-    _onFacetRemove: function () {
-        this.trigger_up('facet_removed', {group: this.facet});
-    },
-    /**
-     * @private
      * @param {KeyboardEvent} ev
      */
-    _onKeydown: function (ev) {
+    _onKeydown(ev) {
         if (this._isComposing) {
             return;
         }
-        switch (ev.which) {
-            case $.ui.keyCode.BACKSPACE:
-                this.trigger_up('facet_removed', {group: this.facet});
+        switch (ev.key) {
+            case 'ArrowLeft':
+                this.trigger('navigation-move', { direction: 'left' });
+                break;
+            case 'ArrowRight':
+                this.trigger('navigation-move', { direction: 'right' });
+                break;
+            case 'Backspace':
+                this.trigger('remove-facet', this.props);
                 break;
         }
-    },
-});
+    }
+}
+
+SearchFacet.components = { Tooltip };
+SearchFacet.props = {
+    // todo specify formats
+    filters: Object,
+    group: Object,
+    tooltipPosition: { type: String, optional: 1 },
+};
+SearchFacet.template = 'SearchFacet';
 
 return SearchFacet;
-
 });

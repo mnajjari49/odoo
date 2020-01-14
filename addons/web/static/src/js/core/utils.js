@@ -205,6 +205,21 @@ var diacriticsMap = {
 
 const patchMap = new WeakMap();
 
+/**
+ * Helper method returning a function which will throw an error when called.
+ * This will be assigned as a `this._super` in case it is not implemented.
+ *
+ * @param {string} accessor
+ * @param {string} methodName
+ */
+function noParentProperty(C, accessor, methodName) {
+    return function () {
+        throw new Error(
+            `Cannot access _super in ${accessor} "${methodName}": no parent definition in component ${C.name}`
+        );
+    };
+}
+
 var utils = {
 
     /**
@@ -244,6 +259,21 @@ var utils = {
      */
     confine: function (val, min, max) {
         return Math.max(min, Math.min(max, val));
+    },
+    /**
+     * Escape a string to be inserted in an HTML element.
+     *
+     * @param {string} string
+     * @returns {string}
+     */
+    escape: function (string) {
+        return string
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/`/g, '&#96;')
+            .replace(/'/g, '&#x27;');
     },
     /**
      * @param {number} value
@@ -544,19 +574,57 @@ var utils = {
         metadata.current.push(patchName);
 
         function applyPatch(proto, patch) {
-            Object.keys(patch).forEach(function (methodName) {
-                const method = patch[methodName];
-                if (typeof method === "function") {
+            Object.keys(patch).forEach(methodName => {
+                const prop = Object.getOwnPropertyDescriptor(patch, methodName);
+                // Property is a getter or a setter
+                if (prop.get || prop.set) {
+                    let currentProto = proto;
+                    let original = Object.getOwnPropertyDescriptor(currentProto, methodName);
+                    // Property might not be on the current component itself so
+                    // we need to climb its prototype chain to find it. The loop
+                    // will automatically stop when currentProto arrives at `Object`
+                    // since it has no upper prototype.
+                    while (!original && (currentProto = Object.getPrototypeOf(currentProto))) {
+                        original = Object.getOwnPropertyDescriptor(currentProto, methodName);
+                    }
+                    if (!(methodName in metadata.origMethods)) {
+                        metadata.origMethods[methodName] = original;
+                    }
+                    const definedProperty = {};
+                    if (prop.get) {
+                        definedProperty.get = function () {
+                            const previousSuper = this._super;
+                            this._super = original ?
+                                original.get :
+                                noParentProperty(C, 'getter', methodName);
+                            const getter = prop.get.call(this);
+                            this._super = previousSuper;
+                            return getter;
+                        };
+                    }
+                    if (prop.set) {
+                        definedProperty.set = function (newValue) {
+                            const previousSuper = this._super;
+                            this._super = original ?
+                                original.set :
+                                noParentProperty(C, 'setter', methodName);
+                            prop.set.call(this, newValue);
+                            this._super = previousSuper;
+                        };
+                    }
+                    Object.defineProperty(proto, methodName, definedProperty);
+                // Property is a method
+                } else if (prop.value && typeof prop.value === "function") {
                     const original = proto[methodName];
                     if (!(methodName in metadata.origMethods)) {
                         metadata.origMethods[methodName] = original;
                     }
                     proto[methodName] = function (...args) {
                         const previousSuper = this._super;
-                        this._super = original;
-                        const res = method.call(this, ...args);
+                        this._super = original || noParentProperty(C, 'method', methodName);
+                        const result = prop.value.call(this, ...args);
                         this._super = previousSuper;
-                        return res;
+                        return result;
                     };
                 }
             });
@@ -627,6 +695,28 @@ var utils = {
             'max-age=' + ttl,
             'expires=' + new Date(new Date().getTime() + ttl*1000).toGMTString()
         ].join(';');
+    },
+    /**
+     * Returns a string formatted using given values.
+     * If the value is an object, its keys will replace `%(key)s` expressions.
+     * If the values are a set of strings, they will replace `%s` expressions.
+     * If no value is given, the string will not be formatted.
+     *
+     * @param {string} string
+     * @param  {(Object|...string)} values
+     */
+    sprintf: function (string, ...values) {
+        if (values.length === 1 && typeof values[0] === 'object') {
+            const valuesDict = values[0];
+            for (const value in valuesDict) {
+                string = string.replace(`%(${value})s`, valuesDict[value]);
+            }
+        } else {
+            for (const value of values) {
+                string = string.replace(/%s/, value);
+            }
+        }
+        return string;
     },
     /**
      * Sort an array in place, keeping the initial order for identical values.
@@ -731,8 +821,13 @@ var utils = {
         patchMap.delete(proto);
 
         // reset to original
-        for (let k in metadata.origMethods) {
-            proto[k] = metadata.origMethods[k];
+        for (const k in metadata.origMethods) {
+            const prop = Object.getOwnPropertyDescriptor(metadata.origMethods, k);
+            if (prop.get || prop.set) {
+                Object.defineProperty(proto, k, metadata.origMethods[k]);
+            } else {
+                proto[k] = metadata.origMethods[k];
+            }
         }
 
         // apply other patches

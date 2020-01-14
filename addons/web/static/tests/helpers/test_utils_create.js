@@ -13,7 +13,8 @@ odoo.define('web.test_utils_create', function (require) {
     const ActionManager = require('web.ActionManager');
     const concurrency = require('web.concurrency');
     const config = require('web.config');
-    const ControlPanelView = require('web.ControlPanelView');
+    const ControlPanel = require('web.ControlPanel');
+    const ControlPanelStore = require('web.ControlPanelStore');
     const DebugManager = require('web.DebugManager.Backend');
     const dom = require('web.dom');
     const testUtilsMock = require('web.test_utils_mock');
@@ -108,7 +109,7 @@ odoo.define('web.test_utils_create', function (require) {
     /**
      * Create a controlPanel from various parameters.
      *
-     * It returns an instance of ControlPanelController
+     * It returns an instance of the parent of the ControlPanel
      *
      * @param {Object} [params={}]
      * @param {Object} [params.action={}]
@@ -137,21 +138,8 @@ odoo.define('web.test_utils_create', function (require) {
      *
      * @returns {ControlPanel} the instance of the control panel
      */
-    async function createControlPanel(params = {}) {
+    async function setUpControlPanelEnvironment(params = {}) {
         const target = prepareTarget(params.debug);
-        // reproduce the DOM environment of a view control panel
-        const webClient = Object.assign(document.createElement('div'), {
-            className: 'o_web_client',
-        });
-        const actionManager = Object.assign(document.createElement('div'), {
-            className: 'o_action_manager',
-        });
-        const action = Object.assign(document.createElement('div'), {
-            className: 'o_action',
-        });
-        target.prepend(webClient);
-        webClient.append(actionManager);
-        actionManager.append(action);
 
         const widget = new Widget();
         // add mock environment: mock server, session, fieldviewget, ...
@@ -161,40 +149,56 @@ odoo.define('web.test_utils_create', function (require) {
                 params.viewInfo = testUtilsMock.fieldsViewGet(mockServer, params);
             } catch (err) {
                 // if an error occurs we keep params.viewInfo undefined.
-                // It will be set to {arch: '<controlpanel/>', fields: {}} in
-                // ControlPanelView init function.
+                // It will be set to { arch: '<ControlPanel/>', fields: {} } in
+                // ControlPanel init function.
             }
         }
 
-        const viewOptions = Object.assign({
-            context: params.context,
+        const controlPanelStoreProps = {
+            actionDomain: "[]",
+            actionContext: params.context || {},
+            env: ControlPanel.env,
             modelName: params.model,
-            searchMenuTypes: params.searchMenuTypes,
             viewInfo: params.viewInfo,
-        }, params.viewOptions);
-        const controlPanelView = new ControlPanelView(viewOptions);
-        const controlPanel = await controlPanelView.getController(widget);
-        // override the controlPanel's 'destroy' so that it calls 'destroy' on
-        // the widget instead, as the widget is the parent of the controlPanel
-        // and the mockServer.
-        controlPanel.__destroy = controlPanel.destroy;
-        controlPanel.destroy = function () {
-            // remove the override to properly destroy the controlPanel and its
-            // children when it will be called the second time (by its parent)
-            delete controlPanel.destroy;
-            widget.destroy();
-            webClient.remove();
         };
+        const controlPanelStore = new ControlPanelStore(controlPanelStoreProps);
 
-        // render the controlPanel in a fragment as it must be able to render
-        // correctly without being in the DOM
-        const fragment = document.createDocumentFragment();
-        await controlPanel.appendTo(fragment);
-        dom.prepend(action, fragment, {
-            callbacks: [{ widget: controlPanel }],
-            in_DOM: true,
-        });
-        return controlPanel;
+        class WebClient extends owl.Component {
+            constructor() {
+                super(...arguments);
+                this.controlPanelProps = Object.assign({
+                    controlPanelStore: controlPanelStore,
+                    fields: params.viewInfo.fields,
+                    searchMenuTypes: params.searchMenuTypes,
+                    viewInfo: params.viewInfo,
+                }, params.viewOptions);
+
+                this.controlPanel = owl.hooks.useRef('control-panel');
+
+                for (const intercept in params.intercepts || {}) {
+                    controlPanelStore.on(intercept, this, params.intercepts[intercept]);
+                }
+            }
+        }
+
+        // reproduce the DOM environment of a view control panel
+        WebClient.components = { ControlPanel };
+        WebClient.template = owl.tags.xml`
+            <div class="o_web_client">
+                <div class="o_action_manger">
+                    <div class="o_action_manger">
+                        <ControlPanel
+                            t-ref="control-panel"
+                            t-props="controlPanelProps"
+                        />
+                    </div>
+                </div>
+            </div>`;
+
+        const webClient = new WebClient();
+        await webClient.mount(target, { position: 'first-child' });
+
+        return webClient;
     }
 
     /**
@@ -409,7 +413,7 @@ odoo.define('web.test_utils_create', function (require) {
     return {
         createActionManager,
         createCalendarView,
-        createControlPanel,
+        setUpControlPanelEnvironment,
         createDebugManager,
         createModel,
         createParent,

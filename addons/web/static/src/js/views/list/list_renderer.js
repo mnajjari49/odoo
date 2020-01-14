@@ -568,41 +568,6 @@ var ListRenderer = BasicRenderer.extend({
         return $buttons;
     },
     /**
-     * Renders the pager for a given group
-     *
-     * @private
-     * @param {Object} group
-     * @returns {jQueryElement} the pager's $el
-     */
-    _renderGroupPager: function (group) {
-        var pager = new Pager(this, group.count, group.offset + 1, group.limit);
-        pager.on('pager_changed', this, function (newState) {
-            var self = this;
-            pager.disable();
-            this.trigger_up('load', {
-                id: group.id,
-                limit: newState.limit,
-                offset: newState.current_min - 1,
-                on_success: function (reloadedGroup) {
-                    _.extend(group, reloadedGroup);
-                    self._renderView();
-                },
-                on_fail: pager.enable.bind(pager),
-            });
-        });
-        // register the pager so that it can be destroyed on next rendering
-        this.pagers.push(pager);
-
-        var pagerProm = pager._widgetRenderAndInsert(function () {}); // start the pager
-        this.defs.push(pagerProm);
-        var $el = $('<div>');
-        pagerProm.then(function () {
-            $el.replaceWith(pager.$el);
-        });
-
-        return $el;
-    },
-    /**
      * Render the row that represent a group
      *
      * @private
@@ -667,9 +632,8 @@ var ListRenderer = BasicRenderer.extend({
         $th.attr('colspan', colspanBeforeAggregate);
 
         if (group.isOpen && !group.groupedBy.length && (group.count > group.data.length)) {
-            var $pager = this._renderGroupPager(group);
-            var $lastCell = cells[cells.length - 1];
-            $lastCell.append($pager);
+            const lastCell = cells[cells.length - 1][0];
+            this._renderGroupPager(group, lastCell);
         }
         if (group.isOpen && this.groupbys[groupBy]) {
             var $buttons = this._renderGroupButtons(group, this.groupbys[groupBy]);
@@ -707,6 +671,29 @@ var ListRenderer = BasicRenderer.extend({
             });
             return [$('<tbody>').append($records)];
         }
+    },
+    /**
+     * Renders the pager for a given group
+     *
+     * @private
+     * @param {Object} group
+     * @returns {Pager}
+     */
+    _renderGroupPager: function (group, target) {
+        const pager = new Pager(null, {
+            currentMinimum: group.offset + 1,
+            limit: group.limit,
+            size: group.count,
+        });
+
+        // register the pager so that it can be destroyed on next rendering
+        this.pagers.push(pager);
+
+        const mountingPromise = pager.mount(target);
+        target.addEventListener('pager_changed', ev => this._onPagerChanged(ev, pager, group));
+        this.defs.push(mountingPromise);
+
+        return pager;
     },
     /**
      * Render all groups in the view.  We assume that the view is in grouped
@@ -934,7 +921,7 @@ var ListRenderer = BasicRenderer.extend({
     _renderView: function () {
         var self = this;
 
-        var oldPagers = this.pagers;
+        const oldPagers = this.pagers;
         this.pagers = [];
 
         // display the no content helper if there is no data to display
@@ -942,7 +929,7 @@ var ListRenderer = BasicRenderer.extend({
         this.$el.toggleClass('o_list_view', !displayNoContentHelper);
         if (displayNoContentHelper) {
             // destroy the previously instantiated pagers, if any
-            _.invoke(oldPagers, 'destroy');
+            oldPagers.forEach(pager => pager.destroy());
 
             this.$el.removeClass('table-responsive');
             this.$el.html(this._renderNoContentHelper());
@@ -970,9 +957,10 @@ var ListRenderer = BasicRenderer.extend({
         }
         delete this.defs;
 
-        var prom = Promise.all(defs).then(function () {
+        var prom = Promise.all(defs).then(() => {
             // destroy the previously instantiated pagers, if any
-            _.invoke(oldPagers, 'destroy');
+            oldPagers.forEach(pager => pager.destroy());
+            this.pagers.forEach(pager => pager.__callMounted());
 
             self.$el.html($('<div>', {
                 class: 'table-responsive',
@@ -1206,6 +1194,26 @@ var ListRenderer = BasicRenderer.extend({
      */
     _onMouseDown: function () {
         $('.o_keyboard_navigation').removeClass('o_keyboard_navigation');
+    },
+    /**
+     * @private
+     * @param {OwlEvent} ev
+     * @param {Pager} pager
+     * @param {Object} group
+     */
+    _onPagerChanged: async function (ev, pager, group) {
+        ev.stopPropagation();
+        await pager.updateProps({ disabled: true });
+        this.trigger_up('load', {
+            id: group.id,
+            limit: ev.detail.limit,
+            offset: ev.detail.currentMinimum - 1,
+            on_success: reloadedGroup => {
+                Object.assign(group, reloadedGroup);
+                this._renderView();
+            },
+            on_fail: () => pager.updateProps({ disabled: false }),
+        });
     },
     /**
      * @private

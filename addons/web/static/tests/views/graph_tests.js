@@ -2,7 +2,7 @@ odoo.define('web.graph_view_tests', function (require) {
 "use strict";
 
 var concurrency = require('web.concurrency');
-var controlPanelViewParameters = require('web.controlPanelViewParameters');
+var controlPanelParameters = require('web.controlPanelParameters');
 var GraphView = require('web.GraphView');
 var testUtils = require('web.test_utils');
 
@@ -10,9 +10,9 @@ var createActionManager = testUtils.createActionManager;
 var createView = testUtils.createView;
 var patchDate = testUtils.mock.patchDate;
 
-var INTERVAL_OPTIONS = controlPanelViewParameters.INTERVAL_OPTIONS.map(o => o.optionId);
-var TIME_RANGE_OPTIONS = controlPanelViewParameters.TIME_RANGE_OPTIONS.map(o => o.optionId);
-var COMPARISON_TIME_RANGE_OPTIONS = controlPanelViewParameters.COMPARISON_TIME_RANGE_OPTIONS.map(o => o.optionId);
+var INTERVAL_OPTIONS = controlPanelParameters.INTERVAL_OPTIONS.map(o => o.optionId);
+var TIME_RANGE_OPTIONS = Object.values(controlPanelParameters.TIME_RANGE_OPTIONS).map(o => o.optionId);
+var COMPARISON_TIME_RANGE_OPTIONS = Object.values(controlPanelParameters.COMPARISON_TIME_RANGE_OPTIONS).map(o => o.optionId);
 
 var f = (a, b) => [].concat(...a.map(d => b.map(e => [].concat(d, e))));
 var cartesian = (a, b, ...c) => (b ? cartesian(f(a, b), ...c) : a);

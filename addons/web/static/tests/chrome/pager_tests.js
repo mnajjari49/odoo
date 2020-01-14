@@ -16,13 +16,13 @@ QUnit.module('chrome', {}, function () {
         pager.appendTo($('#qunit-fixture'));
         await testUtils.nextTick();
 
-        assert.strictEqual(pager.state.current_min, 1,
-            "current_min should be set to 1");
+        assert.strictEqual(pager.state.currentMinimum, 1,
+            "currentMinimum should be set to 1");
 
         // click on next
         await testUtils.dom.click(pager.$('.o_pager_next'));
-        assert.strictEqual(pager.state.current_min, 5,
-            "current_min should now be 5");
+        assert.strictEqual(pager.state.currentMinimum, 5,
+            "currentMinimum should now be 5");
 
         pager.destroy();
     });
@@ -46,8 +46,8 @@ QUnit.module('chrome', {}, function () {
         await testUtils.fields.triggerKeydown(pager.$('input'), 'enter');
         assert.strictEqual(pager.state.limit, 6,
             "the limit should have been updated");
-        assert.strictEqual(pager.state.current_min, 1,
-            "the current_min should not have changed");
+        assert.strictEqual(pager.state.currentMinimum, 1,
+            "the currentMinimum should not have changed");
         assert.strictEqual(pager.$('.o_pager_value').text(), '1-6',
             "the input should have correct value");
 
@@ -64,11 +64,11 @@ QUnit.module('chrome', {}, function () {
 
         // try to go to the next or previous pages
         await testUtils.dom.click(pager.$('.o_pager_next'));
-        assert.strictEqual(pager.state.current_min, 1,
-            "current_min should still be 1");
+        assert.strictEqual(pager.state.currentMinimum, 1,
+            "currentMinimum should still be 1");
         await testUtils.dom.click(pager.$('.o_pager_previous'));
-        assert.strictEqual(pager.state.current_min, 1,
-            "current_min should still be 1");
+        assert.strictEqual(pager.state.currentMinimum, 1,
+            "currentMinimum should still be 1");
 
         // try to change the limit
         await testUtils.dom.click(pager.$('.o_pager_value'));

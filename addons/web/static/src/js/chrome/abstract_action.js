@@ -9,12 +9,13 @@ odoo.define('web.AbstractAction', function (require) {
  */
 
 var ActionMixin = require('web.ActionMixin');
-var ControlPanelView = require('web.ControlPanelView');
+var ControlPanel = require('web.ControlPanel');
+var ControlPanelStore = require('web.ControlPanelStore');
 var Widget = require('web.Widget');
 
 var AbstractAction = Widget.extend(ActionMixin, {
     config: {
-        ControlPanelView: ControlPanelView,
+        ControlPanel: ControlPanel,
     },
 
     /**
@@ -73,11 +74,21 @@ var AbstractAction = Widget.extend(ActionMixin, {
     init: function (parent, action, options) {
         this._super(parent);
         this._title = action.display_name || action.name;
+
+        this.controlPanelStoreConfig = {
+            actionId: action.id,
+            actionContext: action.context,
+            env: owl.Component.env,
+            withSearchBar: this.withSearchBar,
+        }
+
         this.controlPanelParams = {
+            // TODO we should not pass action
+            action: action,
+
             actionId: action.id,
             context: action.context,
-            breadcrumbs: options && options.breadcrumbs || [],
-            title: this.getTitle(),
+            breadcrumbs: options && options.breadcrumbs,
             viewId: action.search_view_id && action.search_view_id[0],
             withSearchBar: this.withSearchBar,
             searchMenuTypes: this.searchMenuTypes,
@@ -89,39 +100,51 @@ var AbstractAction = Widget.extend(ActionMixin, {
      *
      * @override
      */
-    willStart: function () {
-        var self = this;
-        var proms = [this._super.apply(this, arguments)];
+    willStart: async function () {
+        const proms = [this._super(...arguments)];
         if (this.hasControlPanel) {
-            var params = this.controlPanelParams;
+            const params = this.controlPanelParams;
             if (this.loadControlPanel) {
-                proms.push(this
-                    .loadFieldView(params.modelName, params.context || {}, params.viewId, 'search')
-                    .then(function (fieldsView) {
+                const { context, modelName, viewId, searchMenuTypes } = params;
+                const options = { load_filters: searchMenuTypes.includes('favorite') };
+                const loadFieldViewPromise = this.loadFieldView(modelName, context || {}, viewId, 'search', options)
+                    .then(fieldsView =>
                         params.viewInfo = {
                             arch: fieldsView.arch,
                             fields: fieldsView.fields,
-                        };
-                    }));
+                            favoriteFilters: fieldsView.favoriteFilters || [],
+                        });
+                proms.push(loadFieldViewPromise);
             }
-            return Promise.all(proms).then(function () {
-                var controlPanelView = new self.config.ControlPanelView(params);
-                return controlPanelView.getController(self).then(function (controlPanel) {
-                    self._controlPanel = controlPanel;
-                    return self._controlPanel.appendTo(document.createDocumentFragment());
-                });
-            });
+            await Promise.all(proms);
+            this.controlPanelStoreConfig.viewInfo = params.viewInfo;
+            this._controlPanelStore = new ControlPanelStore(this.controlPanelStoreConfig);
+            this.dispatch = owl.hooks.useDispatch(this._controlPanelStore);
+            params.controlPanelStore = this._controlPanelStore;
+            this._controlPanel = new this.config.ControlPanel(null, params);
+            await this._controlPanel.mount(document.createDocumentFragment());
         }
         return Promise.all(proms);
     },
     /**
      * @override
      */
-    start: function () {
+    start: async function () {
+        await this._super(...arguments);
         if (this._controlPanel) {
-            this._controlPanel.$el.prependTo(this.$el);
+            await this._controlPanel.mount(this.el, { position: 'first-child' });
         }
-        return this._super.apply(this, arguments);
+        if (this._controlPanelStore) {
+            this._controlPanelStore.on('get_controller_query_params', this, this._onGetOwnedQueryParams);
+        }
+    },
+    on_attach_callback: function () {
+        if (this._controlPanel) {
+            this._controlPanel.mount(this.el, { position: 'first-child' });
+        }
+        if (this._controlPanelStore) {
+            this._controlPanelStore.on('get_controller_query_params', this, this._onGetOwnedQueryParams);
+        }
     },
 });
 

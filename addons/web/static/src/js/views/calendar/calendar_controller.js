@@ -11,10 +11,12 @@ odoo.define('web.CalendarController', function (require) {
 
 var AbstractController = require('web.AbstractController');
 var config = require('web.config');
+const ControlPanel = require('web.ControlPanel');
 var core = require('web.core');
 var Dialog = require('web.Dialog');
 var dialogs = require('web.view_dialogs');
 var QuickCreate = require('web.CalendarQuickCreate');
+const utils = require('web.utils');
 
 var _t = core._t;
 var QWeb = core.qweb;
@@ -22,6 +24,12 @@ var QWeb = core.qweb;
 function dateToServer (date) {
     return date.clone().utc().locale('en').format('YYYY-MM-DD HH:mm:ss');
 }
+
+utils.patch(ControlPanel, 'web_calendar.ControlPanel', {
+    get date() {
+        return moment().date();
+    },
+});
 
 var CalendarController = AbstractController.extend({
     custom_events: _.extend({}, AbstractController.prototype.custom_events, {
@@ -36,6 +44,9 @@ var CalendarController = AbstractController.extend({
         quickCreate: '_onQuickCreate',
         updateRecord: '_onUpdateRecord',
         viewUpdated: '_onViewUpdated',
+    }),
+    events: _.extend({}, AbstractController.prototype.events, {
+        today_button_click: '_onTodayButtonClicked'
     }),
     /**
      * @override
@@ -60,29 +71,11 @@ var CalendarController = AbstractController.extend({
         // The quickCreating attribute ensures that we don't do several create
         this.quickCreating = false;
     },
-    /**
-     * Overrides to unbind handler on the control panel mobile 'Today' button.
-     *
-     * @override
-     */
-    destroy: function () {
-        this._super.apply(this, arguments);
-        if (this.$todayButton) {
-            this.$todayButton.off();
-        }
-    },
 
     //--------------------------------------------------------------------------
     // Public
     //--------------------------------------------------------------------------
 
-    /**
-     * @override
-     * @returns {string}
-     */
-    getTitle: function () {
-        return this._title;
-    },
     /**
      * Render the buttons according to the CalendarView.buttons template and
      * add listeners on it. Set this.$buttons with the produced jQuery element
@@ -118,25 +111,6 @@ var CalendarController = AbstractController.extend({
             this.$buttons.appendTo($node);
         } else {
             this.$('.o_calendar_buttons').replaceWith(this.$buttons);
-        }
-    },
-    /**
-     * In mobile, we want to display a special 'Today' button on the bottom
-     * right corner of the control panel. This is the pager area, and as there
-     * is no pager in Calendar views, we fool the system by defining a fake
-     * pager (which is actually our button) such that it will be inserted in the
-     * desired place.
-     *
-     * @todo get rid of this hack once the ControlPanel layout will be reworked
-     *
-     * @param {jQueryElement} $node the button should be appended to this
-     *   element to be displayed in the bottom right corner of the control panel
-     */
-    renderPager: function ($node) {
-        if (config.device.isMobile) {
-            this.$todayButton = $(QWeb.render('CalendarView.TodayButtonMobile'));
-            this.$todayButton.on('click', this._move.bind(this, 'today'));
-            $node.append(this.$todayButton);
         }
     },
 
@@ -424,7 +398,14 @@ var CalendarController = AbstractController.extend({
                 event.data.data.on_save = self.quick.destroy.bind(self.quick);
                 self._onOpenCreate(event.data);
                 self.quickCreating = false;
-            })
+            });
+    },
+    /**
+     * In mobile, we display a special 'Today' button on the bottom right corner
+     * of the control panel. Its click events are handled here.
+     */
+    _onTodayButtonClicked: function () {
+        this._move('today');
     },
     /**
      * @private
@@ -446,7 +427,9 @@ var CalendarController = AbstractController.extend({
             this.$buttons.find('.active').removeClass('active');
             this.$buttons.find('.o_calendar_button_' + this.mode).addClass('active');
         }
-        this._setTitle(this.displayName + ' (' + event.data.title + ')');
+        this._updateActionProps({
+            title: `${this.displayName} (${event.data.title})`,
+        });
     },
 });
 

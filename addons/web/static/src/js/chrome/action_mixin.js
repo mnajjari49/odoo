@@ -35,15 +35,6 @@ var ActionMixin = {
     contentTemplate: null,
 
     /**
-     * Events built by and managed by Odoo Framework
-     *
-     * It is expected that any Widget Class implementing this mixin
-     * will also implement the ParentedMixin which actually manages those
-     */
-    custom_events: {
-        get_controller_query_params: '_onGetControllerQueryParams',
-    },
-    /**
      * If an action wants to use a control panel, it will be created and
      * registered in this _controlPanel key (the widget).  The way this control
      * panel is created is up to the implementation (so, view controllers or
@@ -58,7 +49,7 @@ var ActionMixin = {
      * String containing the title of the client action (which may be needed to
      * display in the breadcrumbs zone of the control panel).
      *
-     * @see _setTitle
+     * @see _updateActionProps
      */
     _title: '',
 
@@ -75,11 +66,11 @@ var ActionMixin = {
     /**
      * Called each time the action is attached into the DOM.
      */
-    on_attach_callback: function () {},
+    on_attach_callback: function () { },
     /**
      * Called each time the action is detached from the DOM.
      */
-    on_detach_callback: function () {},
+    on_detach_callback: function () { },
     /**
      * Called by the action manager when action is restored (typically, when the
      * user clicks on the action in the breadcrumb)
@@ -168,23 +159,6 @@ var ActionMixin = {
      */
     renderButtons: function ($node) {
     },
-    /**
-     * This is the main method to customize the controlpanel content.
-     *
-     * @see updateContents method in ControlPanelRenderer for more info
-     *
-     * @param {Object} [status]
-     * @param {string} [status.title]
-     * @param {Object} [options]
-     * @param {boolean} [options.clear]
-     */
-    updateControlPanel: function (status, options) {
-        if (this._controlPanel) {
-            status = status || {};
-            status.title = status.title || this.getTitle();
-            this._controlPanel.updateContents(status, options || {});
-        }
-    },
     // TODO: add hooks methods:
     // - onRestoreHook (on_reverse_breadcrumbs)
 
@@ -193,27 +167,29 @@ var ActionMixin = {
     //--------------------------------------------------------------------------
 
     /**
-     * @private
-     * @param {string} title
-     */
-    _setTitle: function (title) {
-        this._title = title;
-        this.updateControlPanel({title: this._title}, {clear: false});
-    },
-    /**
      * FIXME: this logic should be rethought
      *
      * Handles a context request: provides to the caller the state of the
      * current controller.
      *
      * @private
-     * @param {OdooEvent} ev
-     * @param {function} ev.data.callback used to send the requested state
+     * @param {function} callback used to send the requested state
      */
-    _onGetControllerQueryParams: function (ev) {
-        ev.stopPropagation();
-        var state = this.getOwnedQueryParams();
-        ev.data.callback(state || {});
+    _onGetOwnedQueryParams: function (callback) {
+        const state = this.getOwnedQueryParams();
+        callback(state || {});
+    },
+    /**
+     * @private
+     * @param {Object} newProps
+     */
+    _updateActionProps: function (newProps) {
+        if ('title' in newProps) {
+            this._title = newProps.title;
+        }
+        if (this.dispatch) {
+            return this.dispatch('updateActionProps', newProps);
+        }
     },
 };
 

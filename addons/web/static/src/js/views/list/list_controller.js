@@ -12,7 +12,6 @@ var BasicController = require('web.BasicController');
 var DataExport = require('web.DataExport');
 var Dialog = require('web.Dialog');
 var ListConfirmDialog = require('web.ListConfirmDialog');
-var Sidebar = require('web.Sidebar');
 
 var _t = core._t;
 var qweb = core.qweb;
@@ -79,7 +78,7 @@ var ListController = BasicController.extend({
     getActiveDomain: function () {
         var self = this;
         if (this.$('thead .o_list_record_selector input').prop('checked')) {
-            var searchQuery = this._controlPanel ? this._controlPanel.getSearchQuery() : {};
+            var searchQuery = this._controlPanel ? this._controlPanel.searchQuery : {};
             var record = self.model.get(self.handle, {raw: true});
             return record.getDomain().concat(searchQuery.domain || []);
         }
@@ -144,55 +143,6 @@ var ListController = BasicController.extend({
             this.$buttons.on('click', '.o_list_button_discard', this._onDiscard.bind(this));
             this.$buttons.appendTo($node);
         }
-    },
-    /**
-     * Render the sidebar (the 'action' menu in the control panel, right of the
-     * main buttons)
-     *
-     * @param {jQuery Node} $node
-     * @returns {Promise}
-     */
-    renderSidebar: function ($node) {
-        var self = this;
-        if (this.hasSidebar) {
-            var other = [{
-                label: _t("Export"),
-                callback: this._onExportData.bind(this)
-            }];
-            if (this.archiveEnabled) {
-                other.push({
-                    label: _t("Archive"),
-                    callback: function () {
-                        Dialog.confirm(self, _t("Are you sure that you want to archive all the selected records?"), {
-                            confirm_callback: self._toggleArchiveState.bind(self, true),
-                        });
-                    }
-                });
-                other.push({
-                    label: _t("Unarchive"),
-                    callback: this._toggleArchiveState.bind(this, false)
-                });
-            }
-            if (this.is_action_enabled('delete')) {
-                other.push({
-                    label: _t('Delete'),
-                    callback: this._onDeleteSelectedRecords.bind(this)
-                });
-            }
-            this.sidebar = new Sidebar(this, {
-                editable: this.is_action_enabled('edit'),
-                env: {
-                    context: this.model.get(this.handle, {raw: true}).getContext(),
-                    activeIds: this.getSelectedIds(),
-                    model: this.modelName,
-                },
-                actions: _.extend(this.toolbarActions, {other: other}),
-            });
-            return this.sidebar.appendTo($node).then(function() {
-                self._toggleSidebar();
-            });
-        }
-        return Promise.resolve();
     },
     /**
      * Overrides to update the list of selected records
@@ -357,23 +307,56 @@ var ListController = BasicController.extend({
             this.getActiveDomain(), this.getSelectedIds());
     },
     /**
-     * @override
-     * @private
-     */
-    _getSidebarEnv: function () {
-        var env = this._super.apply(this, arguments);
-        var record = this.model.get(this.handle);
-        return _.extend(env, {domain: record.getDomain()});
-    },
-    /**
      * Only display the pager when there are data to display.
      *
      * @override
      * @private
      */
-    _isPagerVisible: function () {
-        var state = this.model.get(this.handle, {raw: true});
-        return !!state.count;
+    _getPagerProps: function () {
+        const state = this.model.get(this.handle, { raw: true });
+        if (!state.count) {
+            return {};
+        }
+        return this._super(...arguments);
+    },
+    /**
+     * @override
+     * @private
+     */
+    _getSidebarProps: function () {
+        if (!this.hasSidebar || !this.selectedRecords.length) {
+            return null;
+        }
+        const props = this._super(...arguments);
+        const record = this.model.get(this.handle);
+        const otherActionItems = [{
+            description: _t("Export"),
+            callback: () => this._onExportData(),
+        }];
+        if (this.archiveEnabled) {
+            otherActionItems.push({
+                description: _t("Archive"),
+                callback: () => {
+                    Dialog.confirm(this, _t("Are you sure that you want to archive all the selected records?"), {
+                        confirm_callback: () => this._toggleArchiveState(true),
+                    });
+                }
+            }, {
+                description: _t("Unarchive"),
+                callback: () => this._toggleArchiveState(false)
+            });
+        }
+        if (this.activeActions.delete) {
+            otherActionItems.push({
+                description: _t("Delete"),
+                callback: () => this._onDeleteSelectedRecords()
+            });
+        }
+        return Object.assign(props, {
+            items: Object.assign({}, this.toolbarActions, { other: otherActionItems }),
+            context: this.model.get(this.handle, { raw: true }).getContext(),
+            domain: record.getDomain(),
+        });
     },
     /**
      * Saves multiple records at once. This method is called by the _onFieldChanged method
@@ -507,23 +490,17 @@ var ListController = BasicController.extend({
         }
     },
     /**
-     * Display the sidebar (the 'action' menu in the control panel) if we have
-     * some selected records.
-     */
-    _toggleSidebar: function () {
-        if (this.sidebar) {
-            this.sidebar.do_toggle(this.selectedRecords.length > 0);
-        }
-    },
-    /**
      * @override
      * @returns {Promise}
      */
-    _update: function () {
-        return this._super.apply(this, arguments)
-            .then(this._toggleSidebar.bind(this))
-            .then(this._toggleCreateButton.bind(this))
-            .then(this._updateButtons.bind(this, 'readonly'));
+    _update: async function () {
+        await this._super(...arguments);
+        this._updateActionProps({
+            pager: this._getPagerProps(),
+            sidebar: this._getSidebarProps(),
+        });
+        this._toggleCreateButton();
+        this._updateButtons('readonly');
     },
     /**
      * This helper simply makes sure that the control panel buttons matches the
@@ -742,7 +719,9 @@ var ListController = BasicController.extend({
      */
     _onSelectionChanged: function (ev) {
         this.selectedRecords = ev.data.selection;
-        this._toggleSidebar();
+        this._updateActionProps({
+            sidebar: this._getSidebarProps(),
+        });
     },
     /**
      * If the record is set as dirty while in multiple record edition,
@@ -779,7 +758,7 @@ var ListController = BasicController.extend({
         ev.stopPropagation();
         var data = this.model.get(this.handle);
         if (!data.groupedBy) {
-            this.pager.updateState({current_min: 1});
+            this._updatePagerProps({ currentMinimum: 1 });
         }
         var self = this;
         this.model.setSort(data.id, ev.data.name).then(function () {

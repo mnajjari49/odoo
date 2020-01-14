@@ -123,12 +123,17 @@
     }
 }
 
-// Pager input (to edit pager values)
-.o_pager_value > input {
+.o_pager_value {
     display: inline-block;
-    width: 60px;
-    text-align: right;
+}
 
+span.o_pager_value {
+    border-bottom: 1px solid transparent;
+}
+
+input.o_pager_value {
+    text-align: right;
+    width: 60px;
     &:focus {
         outline: none;
     }

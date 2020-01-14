@@ -381,7 +381,7 @@ var DomainTree = DomainNode.extend({
         }).bind(this))).then((function () {
             _.each(this.children, function (child) {
                 child.$el.appendTo($to); // Forced to do it this way so that the
-                                         // children are not misordered
+                                            // children are not misordered
             });
         }).bind(this));
     },
@@ -490,13 +490,15 @@ var DomainSelector = DomainTree.extend({
      * @param {string} domain
      * @returns {Promise} resolved when the rerendering is finished
      */
-    setDomain: function (domain) {
+    setDomain: function (domain, force = false) {
         if (domain === Domain.prototype.arrayToString(this.getDomain())) {
             return Promise.resolve();
         }
         var parsedDomain = this._parseDomain(domain);
         if (parsedDomain) {
             return this._redraw(parsedDomain);
+        } else if (force) {
+            this.el.innerHTML = _t("This domain is not supported.");
         }
     },
 

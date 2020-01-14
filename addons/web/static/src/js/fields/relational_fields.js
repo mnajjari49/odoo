@@ -16,7 +16,8 @@ odoo.define('web.relational_fields', function (require) {
 var AbstractField = require('web.AbstractField');
 var basicFields = require('web.basic_fields');
 var concurrency = require('web.concurrency');
-var ControlPanelView = require('web.ControlPanelView');
+// var ControlPanelRenderer = require('web.ControlPanelRenderer');
+var ControlPanelX2Many = require('web.ControlPanelX2Many');
 var core = require('web.core');
 var data = require('web.data');
 var Dialog = require('web.Dialog');
@@ -988,6 +989,9 @@ var FieldX2Many = AbstractField.extend({
         save_optional_fields: '_onSaveOrLoadOptionalFields',
         load_optional_fields: '_onSaveOrLoadOptionalFields',
     }),
+    events: _.extend({}, AbstractField.prototype.events, {
+        pager_changed: '_onPagerChanged',
+    }),
 
     // We need to trigger the reset on every changes to be aware of the parent changes
     // and then evaluate the 'column_invisible' modifier in case a evaluated value
@@ -1042,12 +1046,18 @@ var FieldX2Many = AbstractField.extend({
         if (this.renderer) {
             this.renderer.on_attach_callback();
         }
+        if (this._controlPanel) {
+            this._controlPanel.mount(this.el, { position: 'first-child' });
+        }
     },
     /**
      * For the list renderer to properly work, it must know if it is in the DOM.
      */
     on_detach_callback: function () {
         this.isInDOM = false;
+        if (this._controlPanel) {
+            this._controlPanel.unmount();
+        }
     },
 
     //--------------------------------------------------------------------------
@@ -1166,6 +1176,22 @@ var FieldX2Many = AbstractField.extend({
              }).column_invisible;
         });
     },
+    _getPagerProps: function () {
+        const { offset, limit, count } = this.value;
+        return {
+            currentMinimum: offset + 1,
+            limit: limit,
+            hiddenInSinglePage: true,
+            size: count,
+            validate: () => {
+                // TODO: we should have some common method in the basic renderer...
+                return this.view.arch.tag === 'tree' ?
+                    this.renderer.unselectRow() :
+                    Promise.resolve();
+            },
+            withAccessKey: false,
+        };
+    },
     /**
      * Computes the default renderer to use depending on the view type.
      * We create this as a method so we can override it if we want to use
@@ -1199,8 +1225,10 @@ var FieldX2Many = AbstractField.extend({
             return this.renderer.updateState(this.value, {
                 columnInvisibleFields: this.currentColInvisibleFields,
                 keepWidths: true,
-            }).then(function () {
-                self.pager.updateState({ size: self.value.count });
+            }).then(() => {
+                this._controlPanel.updateProps({
+                    pager: this._getPagerProps(),
+                });
             });
         }
         var arch = this.view.arch;
@@ -1263,47 +1291,12 @@ var FieldX2Many = AbstractField.extend({
         if (!this.view) {
             return Promise.resolve();
         }
-        var self = this;
-        var defs = [];
-        var controlPanelView = new ControlPanelView({
-            template: 'X2ManyControlPanel',
-            withSearchBar: false,
-        });
-        var cpDef = controlPanelView.getController(this).then(function (controlPanel) {
-            self._controlPanel = controlPanel;
-            return self._controlPanel.prependTo(self.$el);
-        });
-        this.pager = new Pager(this, this.value.count, this.value.offset + 1, this.value.limit, {
-            single_page_hidden: true,
-            withAccessKey: false,
-            validate: function () {
-                var isList = self.view.arch.tag === 'tree';
-                // TODO: we should have some common method in the basic renderer...
-                return isList ? self.renderer.unselectRow() : Promise.resolve();
-            },
-        });
-        this.pager.on('pager_changed', this, function (new_state) {
-            self.trigger_up('load', {
-                id: self.value.id,
-                limit: new_state.limit,
-                offset: new_state.current_min - 1,
-                on_success: function (value) {
-                    self.value = value;
-                    self._render();
-                },
-            });
-        });
         this._renderButtons();
-        defs.push(this.pager.appendTo($('<div>'))); // start the pager
-        defs.push(cpDef);
-        return Promise.all(defs).then(function () {
-            self._controlPanel.updateContents({
-                cp_content: {
-                    $buttons: self.$buttons,
-                    $pager: self.pager.$el,
-                }
-            });
+        this._controlPanel = new ControlPanelX2Many(null, {
+            buttons: () => this.$buttons ? [...this.$buttons] : [],
+            pager: this._getPagerProps(),
         });
+        return this._controlPanel.mount(document.createDocumentFragment());
     },
     /**
      * Renders the buttons and sets this.$buttons.
@@ -1334,26 +1327,29 @@ var FieldX2Many = AbstractField.extend({
      *                     rejected if the line could not be saved and the user
      *                     did not agree to discard.
      */
-    _saveLine: function (recordID) {
-        var self = this;
-        return new Promise(function (resolve, reject) {
-            var fieldNames = self.renderer.canBeSaved(recordID);
+    _saveLine: async function (recordID) {
+        return new Promise((resolve, reject) => {
+            var fieldNames = this.renderer.canBeSaved(recordID);
             if (fieldNames.length) {
-                self.trigger_up('discard_changes', {
+                this.trigger_up('discard_changes', {
                     recordID: recordID,
                     onSuccess: resolve,
                     onFailure: reject,
                 });
             } else {
-                self.renderer.setRowMode(recordID, 'readonly').then(resolve);
+                this.renderer.setRowMode(recordID, 'readonly').then(resolve);
             }
-        }).then(function () {
-            self.pager.updateState({ size: self.value.count });
-            var newEval = self._evalColumnInvisibleFields();
-            if (!_.isEqual(self.currentColInvisibleFields, newEval)) {
-                self.currentColInvisibleFields = newEval;
-                self.renderer.updateState(self.value, {
-                    columnInvisibleFields: self.currentColInvisibleFields,
+        }).then(() => {
+            this._controlPanel.updateProps({
+                pager: {
+                    size: this.value.count
+                },
+            });
+            var newEval = this._evalColumnInvisibleFields();
+            if (!_.isEqual(this.currentColInvisibleFields, newEval)) {
+                this.currentColInvisibleFields = newEval;
+                this.renderer.updateState(this.value, {
+                    columnInvisibleFields: this.currentColInvisibleFields,
                 });
             }
         });
@@ -1510,6 +1506,22 @@ var FieldX2Many = AbstractField.extend({
      */
     _onOpenRecord: function () {
         // to implement
+    },
+    /**
+     * @private
+     * @param {OwlEvent} ev
+     */
+    _onPagerChanged: function (ev) {
+        ev.stopPropagation();
+        this.trigger_up('load', {
+            id: this.value.id,
+            limit: ev.detail.limit,
+            offset: ev.detail.currentMinimum - 1,
+            on_success: value => {
+                this.value = value;
+                this._render();
+            },
+        });
     },
     /**
      * Called when the renderer ask to save a line (the user tries to leave it)
@@ -1712,7 +1724,7 @@ var FieldOne2Many = FieldX2Many.extend({
      */
     reset: function (record, ev) {
         var self = this;
-        return this._super.apply(this, arguments).then(function () {
+        return this._super.apply(this, arguments).then(() => {
             if (ev && ev.target === self && ev.data.changes && self.view.arch.tag === 'tree') {
                 if (ev.data.changes[self.name] && ev.data.changes[self.name].operation === 'CREATE') {
                     var index = 0;
@@ -1727,7 +1739,9 @@ var FieldOne2Many = FieldX2Many.extend({
                         // have 3 records, and we click on add, we will see the
                         // 4 records on the same page, but we do not want a
                         // pager.
-                        self.pager.updateState({ size: self.value.count - 1});
+                        this._controlPanel.updateProps({
+                            pager: { size: self.value.count - 1},
+                        });
                     }
                     var newID = self.value.data[index].id;
                     self.renderer.editRecord(newID);

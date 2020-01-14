@@ -100,9 +100,12 @@ var KanbanController = BasicController.extend({
      * @override
      * @private
      */
-    _isPagerVisible: function () {
-        var state = this.model.get(this.handle, {raw: true});
-        return !!(state.count && !state.groupedBy.length);
+    _getPagerProps: function () {
+        const state = this.model.get(this.handle, {raw: true});
+        if (!(state.count && !state.groupedBy.length)) {
+            return {};
+        }
+        return this._super(...arguments);
     },
     /**
      * @private
@@ -185,9 +188,7 @@ var KanbanController = BasicController.extend({
      */
     _resequenceRecords: function (column_id, ids) {
         var self = this;
-        return this.model.resequence(this.modelName, ids, column_id).then(function () {
-            self._updateEnv();
-        });
+        return this.model.resequence(this.modelName, ids, column_id);
     },
     /**
      * Overrides to update the control panel buttons when the state is updated.
@@ -389,7 +390,6 @@ var KanbanController = BasicController.extend({
         this.model.loadMore(column.db_id).then(function (db_id) {
             var data = self.model.get(db_id);
             self.renderer.updateColumn(db_id, data);
-            self._updateEnv();
         });
     },
     /**
@@ -412,7 +412,6 @@ var KanbanController = BasicController.extend({
         // function that updates the kanban view once the record has been added
         // it receives the local id of the created record in arguments
         var update = function (db_id) {
-            self._updateEnv();
 
             var columnState = self.model.getColumn(db_id);
             var state = self.model.get(self.handle);
@@ -459,9 +458,7 @@ var KanbanController = BasicController.extend({
      */
     _onResequenceColumn: function (ev) {
         var self = this;
-        this._resequenceColumns(ev.data.ids).then(function () {
-            self._updateEnv();
-        });
+        this._resequenceColumns(ev.data.ids);
     },
     /**
      * @private
@@ -481,7 +478,6 @@ var KanbanController = BasicController.extend({
                 return self.renderer.updateColumn(db_id, data, options);
             })
             .then(function () {
-                self._updateEnv();
                 if (ev.data.onSuccess) {
                     ev.data.onSuccess();
                 }
@@ -520,7 +516,6 @@ var KanbanController = BasicController.extend({
             prom.then(function (dbID) {
                 var data = self.model.get(dbID);
                 self.renderer.updateColumn(dbID, data);
-                self._updateEnv();
             });
         }
     },

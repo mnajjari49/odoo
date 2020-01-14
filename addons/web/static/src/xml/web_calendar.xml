@@ -103,6 +103,23 @@
         </div>
     </t>
 
+    <t t-name="web_calendar.ControlPanelMobile" t-inherit="web.ControlPanelMobile" t-inherit-mode="extension" owl="1">
+        <xpath expr="//Pager" position="before">
+            <button t-if="props.viewType === 'calendar'"
+                class="o_cp_today_button btn btn-sm btn-link"
+                t-on-click="trigger('today_button_click')"
+                >
+                <span class="fa-stack o_calendar_button_today">
+                    <i class="fa fa-calendar-o fa-stack-2x" role="img" aria-label="Today" title="Today"/>
+                    <strong class="o_calendar_text fa-stack-1x" t-esc="date"/>
+                </span>
+            </button>
+        </xpath>
+        <xpath expr="//Pager" position="attributes">
+            <attribute name="t-else">1</attribute>
+        </xpath>
+    </t>
+
     <t t-name="CalendarView.TodayButtonMobile">
         <button class="btn btn-sm btn-link">
             <span class="fa-stack o_calendar_button_today">

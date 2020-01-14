@@ -22,7 +22,6 @@ var GraphController = AbstractController.extend(GroupByMenuMixin,{
      * @param {string[]} params.groupableFields,
      */
     init: function (parent, model, renderer, params) {
-        GroupByMenuMixin.init.call(this);
         this._super.apply(this, arguments);
         this.measures = params.measures;
         // this parameter condition the appearance of a 'Group By'
@@ -96,10 +95,11 @@ var GraphController = AbstractController.extend(GroupByMenuMixin,{
             this._updateButtons();
             this.$buttons.appendTo($node);
             if (this.isEmbedded) {
-                this._addGroupByMenu($node, this.groupableFields).then(function(){
-                    var groupByButton = $node.find('.o_dropdown_toggler_btn');
-                    groupByButton.removeClass("o_dropdown_toggler_btn btn btn-secondary dropdown-toggle");
-                    groupByButton.addClass("btn dropdown-toggle btn-outline-secondary");
+                const node = $node[0];
+                this._addGroupByMenu(node, this.groupableFields).then(function(){
+                    const groupByButton = node.querySelector('.o_dropdown_toggler_btn');
+                    groupByButton.classList.remove('o_dropdown_toggler_btn', 'btn-secondary');
+                    groupByButton.classList.add('btn-outline-secondary');
                 });
             }
 
@@ -110,21 +110,19 @@ var GraphController = AbstractController.extend(GroupByMenuMixin,{
     // Private
     //--------------------------------------------------------------------------
 
-    /*
-     * override
-     *
+    /**
+     * @override
      * @private
      * @param {string[]} groupBy
      */
     _setGroupby: function (groupBy) {
-        this.update({groupBy: groupBy});
+        this.update({ groupBy });
     },
     /**
      * @todo remove this and directly calls update. Update should be overridden
      * and modified to call _updateButtons
      *
      * @private
-     *
      * @param {'pie'|'line'|'bar'} mode
      */
     _setMode: function (mode) {

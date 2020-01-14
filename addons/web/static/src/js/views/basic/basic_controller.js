@@ -11,7 +11,6 @@ var AbstractController = require('web.AbstractController');
 var core = require('web.core');
 var Dialog = require('web.Dialog');
 var FieldManagerMixin = require('web.FieldManagerMixin');
-var Pager = require('web.Pager');
 var TranslationDialog = require('web.TranslationDialog');
 
 var _t = core._t;
@@ -24,8 +23,13 @@ var BasicController = AbstractController.extend(FieldManagerMixin, {
         set_dirty: '_onSetDirty',
         load_optional_fields: '_onLoadOptionalFields',
         save_optional_fields: '_onSaveOptionalFields',
-        sidebar_data_asked: '_onSidebarDataAsked',
         translate: '_onTranslate',
+    }),
+    events: _.extend({}, AbstractController.prototype.events, FieldManagerMixin.events, {
+        do_action: '_onDoAction',
+        pager_changed: '_onPagerChanged',
+        reload: '_onReload',
+        sidebar_data_asked: '_onSidebarDataAsked',
     }),
     /**
      * @override
@@ -52,12 +56,11 @@ var BasicController = AbstractController.extend(FieldManagerMixin, {
      * @override
      * @returns {Promise}
      */
-    start: function () {
+    start: async function () {
         // add classname to reflect the (absence of) access rights (used to
         // correctly display the nocontent helper)
         this.$el.toggleClass('o_cannot_create', !this.activeActions.create);
-        return this._super.apply(this, arguments)
-                          .then(this._updateEnv.bind(this));
+        await this._super(...arguments);
     },
 
     //--------------------------------------------------------------------------
@@ -149,35 +152,6 @@ var BasicController = AbstractController.extend(FieldManagerMixin, {
         return this.model.isDirty(recordID || this.handle);
     },
     /**
-     * @override
-     */
-    renderPager: function ($node, options) {
-        var self = this;
-        var params = this._getPagerParams();
-        this.pager = new Pager(this, params.size, params.current_min, params.limit, options);
-
-        this.pager.on('pager_changed', this, function (newState) {
-            this.pager.disable();
-            var data = this.model.get(this.handle, {raw: true});
-            var limitChanged = (data.limit !== newState.limit);
-            var reloadParams;
-            if (data.groupedBy && data.groupedBy.length) {
-                reloadParams = {groupsLimit: newState.limit, groupsOffset: newState.current_min - 1};
-            } else {
-                reloadParams = {limit: newState.limit, offset: newState.current_min - 1};
-            }
-            this.reload(reloadParams).then(function () {
-                // reset the scroll position to the top on page changed only
-                if (!limitChanged) {
-                    self.trigger_up('scrollTo', {top: 0});
-                }
-            }).then(this.pager.enable.bind(this.pager));
-        });
-        return this.pager.appendTo($node).then(function () {
-            self._updatePager(); // to force proper visibility
-        });
-    },
-    /**
      * Saves the record whose ID is given if necessary (@see _saveRecord).
      *
      * @param {string} [recordID] - default to main recordID
@@ -218,13 +192,10 @@ var BasicController = AbstractController.extend(FieldManagerMixin, {
      * @override
      * @returns {Promise}
      */
-    update: function (params, options) {
-        var self = this;
+    update: async function (params, options) {
         this.mode = params.mode || this.mode;
-        return this._super(params, options).then(function () {
-            self._updateEnv();
-            self._updatePager();
-        });
+        await this._super(...arguments);
+        return this._updateControlPanel();
     },
     /**
      * @override
@@ -486,43 +457,33 @@ var BasicController = AbstractController.extend(FieldManagerMixin, {
         return viewIdentifier;
     },
     /**
-     * Return the params (current_min, limit and size) to pass to the pager,
+     * Return the params (currentMinimum, limit and size) to pass to the pager,
      * according to the current state.
      *
      * @private
      * @returns {Object}
      */
-    _getPagerParams: function () {
-        var state = this.model.get(this.handle, {raw: true});
-        var isGrouped = state.groupedBy && state.groupedBy.length;
+    _getPagerProps: function () {
+        const state = this.model.get(this.handle, { raw: true });
+        const isGrouped = state.groupedBy && state.groupedBy.length;
         return {
-            current_min: (isGrouped ? state.groupsOffset : state.offset) + 1,
+            currentMinimum: (isGrouped ? state.groupsOffset : state.offset) + 1,
+            disabled: false,
             limit: isGrouped ? state.groupsLimit : state.limit,
             size: isGrouped ? state.groupsCount : state.count,
         };
     },
     /**
-     * Returns the new sidebar env
+     * Return the new sidebar props.
      *
+     * @override
      * @private
-     * @return {Object} the new sidebar env
      */
-    _getSidebarEnv: function () {
+    _getSidebarProps: function () {
         return {
-            context: this.model.get(this.handle).getContext(),
             activeIds: this.getSelectedIds(),
-            model: this.modelName,
+            context: this.model.get(this.handle).getContext(),
         };
-    },
-    /**
-     * Determine whether or not the pager must be displayed (probably depending
-     * on the current state). Controllers must override this to implement their
-     * own logic.
-     *
-     * @private
-     */
-    _isPagerVisible: function () {
-        return true;
     },
     /**
      *  Sort function used to sort the fields by names, to compute the optional fields keys
@@ -560,6 +521,11 @@ var BasicController = AbstractController.extend(FieldManagerMixin, {
      */
     _onDeletedRecords: function (ids) {
         this.update({});
+    },
+    _onDoAction: function (ev) {
+        this.do_action(ev.detail.action, {
+            on_close: () => this._onReload()
+        });
     },
     /**
      * Saves the record whose ID is given, if necessary. Automatically leaves
@@ -634,23 +600,12 @@ var BasicController = AbstractController.extend(FieldManagerMixin, {
      *
      * @private
      */
-    _updateEnv: function () {
-        var env = this.model.get(this.handle, {env: true});
-        if (this.sidebar) {
-            var sidebarEnv = this._getSidebarEnv();
-            this.sidebar.updateEnv(sidebarEnv);
-        }
-    },
-    /**
-     * Update the pager with the current state.
-     *
-     * @private
-     */
-    _updatePager: function () {
-        if (this.pager) {
-            this.pager.updateState(this._getPagerParams());
-            this.pager.do_toggle(this._isPagerVisible());
-        }
+    _updateControlPanel: function () {
+        this.model.get(this.handle, { env: true });
+        return this._updateActionProps({
+            sidebar: this._getSidebarProps(),
+            pager: this._getPagerProps(),
+        });
     },
 
     //--------------------------------------------------------------------------
@@ -694,6 +649,29 @@ var BasicController = AbstractController.extend(FieldManagerMixin, {
         FieldManagerMixin._onFieldChanged.apply(this, arguments);
     },
     /**
+     * @private
+     * @param {OwlEvent} ev
+     */
+    _onPagerChanged: async function (ev) {
+        const { currentMinimum, limit } = ev.detail;
+        const pagerProps = this._getPagerProps();
+        this._updateActionProps({
+            pager: Object.assign(pagerProps, { disabled: true }),
+        });
+        const data = this.model.get(this.handle, { raw: true });
+        const reloadParams = data.groupedBy && data.groupedBy.length ?
+            { groupsLimit: limit, groupsOffset: currentMinimum - 1 } :
+            { limit: limit, offset: currentMinimum - 1 };
+        await this.reload(reloadParams);
+        // reset the scroll position to the top on page changed only
+        if (data.limit !== limit) {
+            this.trigger_up('scrollTo', { top: 0 });
+        }
+        return this._updateActionProps({
+            pager: Object.assign(pagerProps, { disabled: false, limit, currentMinimum }),
+        });
+    },
+    /**
      * When a reload event triggers up, we need to reload the full view.
      * For example, after a form view dialog saved some data.
      *
@@ -709,9 +687,11 @@ var BasicController = AbstractController.extend(FieldManagerMixin, {
      * @param {Function} [ev.data.onFailure] callback executed when reload is rejected
      */
     _onReload: function (ev) {
-        ev.stopPropagation(); // prevent other controllers from handling this request
-        var data = ev && ev.data || {};
-        var handle = data.db_id;
+        if (ev) {
+            ev.stopPropagation(); // prevent other controllers from handling this request
+        }
+        var detail = (ev && (ev.data || ev.detail)) || {};
+        var handle = detail.db_id;
         var prom;
         if (handle) {
             // reload the relational field given its db_id
@@ -719,11 +699,11 @@ var BasicController = AbstractController.extend(FieldManagerMixin, {
         } else {
             // no db_id given, so reload the main record
             prom = this.reload({
-                fieldNames: data.fieldNames,
-                keepChanges: data.keepChanges || false,
+                fieldNames: detail.fieldNames,
+                keepChanges: detail.keepChanges || false,
             });
         }
-        prom.then(ev.data.onSuccess).guardedCatch(ev.data.onFailure);
+        prom.then(detail.onSuccess).guardedCatch(detail.onFailure);
     },
     /**
      * Resequence records in the given order.
@@ -735,24 +715,19 @@ var BasicController = AbstractController.extend(FieldManagerMixin, {
      * @param {string} ev.data.handleField
      */
     _onResequenceRecords: function (ev) {
-        var self = this;
-
         this.trigger_up('mutexify', {
-            action: function () {
-                var state = self.model.get(self.handle);
-                var resIDs = _.map(ev.data.recordIds, function (recordID) {
-                    return _.findWhere(state.data, {id: recordID}).res_id;
-                });
-                var options = {
+            action: async () => {
+                let state = this.model.get(this.handle);
+                const resIDs = ev.data.recordIds
+                    .map(recordID => state.data.find(d => d.id === recordID).res_id);
+                const options = {
                     offset: ev.data.offset,
                     field: ev.data.handleField,
                 };
-                return self.model.resequence(self.modelName, resIDs, self.handle, options)
-                    .then(function () {
-                        self._updateEnv();
-                        state = self.model.get(self.handle);
-                        return self.renderer.updateState(state, {noRender: true});
-                    });
+                await this.model.resequence(this.modelName, resIDs, this.handle, options);
+                await this._updateControlPanel();
+                state = this.model.get(this.handle);
+                return this.renderer.updateState(state, { noRender: true });
             },
         });
     },
@@ -802,11 +777,11 @@ var BasicController = AbstractController.extend(FieldManagerMixin, {
      * performed through the sidebar.
      *
      * @private
-     * @param {OdooEvent} ev
+     * @param {OwlEvent} ev
      */
     _onSidebarDataAsked: function (ev) {
-        var sidebarEnv = this._getSidebarEnv();
-        ev.data.callback(sidebarEnv);
+        const sidebarProps = this._getSidebarProps();
+        ev.detail.callback(sidebarProps);
     },
     /**
      * open the translation view for the current field
