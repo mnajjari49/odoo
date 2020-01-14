@@ -1,9 +1,15 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <odoo>
-  <template id="assets" inherit_id="point_of_sale.assets">
-    <xpath expr="." position="inside">
-      <script type="text/javascript" src="/pos_coupon/static/src/js/coupon.js"></script>
-      <link rel="stylesheet" href="/pos_coupon/static/src/css/coupon.css"/>
-    </xpath>
-  </template>
+    <template id="pos_coupon.assets" inherit_id="point_of_sale.assets">
+        <xpath expr="." position="inside">
+            <script type="text/javascript" src="/pos_coupon/static/src/js/coupon.js"></script>
+            <link rel="stylesheet" href="/pos_coupon/static/src/css/coupon.css" />
+        </xpath>
+    </template>
+    <template id="pos_coupon.assets_tests" name="POS Coupon Test Assets" inherit_id="web.assets_tests">
+        <xpath expr="." position="inside">
+            <script type="text/javascript" src="/pos_coupon/static/src/js/tours/pos_coupon_tour_utils.js"></script>
+            <script type="text/javascript" src="/pos_coupon/static/src/js/tours/pos_coupon_tours.js"></script>
+        </xpath>
+    </template>
 </odoo>

@@ -223,17 +223,15 @@ odoo.define('point_of_sale.tour.acceptance', function (require) {
     "use strict";
 
     var Tour = require("web_tour.tour");
-
-    function add_product_to_order(product_name) {
-        return [{
-            content: 'buy ' + product_name,
-            trigger: '.product-list .product-name:contains("' + product_name + '")',
-        }, {
-            content: 'the ' + product_name + ' have been added to the order',
-            trigger: '.order .product-name:contains("' + product_name + '")',
-            run: function () {}, // it's a check
-        }];
-    }
+    var {
+        add_product_to_order,
+        generate_payment_screen_keypad_steps,
+        generate_product_screen_keypad_steps,
+        verify_order_total,
+        goto_payment_screen_and_select_payment_method,
+        finish_order,
+        start_no_category_screen,
+    } = require("point_of_sale.tour.utils");
 
     function set_fiscal_position_on_order(fp_name) {
         return [{
@@ -246,45 +244,6 @@ odoo.define('point_of_sale.tour.acceptance', function (require) {
             content: 'the fiscal position ' + fp_name + ' has been set to the order',
             trigger: '.control-button.o_fiscal_position_button:contains("' + fp_name + '")',
             run: function () {}, // it's a check
-        }];
-    }
-
-    function generate_keypad_steps(amount_str, keypad_selector) {
-        var i, steps = [], current_char;
-        for (i = 0; i < amount_str.length; ++i) {
-            current_char = amount_str[i];
-            steps.push({
-                content: 'press ' + current_char + ' on payment keypad',
-                trigger: keypad_selector + ' .input-button:contains("' + current_char + '"):visible'
-            });
-        }
-
-        return steps;
-    }
-
-    function generate_payment_screen_keypad_steps(amount_str) {
-        return generate_keypad_steps(amount_str, '.payment-numpad');
-    }
-
-    function generate_product_screen_keypad_steps(amount_str) {
-        return generate_keypad_steps(amount_str, '.numpad');
-    }
-
-    function verify_order_total(total_str) {
-        return [{
-            content: 'order total contains ' + total_str,
-            trigger: '.order .total .value:contains("' + total_str + '")',
-            run: function () {}, // it's a check
-        }];
-    }
-
-    function goto_payment_screen_and_select_payment_method() {
-        return [{
-            content: "go to payment screen",
-            trigger: '.button.pay',
-        }, {
-            content: "pay with cash",
-            trigger: '.paymentmethod:contains("Cash")',
         }];
     }
 
@@ -316,44 +275,14 @@ odoo.define('point_of_sale.tour.acceptance', function (require) {
         }];
     }
 
-    function finish_order() {
-        return [{
-            content: "validate the order",
-            trigger: '.button.next:visible',
-        }, {
-            content: "verify that the order is being sent to the backend",
-            trigger: ".js_connecting:visible",
-            run: function () {}, // it's a check
-        }, {
-            content: "verify that the order has been successfully sent to the backend",
-            trigger: ".js_connected:visible",
-            run: function () {}, // it's a check
-        }, {
-            content: "next order",
-            trigger: '.button.next:visible',
-        }, { // Leave category displayed by default
-            content: "click category switch",
-            trigger: ".js-category-switch",
-            run: 'click',
-        }];
-    }
-
-    var steps = [{
-            content: 'waiting for loading to finish',
-            trigger: 'body:has(.loader:hidden)',
-            run: function () {}, // it's a check
-        }, { // Leave category displayed by default
-            content: "click category switch",
-            trigger: ".js-category-switch",
-            run: 'click',
-        }];
+    var steps = start_no_category_screen();
 
     steps = steps.concat(add_product_to_order('Desk Organizer'));
     steps = steps.concat(verify_order_total('5.10'));
 
     steps = steps.concat(add_product_to_order('Desk Organizer'));
     steps = steps.concat(verify_order_total('10.20'));
-    steps = steps.concat(goto_payment_screen_and_select_payment_method());
+    steps = steps.concat(goto_payment_screen_and_select_payment_method("Cash"));
 
     /*  add payment line of only 5.20
         status:
@@ -405,7 +334,7 @@ odoo.define('point_of_sale.tour.acceptance', function (require) {
     steps = steps.concat(add_product_to_order('Desk Organizer'));
     steps = steps.concat(generate_product_screen_keypad_steps('.999')); // sets orderline qty
     steps = steps.concat(verify_order_total('5.09'));
-    steps = steps.concat(goto_payment_screen_and_select_payment_method());
+    steps = steps.concat(goto_payment_screen_and_select_payment_method("Cash"));
     steps = steps.concat(generate_payment_screen_keypad_steps("10"));
     steps = steps.concat(finish_order());
 
@@ -425,5 +354,4 @@ odoo.define('point_of_sale.tour.acceptance', function (require) {
     }]);
 
     Tour.register('pos_basic_order', { test: true, url: '/pos/web' }, steps);
-
 });

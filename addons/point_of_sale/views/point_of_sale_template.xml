@@ -12,6 +12,7 @@
 
     <template id="assets_tests" name="Point Of Sale Assets Tests" inherit_id="web.assets_tests">
         <xpath expr="." position="inside">
+            <script type="text/javascript" src="/point_of_sale/static/tests/tours/point_of_sale_tour_utils.js"></script>
             <script type="text/javascript" src="/point_of_sale/static/tests/tours/point_of_sale.js"></script>
         </xpath>
     </template>
