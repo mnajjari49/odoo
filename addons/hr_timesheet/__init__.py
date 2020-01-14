@@ -13,4 +13,4 @@ def post_init(cr, registry):
     domain = []
     if 'is_fsm' in env['project.project']._fields:
         domain = [('is_fsm', '=', False)]
-    env['project.project'].search(domain).write({'allow_timesheets': True})
+    env['project.project'].search(domain).write({'allow_timesheets': True, 'allow_timesheet_timer': True})

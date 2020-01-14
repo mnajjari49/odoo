@@ -64,6 +64,7 @@ class Project(models.Model):
         if allow_timesheets and not values.get('analytic_account_id'):
             analytic_account = self._create_analytic_account_from_values(values)
             values['analytic_account_id'] = analytic_account.id
+        values['allow_timesheet_timer'] = allow_timesheets and values.get('allow_timesheet_timer')
         return super(Project, self).create(values)
 
     def write(self, values):
