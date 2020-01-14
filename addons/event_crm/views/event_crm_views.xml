@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+<data>
+    <record id="view_event_crm_form" model="ir.ui.view">
+        <field name="name">event.crm.form</field>
+        <field name="model">event.crm</field>
+        <field name="arch" type="xml">
+            <form string="Event Lead Generation Rule">
+                <sheet>
+                    <widget name="web_ribbon" title="Archived" bg_color="bg-danger" attrs="{'invisible': [('active', '=', True)]}"/>
+                    <div class="oe_title">
+                        <label for="name" class="oe_edit_only"/>
+                        <h1><field name="name"/></h1>
+                    </div>
+                    <group class="row">
+                        <group class="col">
+                            <field name="create_lead" string="Create Lead" invisible="1"/>
+                        </group>
+                        <group class="col">
+                            <field name="active" invisible="1"/>
+                        </group>
+                    </group>
+                    <group string="When Attendees meet these Conditions">
+                        <group class="col">
+                            <field name="event_type_ids" widget="many2many_tags"/>
+                            <field name="event_id" options="{'no_create': True}" domain="[('company_id','=',company_id)]"/>
+                        </group>
+                        <group class="col">
+                            <field name="company_id" groups="base.group_multi_company" options="{'no_create': True}"/>
+                        </group>
+                    </group>
+                    <field name="registration_ids" invisible="1"/>
+                    <label for="domain" string="Filter"/>
+                    <field name="domain" widget="domain" options="{'model': 'event.registration'}"/>
+                    <group string="Create Leads with this Data">
+                        <group class="col">
+                            <field name="lead_type" groups="crm.group_use_lead"/>
+                            <field name="sales_team_id"/>
+                            <field name="user_id"/>
+                        </group>
+                        <group class="col">
+                            <field name="tag_ids" widget="many2many_tags"/>
+                        </group>                         
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_event_crm" model="ir.actions.act_window">
+        <field name="name">Event Lead Generation Rule</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">event.crm</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem name="Lead Generation" id="menu_event_crm" 
+        action="action_event_crm" parent="event.menu_event_configuration"
+        sequence="1" groups="event.group_event_manager"/>
+</data>
+</odoo>
