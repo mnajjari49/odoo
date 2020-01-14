@@ -15,14 +15,13 @@ import logging
 import time
 import uuid
 
+from decorator import decorator
 import psycopg2
 import psycopg2.extras
 import psycopg2.extensions
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT, ISOLATION_LEVEL_READ_COMMITTED, ISOLATION_LEVEL_REPEATABLE_READ
 from psycopg2.pool import PoolError
 from werkzeug import urls
-
-from odoo.api import Environment
 
 psycopg2.extensions.register_type(psycopg2.extensions.UNICODE)
 
@@ -59,28 +58,116 @@ from datetime import timedelta
 import threading
 from inspect import currentframe
 
-
-def flush_env(cr):
-    """ Retrieve and flush an environment corresponding to the given cursor """
-    for env in list(Environment.envs):
-        if env.cr is cr:
-            env['base'].flush()
-            break
-
-def clear_env(cr):
-    """ Retrieve and clear an environment corresponding to the given cursor """
-    for env in list(Environment.envs):
-        if env.cr is cr:
-            env.clear()
-            break
-
 import re
 re_from = re.compile('.* from "?([a-zA-Z_0-9]+)"? .*$')
 re_into = re.compile('.* into "?([a-zA-Z_0-9]+)"? .*$')
 
 sql_counter = 0
 
-class Cursor(object):
+
+@decorator
+def check(f, self, *args, **kwargs):
+    """ Wrap a cursor method that cannot be called when the cursor is closed. """
+    if self._closed:
+        msg = 'Unable to use a closed cursor.'
+        if self.__closer:
+            msg += ' It was closed at %s, line %s' % self.__closer
+        raise psycopg2.OperationalError(msg)
+    return f(self, *args, **kwargs)
+
+
+class BaseCursor:
+    """ Base class for cursors that manages pre/post commit hooks. """
+
+    def __init__(self):
+        self._precommit = tools.AggCallbacks()
+        self._postcommit = tools.AggCallbacks()
+        self._prerollback = tools.AggCallbacks()
+        self._postrollback = tools.AggCallbacks()
+
+    @check
+    def precommit(self, func, *types, recurrent=False):
+        """ Register a function to be called before commit. Return the tuple of
+        positional arguments (of the expected types) to call the function with.
+        """
+        return self._precommit.register(func, *types, recurrent=recurrent)
+
+    @check
+    def postcommit(self, func, *types, recurrent=False):
+        """ Register a function to be called after commit. Return the tuple of
+        positional arguments (of the expected types) to call the function with.
+        """
+        return self._postcommit.register(func, *types, recurrent=recurrent)
+
+    @check
+    def prerollback(self, func, *types, recurrent=False):
+        """ Register a function to be called before rollback. Return the tuple of
+        positional arguments (of the expected types) to call the function with.
+        """
+        return self._prerollback.register(func, *types, recurrent=recurrent)
+
+    @check
+    def postrollback(self, func, *types, recurrent=False):
+        """ Register a function to be called after rollback. Return the tuple of
+        positional arguments (of the expected types) to call the function with.
+        """
+        return self._postrollback.register(func, *types, recurrent=recurrent)
+
+    @check
+    def commit(self):
+        self._precommit()
+        result = self._commit()
+        self._prerollback.clear()
+        self._postrollback.clear()
+        self._postcommit()
+        return result
+
+    @check
+    def rollback(self):
+        self._precommit.clear()
+        self._postcommit.clear()
+        self._prerollback()
+        result = self._rollback()
+        self._postrollback()
+        return result
+
+    @contextmanager
+    @check
+    def savepoint(self):
+        """context manager entering in a new savepoint"""
+        name = uuid.uuid1().hex
+        self._precommit()
+        self._prerollback.clear()
+        self.execute('SAVEPOINT "%s"' % name)
+        try:
+            yield
+            self._precommit()
+            self._prerollback.clear()
+        except Exception:
+            self._precommit.clear()
+            self._prerollback()
+            self.execute('ROLLBACK TO SAVEPOINT "%s"' % name)
+            raise
+
+    def __enter__(self):
+        """ Using the cursor as a contextmanager automatically commits and
+            closes it::
+
+                with cr:
+                    cr.execute(...)
+
+                # cr is committed if no failure occurred
+                # cr is closed in any case
+        """
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if exc_type is None:
+            self.commit()
+        self.close()
+
+
+class Cursor(BaseCursor):
     """Represents an open transaction to the PostgreSQL DB backend,
        acting as a lightweight wrapper around psycopg2's
        ``cursor`` objects.
@@ -152,18 +239,9 @@ class Cursor(object):
     """
     IN_MAX = 1000   # decent limit on size of IN queries - guideline = Oracle limit
 
-    def check(f):
-        @wraps(f)
-        def wrapper(self, *args, **kwargs):
-            if self._closed:
-                msg = 'Unable to use a closed cursor.'
-                if self.__closer:
-                    msg += ' It was closed at %s, line %s' % self.__closer
-                raise psycopg2.OperationalError(msg)
-            return f(self, *args, **kwargs)
-        return wrapper
-
     def __init__(self, pool, dbname, dsn, serialized=True):
+        super().__init__()
+
         self.sql_from_log = {}
         self.sql_into_log = {}
 
@@ -196,12 +274,6 @@ class Cursor(object):
         self._default_log_exceptions = True
 
         self.cache = {}
-
-        # pre/post-commit/rollback hooks
-        self._precommit = tools.AggCallbacks()
-        self._postcommit = tools.AggCallbacks()
-        self._prerollback = tools.AggCallbacks()
-        self._postrollback = tools.AggCallbacks()
 
     def __build_dict(self, row):
         return {d.name: row[i] for i, d in enumerate(self._obj.description)}
@@ -382,82 +454,14 @@ class Cursor(object):
             self.postrollback(func)
 
     @check
-    def precommit(self, func, *types, recurrent=False):
-        return self._precommit.register(func, *types, recurrent=recurrent)
+    def _commit(self):
+        """ Perform an SQL `COMMIT` """
+        return self._cnx.commit()
 
     @check
-    def postcommit(self, func, *types, recurrent=False):
-        return self._postcommit.register(func, *types, recurrent=recurrent)
-
-    @check
-    def prerollback(self, func, *types, recurrent=False):
-        return self._prerollback.register(func, *types, recurrent=recurrent)
-
-    @check
-    def postrollback(self, func, *types, recurrent=False):
-        return self._postrollback.register(func, *types, recurrent=recurrent)
-
-    @check
-    def commit(self):
-        """ Perform an SQL `COMMIT`
-        """
-        self._precommit()
-        result = self._cnx.commit()
-        self._prerollback.clear()
-        self._postrollback.clear()
-        self._postcommit()
-        return result
-
-    @check
-    def rollback(self):
-        """ Perform an SQL `ROLLBACK`
-        """
-        self._precommit.clear()
-        self._postcommit.clear()
-        self._prerollback()
-        result = self._cnx.rollback()
-        self._postrollback()
-        return result
-
-    def __enter__(self):
-        """ Using the cursor as a contextmanager automatically commits and
-            closes it::
-
-                with cr:
-                    cr.execute(...)
-
-                # cr is committed if no failure occurred
-                # cr is closed in any case
-        """
-        return self
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        if exc_type is None:
-            self.commit()
-        self.close()
-
-    @contextmanager
-    @check
-    def savepoint(self, flush=True):
-        """context manager entering in a new savepoint"""
-        name = uuid.uuid1().hex
-        if flush:
-            self._precommit()
-            self._prerollback.clear()
-        self.execute('SAVEPOINT "%s"' % name)
-        try:
-            yield
-            if flush:
-                self._precommit()
-                self._prerollback.clear()
-        except Exception:
-            if flush:
-                self._precommit.clear()
-                self._prerollback()
-            self.execute('ROLLBACK TO SAVEPOINT "%s"' % name)
-            raise
-        else:
-            self.execute('RELEASE SAVEPOINT "%s"' % name)
+    def _rollback(self):
+        """ Perform an SQL `ROLLBACK` """
+        return self._cnx.rollback()
 
     @check
     def __getattr__(self, name):
@@ -468,7 +472,7 @@ class Cursor(object):
         return self._closed
 
 
-class TestCursor(object):
+class TestCursor(BaseCursor):
     """ A pseudo-cursor to be used for tests, on top of a real cursor. It keeps
         the transaction open across requests, and simulates committing, rolling
         back, and closing:
@@ -509,21 +513,11 @@ class TestCursor(object):
     def autocommit(self, on):
         _logger.debug("TestCursor.autocommit(%r) does nothing", on)
 
-    def commit(self):
-        flush_env(self)
+    def _commit(self):
         self._cursor.execute('SAVEPOINT "%s"' % self._savepoint)
 
-    def rollback(self):
-        clear_env(self)
+    def _rollback(self):
         self._cursor.execute('ROLLBACK TO SAVEPOINT "%s"' % self._savepoint)
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        if exc_type is None:
-            self.commit()
-        self.close()
 
     def __getattr__(self, name):
         value = getattr(self._cursor, name)
