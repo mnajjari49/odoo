@@ -39,6 +39,10 @@
                 <!-- here go the popups -->
             </div>
 
+            <div class='notifications'>
+                <!-- here go the notifications -->
+            </div>
+
             <div class="loader">
                 <div class='loader-feedback oe_hidden'>
                     <h1 class='message'>Loading</h1>
@@ -1792,5 +1796,14 @@
                 <span class="pos-change_amount"><t t-esc="widget.format_currency(order.get_change())"/></span>
             </div>
         </t>
+    </t>
+
+    <!-- Notification Widgets -->
+
+    <!-- 'basic' notification -->
+    <t t-name="BaseNotificationWidget">
+        <div class="notification">
+            <span><t t-esc="widget.options.message"/></span>
+        </div>
     </t>
 </templates>

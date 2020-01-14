@@ -911,6 +911,15 @@ var Chrome = PosBaseWidget.extend(AbstractAction.prototype, {
             }
         });
 
+        _.forEach(this.gui.notification_classes, function (classe) {
+            if (!classe.condition || classe.condition.call(self)) {
+                var notification = new classe.widget(self,{});
+                notification.appendTo(self.$('.notifications')).then(function () {
+                    self.gui.add_notification(classe.name, notification);
+                });
+            }
+        });
+
         this.gui.set_startup_screen('products');
         this.gui.set_default_screen('products');
 

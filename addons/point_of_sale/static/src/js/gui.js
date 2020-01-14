@@ -15,12 +15,14 @@ var _t = core._t;
 var Gui = core.Class.extend({
     screen_classes: [],
     popup_classes:  [],
+    notification_classes: [],
     init: function(options){
         var self = this;
         this.pos            = options.pos;
         this.chrome         = options.chrome;
         this.screen_instances     = {};
         this.popup_instances      = {};
+        this.notification_instances = {};
         this.default_screen = null;
         this.startup_screen = null;
         this.current_popup  = null;
@@ -188,6 +190,17 @@ var Gui = core.Class.extend({
     // is there an active popup ?
     has_popup: function() {
         return !!this.current_popup;
+    },
+
+    /* ---- Gui: Notifications ---- */
+
+    add_notification: function(name, notification) {
+        notification.hide();
+        this.notification_instances[name] = notification;
+    },
+
+    show_notification: function(name, options) {
+        this.notification_instances[name].show(options);
     },
 
     /* ---- Gui: INTER TAB COMM ---- */
@@ -455,10 +468,15 @@ var define_popup = function (classe) {
     Gui.prototype.popup_classes.push(classe);
 };
 
+var define_notification = function (classe) {
+    Gui.prototype.notification_classes.push(classe);
+};
+
 return {
     Gui: Gui,
     define_screen: define_screen,
     define_popup: define_popup,
+    define_notification: define_notification,
 };
 
 });
