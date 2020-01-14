@@ -2,12 +2,12 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
 from odoo import models, fields, api
-
+from math import ceil
 
 class TimerMixin(models.AbstractModel):
     _name = 'timer.mixin'
     _description = 'Timer Mixin'
-    
+
     timer_start = fields.Datetime(compute='_compute_is_timer_running')
     timer_pause = fields.Datetime(compute='_compute_is_timer_running')
     is_timer_running = fields.Boolean(compute='_compute_is_timer_running')
@@ -36,7 +36,6 @@ class TimerMixin(models.AbstractModel):
 
     def action_timer_start(self):
         self.ensure_one()
-        
         self.stop_timer_in_progress()
         timer = self._get_record_timer()
         if not timer:
@@ -91,8 +90,16 @@ class TimerMixin(models.AbstractModel):
         # can be running at the same time
         for timer in self._get_user_timers().filtered(lambda t: t.is_timer_running):
             model = self.env[timer.res_model].search([
-                            ('id', '=', timer.res_id)
-                        ])
-            
+                ('id', '=', timer.res_id)
+            ])            
             model.interruption()
+    
+    @api.model
+    def _timer_rounding(self, minutes_spent):
+        minimum_duration = int(self.env['ir.config_parameter'].sudo().get_param('hr_timesheet.timesheet_min_duration', 0))
+        rounding = int(self.env['ir.config_parameter'].sudo().get_param('hr_timesheet.timesheet_rounding', 0))
+        minutes_spent = max(minimum_duration, minutes_spent)
+        if rounding and ceil(minutes_spent % rounding) != 0:
+            minutes_spent = ceil(minutes_spent / rounding) * rounding
+        return minutes_spent
                 

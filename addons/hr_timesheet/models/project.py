@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
-from math import ceil
 
 from odoo import models, fields, api, _
 from odoo.exceptions import UserError, ValidationError
@@ -188,14 +187,6 @@ class Task(models.Model):
             minutes_spent = self._timer_rounding(minutes_spent)
             return self._action_create_timesheet(minutes_spent * 60 / 3600)
         return False
-
-    def _timer_rounding(self, minutes_spent):
-        minimum_duration = int(self.env['ir.config_parameter'].sudo().get_param('hr_timesheet.timesheet_min_duration', 0))
-        rounding = int(self.env['ir.config_parameter'].sudo().get_param('hr_timesheet.timesheet_rounding', 0))
-        minutes_spent = max(minimum_duration, minutes_spent)
-        if rounding and ceil(minutes_spent % rounding) != 0:
-            minutes_spent = ceil(minutes_spent / rounding) * rounding
-        return minutes_spent
 
     def _action_create_timesheet(self, time_spent):
         return {

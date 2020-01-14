@@ -7,7 +7,6 @@ class TimerTimer(models.Model):
     _name = 'timer.timer'
     _description = 'Timer Module'
 
-
     timer_start = fields.Datetime("Timer Start")
     timer_pause = fields.Datetime("Timer Last Pause")
     is_timer_running = fields.Boolean(compute="_compute_timer")
