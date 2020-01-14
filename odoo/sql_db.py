@@ -197,8 +197,11 @@ class Cursor(object):
 
         self.cache = {}
 
-        # event handlers, see method after() below
-        self._event_handlers = {'commit': [], 'rollback': []}
+        # pre/post-commit/rollback hooks
+        self._precommit = tools.AggCallbacks()
+        self._postcommit = tools.AggCallbacks()
+        self._prerollback = tools.AggCallbacks()
+        self._postrollback = tools.AggCallbacks()
 
     def __build_dict(self, row):
         return {d.name: row[i] for i, d in enumerate(self._obj.description)}
@@ -373,22 +376,37 @@ class Cursor(object):
             back or committed independently. You may consider the use of a
             dedicated temporary cursor to do some database operation.
         """
-        self._event_handlers[event].append(func)
+        if event == 'commit':
+            self.postcommit(func)
+        elif event == 'rollback':
+            self.postrollback(func)
 
-    def _pop_event_handlers(self):
-        # return the current handlers, and reset them on self
-        result = self._event_handlers
-        self._event_handlers = {'commit': [], 'rollback': []}
-        return result
+    @check
+    def precommit(self, func, *types, recurrent=False):
+        return self._precommit.register(func, *types, recurrent=recurrent)
+
+    @check
+    def postcommit(self, func, *types, recurrent=False):
+        return self._postcommit.register(func, *types, recurrent=recurrent)
+
+    @check
+    def prerollback(self, func, *types, recurrent=False):
+        return self._prerollback.register(func, *types, recurrent=recurrent)
+
+    @check
+    def postrollback(self, func, *types, recurrent=False):
+        return self._postrollback.register(func, *types, recurrent=recurrent)
 
     @check
     def commit(self):
         """ Perform an SQL `COMMIT`
         """
         flush_env(self)
+        self._precommit()
         result = self._cnx.commit()
-        for func in self._pop_event_handlers()['commit']:
-            func()
+        self._prerollback.clear()
+        self._postrollback.clear()
+        self._postcommit()
         return result
 
     @check
@@ -396,9 +414,11 @@ class Cursor(object):
         """ Perform an SQL `ROLLBACK`
         """
         clear_env(self)
+        self._precommit.clear()
+        self._postcommit.clear()
+        self._prerollback()
         result = self._cnx.rollback()
-        for func in self._pop_event_handlers()['rollback']:
-            func()
+        self._postrollback()
         return result
 
     def __enter__(self):
@@ -425,14 +445,20 @@ class Cursor(object):
         name = uuid.uuid1().hex
         if flush:
             flush_env(self)
+            self._precommit()
+            self._prerollback.clear()
         self.execute('SAVEPOINT "%s"' % name)
         try:
             yield
             if flush:
                 flush_env(self)
+                self._precommit()
+                self._prerollback.clear()
         except Exception:
             if flush:
                 clear_env(self)
+                self._precommit.clear()
+                self._prerollback()
             self.execute('ROLLBACK TO SAVEPOINT "%s"' % name)
             raise
         else:
