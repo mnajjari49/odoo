@@ -187,6 +187,18 @@ class Field(MetaField('DummyField', (object,), {})):
 
         .. seealso:: :ref:`Advanced Fields/Compute fields <reference/fields/compute>`
 
+    :param bool pre_compute: whether the field should be computed after record insertion
+        in database (e.g. statistics fields based on search/read_group), many2one
+        linking to the previous record, ...
+
+        .. note::
+
+            Since https://github.com/odoo/odoo/pull/42560, stored computes are computed
+            before record creation to allow enforcing SQL constraints (and required)
+            on computed fields (readonly or not).  This means that some computed fields
+            have to be manually specified as pre_compute=False if their computation method
+            or their behavior needs it.
+
     :param bool compute_sudo: whether the field should be recomputed as superuser
         to bypass access rights (by default ``True`` for stored fields, ``False``
         for non stored fields)
