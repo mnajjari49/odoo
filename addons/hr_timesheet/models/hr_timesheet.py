@@ -233,4 +233,6 @@ class AccountAnalyticLine(models.Model):
             else:
                 amount = self.unit_amount + minutes_spent * 60 / 3600
             self.write({'unit_amount': amount})
-                
+    
+    def interruption(self):
+        self.action_timer_stop()

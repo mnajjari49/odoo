@@ -7,9 +7,7 @@ from odoo import models, fields, api
 class TimerMixin(models.AbstractModel):
     _name = 'timer.mixin'
     _description = 'Timer Mixin'
-
-    # timer_id = fields.Many2one('timer.timer', compute='_compute_user_timer')
-    # timer_ids = fields.One2many('timer.timer', compute='_compute_user_timer')
+    
     timer_start = fields.Datetime(compute='_compute_is_timer_running')
     timer_pause = fields.Datetime(compute='_compute_is_timer_running')
     is_timer_running = fields.Boolean(compute='_compute_is_timer_running')
@@ -25,7 +23,8 @@ class TimerMixin(models.AbstractModel):
         self.ensure_one()
         return self.env['timer.timer'].search([
             ('user_id', '=', self.env.user.id),
-            ('res_id', '=', self.id)
+            ('res_id', '=', self.id),
+            ('res_model', '=', self._name)
         ], limit=1)
 
     def _is_timer_user_running(self):
@@ -59,9 +58,6 @@ class TimerMixin(models.AbstractModel):
         
 
     def action_timer_stop(self):
-        """ 
-        
-        """
         self.ensure_one()
         timer = self._get_record_timer()
         minutes_spent = timer.action_timer_stop()
@@ -81,21 +77,22 @@ class TimerMixin(models.AbstractModel):
         self.stop_timer_in_progress()
         timer = self._get_record_timer()
         timer.action_timer_resume()
+    
+    def interruption(self):
+        self.action_timer_pause()
 
     def stop_timer_in_progress(self):
-        # Cancel the timer in progress if there is one
-        # Depending of the timer source, stop it or pause it
+        """
+        Cancel the timer in progress if there is one
+        Each model can interrupt the running timer in a specific way
+        By setting it in pause or stop by example
+        """
+        # The loop will be trigered only one time because only one timer
+        # can be running at the same time
         for timer in self._get_user_timers().filtered(lambda t: t.is_timer_running):
-            if timer.res_model != 'account.analytic.line':
-                timer.action_timer_pause()
-            else:
-                minutes_spent = timer.action_timer_stop()
-                timesheet = self.env['account.analytic.line'].search([
-                        ('id', '=', timer.res_id)
-                    ])
-                if(timesheet):
-                    timesheet._compute_timer_time(minutes_spent)
-
-                self.env['timer.timer'].search([
-                        ('id', '=', timer.id)
-                    ]).unlink()
+            model = self.env[timer.res_model].search([
+                            ('id', '=', timer.res_id)
+                        ])
+            
+            model.interruption()
+                
