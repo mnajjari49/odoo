@@ -99,7 +99,7 @@ access_account_tax_report_ac_user,account.tax.report.ac.user,model_account_tax_r
 "access_account_unreconcile","access.account.unreconcile","model_account_unreconcile","account.group_account_user",1,0,1,0
 "access_validate_account_move","access.validate.account.move","model_validate_account_move","account.group_account_user",1,0,1,0
 "access_cash_box_out","access.cash.box.out","model_cash_box_out","account.group_account_user",1,0,1,0
-"access_account_move_reversal","access.account.move.reversal","model_account_move_reversal","account.group_account_user",1,0,1,0
+"access_account_move_reversal","access.account.move.reversal","model_account_move_reversal","account.group_account_user",1,1,1,0
 "access_account_common_report","access.account.common.report","model_account_common_report","account.group_account_user",1,0,1,0
 "access_account_common_journal_report","access.account.common.journal.report","model_account_common_journal_report","account.group_account_user",1,0,1,0
 "access_account_print_journal","access.account.print.journal","model_account_print_journal","account.group_account_user",1,0,1,0
@@ -107,3 +107,4 @@ access_account_tax_report_ac_user,account.tax.report.ac.user,model_account_tax_r
 "access_account_setup_bank_manual_config","access.account.setup.bank.manual.config","model_account_setup_bank_manual_config","account.group_account_user",1,0,1,0
 "access_tax_adjustments_wizard","access.tax.adjustments.wizard","model_tax_adjustments_wizard","account.group_account_user",1,0,1,0
 "access_account_invoice_send","access.account.invoice.send","model_account_invoice_send","account.group_account_user",1,0,1,0
+"access_account_transfer_wizard","access.account.transfer.wizard","model_account_transfer_wizard","account.group_account_user",1,1,1,0
