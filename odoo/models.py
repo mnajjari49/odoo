@@ -225,9 +225,6 @@ IdType = (int, str, NewId)
 # maximum number of prefetched records
 PREFETCH_MAX = 1000
 
-# maximum number of loops in flush()
-FLUSH_MAX_ITERATIONS = 10
-
 # special columns automatically created by the ORM
 LOG_ACCESS_COLUMNS = ['create_uid', 'create_date', 'write_uid', 'write_date']
 MAGIC_COLUMNS = ['id'] + LOG_ACCESS_COLUMNS
@@ -5418,17 +5415,10 @@ Record ids: %(records)s
 
         if fnames is None:
             # flush everything
-            for _index in range(FLUSH_MAX_ITERATIONS):
-                self.recompute()
-                while self.env.all.towrite:
-                    model_name, id_vals = self.env.all.towrite.popitem()
-                    process(self.env[model_name], id_vals)
-                self.env.toflush()
-                if not (self.env.all.tocompute or self.env.all.towrite):
-                    break
-            else:
-                raise Exception("Too many recursive recomputations")
-
+            self.recompute()
+            while self.env.all.towrite:
+                model_name, id_vals = self.env.all.towrite.popitem()
+                process(self.env[model_name], id_vals)
         else:
             # flush self's model if any of the fields must be flushed
             self.recompute(fnames, records=records)
