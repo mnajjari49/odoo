@@ -9,14 +9,18 @@
                 <field name="journal_id" invisible="1"/>
                 <field name="move_ids" invisible="1"/>
                 <field name="new_values" invisible="1"/>
+                <field name="sequence_number_reset" invisible="1"/>
+                <field name="has_active_ids" invisible="1"/>
                 <group>
-                    <group>
+                    <group attrs="{'invisible': [('has_active_ids', '=', True)]}">
                         <field name="first_date" required="1"/>
-                        <field name="first_name"/>
                     </group>
                     <group>
-                        <field name="end_date"/>
+                        <field name="end_date" attrs="{'invisible': [('has_active_ids', '=', True)]}"/>
                         <field name="ordering" widget="radio"/>
+                    </group>
+                    <group>
+                        <field name="first_name"/>
                     </group>
                 </group>
                 <label for="preview_moves" string="Preview Modifications"/>
@@ -27,6 +31,16 @@
                 </footer>
             </form>
             </field>
+        </record>
+
+        <record id="action_account_resequence" model="ir.actions.act_window">
+            <field name="name">Resequence</field>
+            <field name="res_model">account.resequence.wizard</field>
+            <field name="view_mode">form</field>
+            <field name="view_id" ref="account_resequence_view"/>
+            <field name="target">new</field>
+            <field name="binding_model_id" ref="account.model_account_move" />
+            <field name="binding_view_types">list</field>
         </record>
     </data>
 </odoo>

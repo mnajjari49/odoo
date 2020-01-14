@@ -1279,7 +1279,7 @@ class TestAccountMoveOutInvoiceOnchanges(AccountTestInvoicingCommon):
         ], {
             **self.move_vals,
             'invoice_payment_term_id': None,
-            'name': 'RINV/2019/00001',
+            'name': 'RINV/2019/02/0001',
             'date': move_reversal.date,
             'state': 'draft',
             'ref': 'Reversal of: %s, %s' % (self.invoice.name, move_reversal.reason),
@@ -2043,7 +2043,7 @@ class TestAccountMoveOutInvoiceOnchanges(AccountTestInvoicingCommon):
             {
                 **self.term_line_vals_1,
                 'currency_id': self.currency_data['currency'].id,
-                'name': 'INV/2017/00001',
+                'name': 'INV/2017/01/0001',
                 'amount_currency': 1410.0,
                 'debit': 705.0,
                 'credit': 0.0,
@@ -2053,7 +2053,7 @@ class TestAccountMoveOutInvoiceOnchanges(AccountTestInvoicingCommon):
             **self.move_vals,
             'currency_id': self.currency_data['currency'].id,
             'date': fields.Date.from_string('2017-01-01'),
-            'invoice_payment_ref': 'INV/2017/00001',
+            'invoice_payment_ref': 'INV/2017/01/0001',
         })
 
         accrual_lines = move.invoice_line_ids.mapped('matched_debit_ids.debit_move_id.move_id.line_ids').sorted('date')

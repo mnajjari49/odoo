@@ -946,7 +946,6 @@ class AccountJournal(models.Model):
     company_id = fields.Many2one('res.company', string='Company', required=True, index=True, default=lambda self: self.env.company,
         help="Company related to this journal")
 
-    sequence_number_reset = fields.Selection([('never', 'Never'), ('year', 'Yearly'), ('month', 'Monthly')], required=True, default='year')
     refund_sequence = fields.Boolean(string='Dedicated Credit Note Sequence', help="Check this box if you don't want to share the same sequence for invoices and credit notes made from this journal", default=False)
 
     inbound_payment_method_ids = fields.Many2many('account.payment.method', 'account_journal_inbound_payment_method_rel', 'journal_id', 'inbound_payment_method',

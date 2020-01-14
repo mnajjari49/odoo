@@ -14,24 +14,34 @@ class ReSequenceWizard(models.TransientModel):
     _description = 'Remake the sequence of Journal Entries.'
 
     journal_id = fields.Many2one('account.journal', readonly=True, required=True)
+    sequence_number_reset = fields.Char(compute='_compute_sequence_number_reset')
     first_date = fields.Date(help="Date (inclusive) from which the numbers are resequenced.")
-    end_date = fields.Date(compute="_compute_end_date", readonly=False, store=True, help="Date (inclusive) to which the numbers are resequenced. If not set, all Journal Entries up to the end of the period are resequenced.")
-    first_name = fields.Char(compute="_compute_first_name", readonly=False, store=True, string="First New Sequence")
+    end_date = fields.Date(help="Date (inclusive) to which the numbers are resequenced. If not set, all Journal Entries up to the end of the period are resequenced.")
+    first_name = fields.Char(compute="_compute_first_name", readonly=False, store=True, required=True, string="First New Sequence")
     ordering = fields.Selection([('keep', 'Keep current order'), ('date', 'Reorder by accounting date')], required=True, default='keep')
-    move_ids = fields.Many2many('account.move', compute="_compute_move_ids")
+    move_ids = fields.Many2many('account.move', compute="_compute_move_ids", store=True)
     new_values = fields.Text(compute='_compute_new_values')
     preview_moves = fields.Text(compute='_compute_preview_moves')
+    has_active_ids = fields.Boolean()
 
-    @api.depends('journal_id', 'first_date')
-    def _compute_end_date(self):
+    @api.model
+    def default_get(self, fields_list):
+        values = super(ReSequenceWizard, self).default_get(fields_list)
+        if 'active_ids' in self.env.context and self.env.context['active_model'] == 'account.move' and self.env.context['active_ids']:
+            values['has_active_ids'] = True
+            active_move_ids = self.env['account.move'].browse(self.env.context['active_ids'])
+            if len(active_move_ids.journal_id) != 1:
+                raise UserError(_('You can only resequence items from the same journal'))
+            min_name = min(active_move_ids.mapped('name'))
+            max_name = max(active_move_ids.mapped('name'))
+            move_ids = self.env['account.move'].search([('journal_id', '=', active_move_ids.journal_id.id), ('name', '<=', max_name), ('name', '>=', min_name)])
+            values['move_ids'] = [(6, 0, move_ids.ids)]
+        return values
+
+    @api.depends('first_name')
+    def _compute_sequence_number_reset(self):
         for record in self:
-            if record.first_date:
-                if record.journal_id.sequence_number_reset == 'year':
-                    record.end_date = get_fiscal_year(record.first_date)[1]
-                elif record.journal_id.sequence_number_reset == 'month':
-                    record.end_date = get_month(record.first_date)[1]
-            if not record.end_date:
-                record.end_date = False
+            record.sequence_number_reset = self.env['account.move']._deduce_sequence_number_reset(record.first_name)
 
     @api.depends('move_ids')
     def _compute_first_name(self):
@@ -40,9 +50,9 @@ class ReSequenceWizard(models.TransientModel):
             if record.move_ids:
                 record.first_name = min(record.move_ids._origin.mapped('name'))
 
-    @api.depends('journal_id', 'first_date', 'end_date')
+    @api.depends('journal_id', 'first_date', 'end_date', 'has_active_ids')
     def _compute_move_ids(self):
-        for record in self:
+        for record in self.filtered(lambda r: not r.has_active_ids):
             domain = [('journal_id', '=', record.journal_id.id)]
             domain += [('date', '>=', record.first_date)]
             domain += [('posted_before', '=', 'True')]
@@ -52,6 +62,7 @@ class ReSequenceWizard(models.TransientModel):
 
     @api.depends('new_values', 'ordering')
     def _compute_preview_moves(self):
+        """Reduce the computed new_values to a smaller set to display in the preview."""
         for record in self:
             new_values = sorted(json.loads(record.new_values).values(), key=lambda x: x['server-date'], reverse=True)
             changeLines = []
@@ -59,8 +70,8 @@ class ReSequenceWizard(models.TransientModel):
             previous_line = None
             for i, line in enumerate(new_values):
                 if i < 3 or i == len(new_values) - 1 or line['new_by_name'] != line['new_by_date'] \
-                 or (self.journal_id.sequence_number_reset == 'year' and line['server-date'][0:4] != previous_line['server-date'][0:4])\
-                 or (self.journal_id.sequence_number_reset == 'month' and line['server-date'][0:7] != previous_line['server-date'][0:7]):
+                 or (self.sequence_number_reset == 'year' and line['server-date'][0:4] != previous_line['server-date'][0:4])\
+                 or (self.sequence_number_reset == 'month' and line['server-date'][0:7] != previous_line['server-date'][0:7]):
                     if in_elipsis:
                         changeLines.append({'current_name': '... (%s other)' % str(in_elipsis), 'new_by_name': '...', 'new_by_date': '...', 'date': '...'})
                         in_elipsis = 0
@@ -75,30 +86,43 @@ class ReSequenceWizard(models.TransientModel):
             })
 
     def _get_move_key(self, move_id):
-        if self.journal_id.sequence_number_reset == 'year':
+        if self.sequence_number_reset == 'year':
             return move_id.date.year
-        elif self.journal_id.sequence_number_reset == 'month':
+        elif self.sequence_number_reset == 'month':
             return (move_id.date.year, move_id.date.month)
         return 'default'
 
-    @api.depends('first_name', 'move_ids')
+    @api.depends('first_name', 'move_ids', 'sequence_number_reset')
     def _compute_new_values(self):
+        """Compute the proposed new values.
+
+        Sets a json string on new_values representing a dictionary thats maps account.move
+        ids to a disctionay containing the name if we execute the action, and information
+        relative to the preview widget.
+        """
+        def _get_move_key(move_id):
+            if self.sequence_number_reset == 'year':
+                return move_id.date.year
+            elif self.sequence_number_reset == 'month':
+                return (move_id.date.year, move_id.date.month)
+            return 'default'
+
         self.new_values = "{}"
         for record in self.filtered('first_name'):
             sorted = defaultdict(lambda: record.env['account.move'])
             for move in record.move_ids._origin:
-                sorted[record._get_move_key(move)] += move
+                sorted[_get_move_key(move)] += move
 
             try:
-                if record.journal_id.sequence_number_reset == 'year':
-                    sequence = re.match(r'(?P<prefix1>.*?)(?P<year>\d{4})(?P<prefix2>.*?)(?P<seq>\d+)$', record.first_name)
+                if record.sequence_number_reset == 'year':
+                    sequence = re.match(self.env['account.move']._sequence_yearly_regex, record.first_name)
                     format = '{prefix1}%(year)04d{prefix2}%(seq)0{len}d'.format(
                         prefix1=sequence.group('prefix1'),
                         prefix2=sequence.group('prefix2'),
                         len=len(sequence.group('seq')),
                     )
-                elif record.journal_id.sequence_number_reset == 'month':
-                    sequence = re.match(r'(?P<prefix1>.*?)(?P<year>\d{4})(?P<prefix2>.*?)(?P<month>\d{2})(?P<prefix3>.*?)(?P<seq>\d+)$', record.first_name)
+                elif record.sequence_number_reset == 'month':
+                    sequence = re.match(self.env['account.move']._sequence_monthly_regex, record.first_name)
                     format = '{prefix1}%(year)04d{prefix2}%(month)02d{prefix3}%(seq)0{len}d'.format(
                         prefix1=sequence.group('prefix1'),
                         prefix2=sequence.group('prefix2'),
@@ -106,7 +130,7 @@ class ReSequenceWizard(models.TransientModel):
                         len=len(sequence.group('seq')),
                     )
                 else:
-                    sequence = re.match(r'(?P<prefix>.*?)(?P<seq>\d*)$', record.first_name)
+                    sequence = re.match(self.env['account.move']._sequence_fixed_regex, record.first_name)
                     format = '{prefix}%(seq)0{len}d'.format(
                         prefix=sequence.group('prefix'),
                         len=len(sequence.group('seq')),
