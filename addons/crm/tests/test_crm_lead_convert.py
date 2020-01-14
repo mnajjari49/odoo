@@ -8,6 +8,10 @@ from odoo.tests.common import tagged, users
 
 @tagged('lead_manage')
 class TestLeadConvert(crm_common.TestLeadConvertCommon):
+    """
+    TODO: created partner (handle assignation) has team of lead
+    TODO: create partner has user_id  coming from wizard
+    """
 
     @classmethod
     def setUpClass(cls):
@@ -297,7 +301,7 @@ class TestLeadConvertMass(crm_common.TestLeadConvertMassCommon):
         self.assertEqual(mass_convert.user_id, self.user_sales_salesman)
         self.assertEqual(mass_convert.team_id, self.sales_team_convert)
 
-        mass_convert.mass_convert()
+        mass_convert.action_mass_convert()
         for lead in self.lead_1 | self.lead_w_partner:
             self.assertEqual(lead.type, 'opportunity')
             if lead == self.lead_w_partner:
@@ -313,7 +317,7 @@ class TestLeadConvertMass(crm_common.TestLeadConvertMassCommon):
         mass_convert.write({
             'user_ids': self.user_sales_salesman.ids,
         })
-        mass_convert.mass_convert()
+        mass_convert.action_mass_convert()
         self.assertEqual(self.lead_w_partner.user_id, self.user_sales_salesman)
         self.assertEqual(self.lead_1.user_id, self.user_sales_leads)  # existing value not forced
 
@@ -338,7 +342,7 @@ class TestLeadConvertMass(crm_common.TestLeadConvertMassCommon):
         })
 
         # TDE FIXME: what happens if we mix people from different sales team ? currently nothing, to check
-        mass_convert.mass_convert()
+        mass_convert.action_mass_convert()
 
         for idx, lead in enumerate(self.leads - self.lead_w_email_lost):
             self.assertEqual(lead.type, 'opportunity')

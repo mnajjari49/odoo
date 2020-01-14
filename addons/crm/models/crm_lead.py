@@ -1020,31 +1020,22 @@ class Lead(models.Model):
 
         return False
 
-    def handle_partner_assignation(self, action='create', partner_id=False):
-        """ Handle partner assignation during a lead conversion.
+    def handle_partner_assignation(self, force_partner_id=False, create_missing=True):
+        """ Update customer (partner_id) of leads. Purpose is to set the same
+        partner on most leads; either through a newly created partner either
+        through a given partner_id.
 
-        If action is 'create', create new partner with contact and assign lead to
-        new partner_id. Otherwise assign lead to the specified partner_id
-
-        TDE FIXME: docstring does not match code... code seems a bit random.
-
-        :param string action: what has to be done regarding partners (create it, assign an existing one, or nothing)
-        :param int partner_id: partner to assign if any
-        :return: dict(lead_id: partner_id)
+        :param int force_partner_id: if set, update all leads to that customer;
+        :param create_missing: for leads without customer, create a new one
+          based on lead information;
         """
-        partner_ids = {}
         for lead in self:
-            if partner_id:
-                lead.partner_id = partner_id
-            if lead.partner_id:
-                partner_ids[lead.id] = lead.partner_id.id
-                continue
-            if action == 'create':
+            if force_partner_id:
+                lead.partner_id = force_partner_id
+            if not lead.partner_id and create_missing:
                 partner = lead._create_lead_partner()
-                partner_id = partner.id
-                partner.team_id = lead.team_id
-            partner_ids[lead.id] = partner_id
-        return partner_ids
+                lead.partner_id = partner.id
+        return True
 
     def allocate_salesman(self, user_ids=None, team_id=False):
         """ Assign salesmen and salesteam to a batch of leads.  If there are more

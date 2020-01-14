@@ -55,20 +55,18 @@ class Lead2OpportunityMassConvert(models.TransientModel):
 
         self.opportunity_ids = self.env['crm.lead'].browse(leads_with_duplicates)
 
-    def _convert_opportunity(self, vals):
+    def _convert_opportunity(self, leads, user_ids, team_id=False):
         """ When "massively" (more than one at a time) converting leads to
             opportunities, check the salesteam_id and salesmen_ids and update
             the values before calling super.
         """
         self.ensure_one()
-        salesteam_id = self.team_id.id if self.team_id else False
         salesmen_ids = []
         if self.user_ids:
             salesmen_ids = self.user_ids.ids
-        vals.update({'user_ids': salesmen_ids, 'team_id': salesteam_id})
-        return super(Lead2OpportunityMassConvert, self)._convert_opportunity(vals)
+        return super(Lead2OpportunityMassConvert, self)._convert_opportunity(leads, salesmen_ids, team_id=team_id)
 
-    def mass_convert(self):
+    def action_mass_convert(self):
         self.ensure_one()
         if self.name == 'convert' and self.deduplicate:
             merged_lead_ids = set()
@@ -88,3 +86,9 @@ class Lead2OpportunityMassConvert(models.TransientModel):
             self = self.with_context(active_ids=list(active_ids))  # only update active_ids when there are set
         no_force_assignation = self._context.get('no_force_assignation', not self.force_assignation)
         return self.with_context(no_force_assignation=no_force_assignation).action_apply()
+
+    def _apply_convert_action(self, lead, action, partner_id):
+        if self.action == 'each_exist_or_create':
+            partner_id = lead._find_matching_partner()
+            action = 'create'
+        return super(Lead2OpportunityMassConvert, self)._apply_convert_action(lead, action, partner_id)

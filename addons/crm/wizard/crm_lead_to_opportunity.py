@@ -90,70 +90,53 @@ class Lead2OpportunityPartner(models.TransientModel):
                 raise UserError(_("Closed/Dead leads cannot be converted into opportunities."))
         return False
 
-    def _convert_opportunity(self, vals):
+    def _convert_opportunity(self, leads, user_ids, team_id=False):
         self.ensure_one()
 
-        res = False
-
-        leads = self.env['crm.lead'].browse(vals.get('lead_ids'))
         for lead in leads:
-            self_def_user = self.with_context(default_user_id=self.user_id.id)
+            if lead.active and self.action != 'nothing':
+                self._apply_convert_action(
+                    lead, self.action, self.partner_id.id or lead.partner_id.id)
 
-            partner_id = False
-            if self.action != 'nothing':
-                partner_id = self_def_user._create_partner(
-                    lead.id, self.action, vals.get('partner_id') or lead.partner_id.id)
-
-            res = lead.convert_opportunity(partner_id, [], False)
-        user_ids = vals.get('user_ids')
+            lead.convert_opportunity(lead.partner_id.id, [], False)
 
         leads_to_allocate = leads
         if self._context.get('no_force_assignation'):
             leads_to_allocate = leads_to_allocate.filtered(lambda lead: not lead.user_id)
 
         if user_ids:
-            leads_to_allocate.allocate_salesman(user_ids, team_id=(vals.get('team_id')))
-
-        return res
+            leads_to_allocate.allocate_salesman(user_ids, team_id=team_id)
 
     def action_apply(self):
         """ Convert lead to opportunity or merge lead and opportunity and open
             the freshly created opportunity view.
         """
         self.ensure_one()
-        values = {
-            'team_id': self.team_id.id,
-        }
-
-        if self.partner_id:
-            values['partner_id'] = self.partner_id.id
 
         if self.name == 'merge':
-            leads = self.with_context(active_test=False).opportunity_ids.merge_opportunity()
-            if not leads.active:
-                leads.write({'active': True, 'activity_type_id': False, 'lost_reason': False})
-            if leads.type == "lead":
-                values.update({'lead_ids': leads.ids, 'user_ids': [self.user_id.id]})
-                self.with_context(active_ids=leads.ids)._convert_opportunity(values)
-            elif not self._context.get('no_force_assignation') or not leads.user_id:
-                values['user_id'] = self.user_id.id
-                leads.write(values)
+            result_opportunity = self.with_context(active_test=False).opportunity_ids.merge_opportunity()
+            if not result_opportunity.active:
+                result_opportunity.write({'active': True, 'activity_type_id': False, 'lost_reason': False})
+
+            if result_opportunity.type == "lead":
+                self._convert_opportunity(result_opportunity, [self.user_id.id], team_id=self.team_id.id)
+            elif not self._context.get('no_force_assignation') or not result_opportunity.user_id:
+                result_opportunity.write({
+                    'user_id': self.user_id.id,
+                    'team_id': self.team_id.id,
+                })
         else:
-            leads = self.env['crm.lead'].browse(self._context.get('active_ids', []))
-            values.update({'lead_ids': leads.ids, 'user_ids': [self.user_id.id]})
-            self._convert_opportunity(values)
+            result_opportunities = self.env['crm.lead'].browse(self._context.get('active_ids', []))
+            self._convert_opportunity(result_opportunities, [self.user_id.id], team_id=self.team_id.id)
+            result_opportunity = result_opportunities[0]
 
-        return leads[0].redirect_lead_opportunity_view()
+        return result_opportunity.redirect_lead_opportunity_view()
 
-    def _create_partner(self, lead_id, action, partner_id):
-        """ Create partner based on action.
-            :return dict: dictionary organized as followed: {lead_id: partner_assigned_id}
-        """
-        #TODO this method in only called by Lead2OpportunityPartner
-        #wizard and would probably diserve to be refactored or at least
-        #moved to a better place
-        if action == 'each_exist_or_create':
-            partner_id = self.env['crm.lead'].browse(lead_id)._find_matching_partner()
-            action = 'create'
-        result = self.env['crm.lead'].browse(lead_id).handle_partner_assignation(action, partner_id)
-        return result.get(lead_id)
+    def _apply_convert_action(self, lead, action, partner_id):
+        # used to propagate user_id (salesman) on created partners during conversion
+        return lead.with_context(
+            default_user_id=self.user_id.id
+        ).handle_partner_assignation(
+            force_partner_id=partner_id,
+            create_missing=(action == 'create')
+        )

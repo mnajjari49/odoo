@@ -43,7 +43,7 @@
                     </group>
                 </group>
                 <footer>
-                    <button name="mass_convert" string="Convert to Opportunities" type="object" class="btn-primary"/>
+                    <button string="Convert to Opportunities" name="action_mass_convert" type="object" class="btn-primary"/>
                     <button string="Cancel" class="btn-secondary" special="cancel"/>
                 </footer>
             </form>
@@ -56,7 +56,6 @@
         res_model="crm.lead2opportunity.partner.mass"
         binding_model="crm.lead" binding_views="list"
         view_mode="form" target="new"
-        context="{'mass_convert' : True}"
         view_id="view_crm_lead2opportunity_partner_mass"
         groups="sales_team.group_sale_salesman"
     />
