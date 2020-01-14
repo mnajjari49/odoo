@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="PromoProgramButton">
+        <div class='control-button'>
+            <i class='fa fa-star' /> Reset Programs
+        </div>
+    </t>
+
+    <t t-name="PromoCodeButton">
+        <div class='control-button'>
+            <i class='fa fa-barcode' /> Enter Code
+        </div>
+    </t>
+
+    <t t-extend="OrderReceipt">
+        <t t-jquery='.before-footer' t-operation='append'>
+            <t t-if="receipt.generated_coupons &amp;&amp; receipt.generated_coupons.length !== 0">
+                <div class="pos-coupon-rewards">
+                    <div>------------------------</div>
+                    <br/>
+                    <div>
+                        Coupon Codes
+                    </div>
+                    <t t-foreach="receipt.generated_coupons" t-as="coupon_info">
+                        <div class="coupon-container">
+                            <div style="font-size: 110%;">
+                                <t t-esc="coupon_info['program_name']"/>
+                            </div>
+                            <div>
+                                Valid until: <t t-esc="coupon_info['expiration_date'] ? coupon_info['expiration_date'] : 'no expiration'"/>
+                            </div>
+                            <div>
+                                <img t-att-src="'/report/barcode/Code128/'+coupon_info['code']" style="width:200px;height:50px" alt="Barcode"/>
+                            </div>
+                            <div>
+                                <t t-esc="coupon_info['code']"/>
+                            </div>
+                        </div>
+                    </t>
+                </div>
+            </t>
+        </t>
+    </t>
+
+    <t t-extend="OrderWidget">
+        <t t-jquery='.summary .line' t-operation='append'>
+            <div class="active-programs"></div>
+        </t>
+    </t>
+
+    <t t-name="ActivePrograms">
+        <div class="active-programs">
+            <div t-if="show">
+                <div class="title">Active Programs</div>
+                <t t-foreach="with_rewards_promo_programs" t-as="program">
+                    <div>
+                        <t t-esc="program.name"/>
+                        <span t-if="program.promo_code !== false">
+                            (<t t-esc="program.promo_code"/>)
+                        </span>
+                    </div>
+                </t>
+                <t t-foreach="with_rewards_booked_coupons" t-as="coupon">
+                    <div>
+                        <t t-esc="coupon.program_name"/> (<t t-esc="coupon.coupon_code"/>)
+                    </div>
+                </t>
+                <t t-foreach="on_next_order_promo_programs" t-as="program">
+                    <div style="font-style: italic;">
+                        <t t-esc="program.name"/>
+                        <span t-if="program.promo_code !== false">
+                            (<t t-esc="program.promo_code"/>)
+                        </span>
+                    </div>
+                </t>
+            </div>
+        </div>
+    </t>
+</templates>

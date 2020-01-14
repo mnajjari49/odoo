@@ -6,7 +6,7 @@
     'description': """Integrate coupon mechanism in orders.""",
     'category': 'Sales',
     'version': '1.0',
-    'depends': ['product', 'sales_team'],
+    'depends': ['product', 'sales_team', 'barcodes'],
     'data': [
         'wizard/coupon_generate_views.xml',
         'security/ir.model.access.csv',
@@ -15,6 +15,7 @@
         'report/coupon_report.xml',
         'report/coupon_report_templates.xml',
         'data/coupon_email_data.xml',
+        'data/default_barcode_patterns.xml',
     ],
     'demo': [
         'demo/coupon_demo.xml',

@@ -1,0 +1,16 @@
+
+.pos .order .summary .active-programs{
+    padding-top: 0.5em;
+    font-weight: normal;
+    font-size: 80%;
+}
+
+.summary .active-programs .title {
+    padding-top: 0.8em;
+    padding-bottom: 0.2em;
+    font-weight: bold;
+}
+
+.pos .order .orderline.program-reward {
+    font-style: italic;
+}

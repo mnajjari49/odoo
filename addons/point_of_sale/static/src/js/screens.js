@@ -2430,6 +2430,18 @@ var PaymentScreenWidget = ScreenWidget.extend({
         }
 
     },
+    /**
+     * This function is designed to be called after the order is synced
+     * to the server (more specifically after `push_order`) and before the
+     * receipt is shown in the screen. It is used in tandem with
+     * `wait_for_push_order` of the Order Model.
+     *
+     * If calling `wait_for_push_order` returns true for the given order,
+     * this async function is called before showing the receipt in the screen.
+     *
+     * @param {Order} order synced order
+     * @param {Array} server_ids database id of the synced order
+     */
     post_push_order_resolve: function(order, server_ids){
       var self = this;
       if (order.is_to_email()) {

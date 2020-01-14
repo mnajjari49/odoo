@@ -1835,7 +1835,6 @@ td {
 .pos .order .summary .line .subentry{
     font-size: 16px;
     font-weight: normal;
-    text-align: center;
 }
 .pos .order .summary .line.empty{
     text-align: right;
