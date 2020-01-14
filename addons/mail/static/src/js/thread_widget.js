@@ -458,6 +458,7 @@ var ThreadWidget = Widget.extend({
      *   permitted.
      */
     _renderMessageMailPopover: function (messages) {
+        // TODO SEB convert this to owl
         if (this._messageMailPopover) {
             this._messageMailPopover.popover('hide');
         }
