@@ -21,8 +21,8 @@ class AccountMove(models.Model):
     l10n_latam_country_code = fields.Char(
         related='company_id.country_id.code', help='Technical field used to hide/show fields regarding the localization')
 
-    def _get_previous_sequence_domain(self, relaxed=False):
-        where_string, param = super(AccountMove, self)._get_previous_sequence_domain(relaxed)
+    def _get_last_sequence_domain(self, relaxed=False):
+        where_string, param = super(AccountMove, self)._get_last_sequence_domain(relaxed)
         if self.l10n_latam_use_documents:
             where_string += " AND l10n_latam_document_type_id = %(l10n_latam_document_type_id)s "
             param['l10n_latam_document_type_id'] = self.l10n_latam_document_type_id.id or 0

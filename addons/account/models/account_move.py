@@ -906,23 +906,21 @@ class AccountMove(models.Model):
 
     @api.depends('journal_id', 'date', 'state')
     def _compute_name(self):
-        for record in self.sorted(lambda m: (m.date, m.ref, m.id)):
-            # If the record has no name and is not in these cases,
-            # that record has been wrongly created.
+        for record in self.sorted(lambda m: (m.date, m.ref or '', m.id)):
             if not record.name or record.name == '/':
-                if record.state == 'draft' and not record.posted_before:
-                    if record.name_prefix_editable:
-                        record._set_next_sequence('name')
-                    else:
-                        record.name = '/'
+                if record.state == 'draft' and not record.posted_before and record.name_prefix_editable:
+                    record._set_next_sequence()
                 elif record.state == 'posted':
-                    record._set_next_sequence('name')
+                    record._set_next_sequence()
+            if record.name and record.state == 'draft' and not record.posted_before and not record.name_prefix_editable:
+                record.name = '/'
+            record.name = record.name or '/'
 
     @api.depends('journal_id', 'date')
     def _compute_name_prefix_editable(self):
         self.name_prefix_editable = False
         for record in self:
-            if not record._get_previous_sequence('name'):
+            if not record._get_last_sequence('name'):
                 record.name_prefix_editable = True
 
     @api.depends('name')
@@ -931,19 +929,19 @@ class AccountMove(models.Model):
         self.name_number = False
         for record in self:
             if record.name and record.name != "/":
-                sequence = re.match(r'(?P<prefix>.*?)(?P<seq>\d*)$', record.name)
+                sequence = re.match(self._sequence_fixed_regex, record.name)
                 record.name_prefix = sequence.group('prefix')
                 record.name_number = sequence.group('seq')
 
     def _inverse_name_parts(self):
         for record in self:
             if record.name and record.name != '/':
-                sequence = re.match(r'(?P<prefix>.*?)(?P<seq>\d*)$', record.name)
+                sequence = re.match(self._sequence_fixed_regex, record.name)
                 if not re.match(r'^\d+$', record.name_number or ""):
                     raise ValidationError(_('You can only enter a number in the sequence now.'))
                 record.name = sequence.group('prefix') + record.name_number
 
-    def _get_previous_sequence_domain(self, relaxed=False):
+    def _get_last_sequence_domain(self, relaxed=False):
         self.ensure_one()
         if not self.date:
             return "WHERE FALSE"
@@ -951,10 +949,12 @@ class AccountMove(models.Model):
         param = {'journal_id': self.journal_id.id}
 
         if not relaxed:
-            if self.journal_id.sequence_number_reset == 'year':
+            reference_move = self.search([('journal_id', '=', self.journal_id.id), ('date', '<=', self.date), ('id', '!=', self.id or self._origin.id)], order='date desc', limit=1) or self.search([('journal_id', '=', self.journal_id.id), ('id', '!=', self.id or self._origin.id)], order='date asc', limit=1)
+            sequence_number_reset = self._deduce_sequence_number_reset(reference_move.name)
+            if sequence_number_reset == 'year':
                 where_string += " AND date_trunc('year', date) = date_trunc('year', %(date)s) "
                 param['date'] = self.date
-            elif self.journal_id.sequence_number_reset == 'month':
+            elif sequence_number_reset == 'month':
                 where_string += " AND date_trunc('month', date) = date_trunc('month', %(date)s) "
                 param['date'] = self.date
 
@@ -969,24 +969,20 @@ class AccountMove(models.Model):
     def _get_starting_sequence(self):
         self.ensure_one()
         # Try to find a pattern already used by relaxing a domain. If we are here, the domain non relaxed should return nothing.
-        last_sequence = self._get_previous_sequence('name', relaxed=True)
+        last_sequence = self._get_last_sequence('name', relaxed=True)
         if last_sequence:
-            if self.journal_id.sequence_number_reset == 'year':
-                sequence = re.match(r'(?P<prefix1>.*?)(?P<year>\d{4})(?P<prefix2>.*?)(?P<seq>\d+)$', last_sequence)
+            reference_move = self.search([('journal_id', '=', self.journal_id.id), ('date', '<=', self.date), ('id', '!=', self.id or self._origin.id)], order='date asc', limit=1) or self.search([('journal_id', '=', self.journal_id.id), ('id', '!=', self.id or self._origin.id)], order='date desc', limit=1)
+            sequence_number_reset = self._deduce_sequence_number_reset(reference_move.name)
+            if sequence_number_reset == 'year':
+                sequence = re.match(self._sequence_yearly_regex, last_sequence)
                 if sequence:
                     return '%s%04d%s%s' % (sequence.group('prefix1'), self.date.year, sequence.group('prefix2'), "0" * len(sequence.group('seq')))
-            elif self.journal_id.sequence_number_reset == 'month':
-                sequence = re.match(r'(?P<prefix1>.*?)(?P<year>\d{4})(?P<prefix2>.*?)(?P<month>\d{2})(?P<prefix3>.*?)(?P<seq>\d+)$', last_sequence)
+            elif sequence_number_reset == 'month':
+                sequence = re.match(self._sequence_monthly_regex, last_sequence)
                 if sequence:
                     return '%s%04d%s%02d%s%s' % (sequence.group('prefix1'), self.date.year, sequence.group('prefix2'), self.date.month, sequence.group('prefix3'), "0" * len(sequence.group('seq')))
 
-        # There was no pattern found, propose one
-        if self.journal_id.sequence_number_reset == 'year':
-            starting_sequence = "%s/%04d/00000" % (self.journal_id.code, self.date.year)
-        elif self.journal_id.sequence_number_reset == 'month':
-            starting_sequence = "%s/%04d/%02d/0000" % (self.journal_id.code, self.date.year, self.date.month)
-        elif self.journal_id.sequence_number_reset == 'never':
-            starting_sequence = "%s/00000000" % self.journal_id.code
+        starting_sequence = "%s/%04d/%02d/0000" % (self.journal_id.code, self.date.year, self.date.month)
         if self.journal_id.refund_sequence and self.type in ('out_refund', 'in_refund'):
             starting_sequence = "R" + starting_sequence
         return starting_sequence
@@ -1377,7 +1373,7 @@ class AccountMove(models.Model):
 
         # /!\ Computed stored fields are not yet inside the database.
         self._cr.execute('''
-            SELECT move2.id
+            SELECT move2.id, move2.name
             FROM account_move move
             INNER JOIN account_move move2 ON
                 move2.name = move.name
@@ -1386,9 +1382,10 @@ class AccountMove(models.Model):
                 AND move2.id != move.id
             WHERE move.id IN %s AND move2.state = 'posted'
         ''', [tuple(moves.ids)])
-        res = self._cr.fetchone()
+        res = self._cr.fetchall()
         if res:
-            raise ValidationError(_('Posted journal entry must have an unique sequence number per company.'))
+            raise ValidationError(_('Posted journal entry must have an unique sequence number per company.\n'
+                                    'Problematic numbers: %s\n') % ', '.join(r[1] for r in res))
 
     @api.constrains('ref', 'type', 'partner_id', 'journal_id', 'invoice_date')
     def _check_duplicate_supplier_reference(self):
@@ -3261,6 +3258,7 @@ class AccountMoveLine(models.Model):
                     raise UserError(_("You cannot edit the following fields due to restrict mode being activated on the journal: %s.") % ', '.join(INTEGRITY_HASH_LINE_FIELDS))
                 if any(key in vals for key in ('tax_ids', 'tax_line_ids')):
                     raise UserError(_('You cannot modify the taxes related to a posted journal item, you should reset the journal entry to draft to do so.'))
+            # When making a reconciliation on an existing liquidity journal item, mark the payment as reconciled
             if 'statement_line_id' in vals and line.payment_id:
                 # In case of an internal transfer, there are 2 liquidity move lines to match with a bank statement
                 if all(line.statement_id for line in line.payment_id.move_line_ids.filtered(
@@ -4299,6 +4297,7 @@ class AccountPartialReconcile(models.Model):
                 # recorded before the period lock date as the tax statement for this period is
                 # probably already sent to the estate.
                 newly_created_move.write({'date': move_date})
+                newly_created_move.recompute(['name'])
             # post move
             newly_created_move.post()
 

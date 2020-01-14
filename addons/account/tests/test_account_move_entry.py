@@ -306,39 +306,38 @@ class TestAccountMove(AccountTestInvoicingCommon):
             draft_moves.unlink()
 
     def test_journal_sequence(self):
-        self.assertEqual(self.test_move.name, 'MISC/2016/00001')
+        self.assertEqual(self.test_move.name, 'MISC/2016/01/0001')
         self.test_move.post()
-        self.assertEqual(self.test_move.name, 'MISC/2016/00001')
+        self.assertEqual(self.test_move.name, 'MISC/2016/01/0001')
 
         copy1 = self.test_move.copy()
         self.assertEqual(copy1.name, '/')
         copy1.post()
-        self.assertEqual(copy1.name, 'MISC/2016/00002')
+        self.assertEqual(copy1.name, 'MISC/2016/01/0002')
 
         copy2 = self.test_move.copy()
         new_journal = self.test_move.journal_id.copy()
-        new_journal.sequence_number_reset = 'month'
         new_journal.code = "MISC2"
         copy2.journal_id = new_journal
         self.assertEqual(copy2.name, 'MISC2/2016/01/0001')
-        copy2.name = 'MyMISC/3560/0001'
+        copy2.name = 'MyMISC/2099/0001'
         copy2.post()
-        self.assertEqual(copy2.name, 'MyMISC/3560/0001')
+        self.assertEqual(copy2.name, 'MyMISC/2099/0001')
 
         copy3 = copy2.copy()
         self.assertEqual(copy3.name, '/')
         copy3.post()
-        self.assertEqual(copy3.name, 'MyMISC/3560/0002')
+        self.assertEqual(copy3.name, 'MyMISC/2099/0002')
         copy3.name = 'MISC2/2016/00002'
 
         copy4 = copy2.copy()
         copy4.post()
-        self.assertEqual(copy4.name, 'MyMISC/3560/0002')
+        self.assertEqual(copy4.name, 'MyMISC/2099/0002')
 
         copy5 = copy2.copy()
-        copy5.date = '2020-02-02'
+        copy5.date = '2021-02-02'
         copy5.post()
-        self.assertEqual(copy5.name, 'MyMISC/2020/0201')
+        self.assertEqual(copy5.name, 'MyMISC/2021/0001')
         copy5.name = 'N\'importe quoi?'
 
         copy6 = copy5.copy()
@@ -346,6 +345,7 @@ class TestAccountMove(AccountTestInvoicingCommon):
         self.assertEqual(copy6.name, 'N\'importe quoi?1')
 
     def test_journal_sequence_ordering(self):
+        self.test_move.name = 'XMISC/2019/00001'
         copies = reduce((lambda x, y: x+y), [self.test_move.copy() for i in range(6)])
 
         copies[0].date = '2019-03-05'
@@ -356,49 +356,52 @@ class TestAccountMove(AccountTestInvoicingCommon):
         copies[5].date = '2019-03-05'
         copies.post()
 
-        # Ordonned by date
-        self.assertEqual(copies[0].name, 'MISC/2019/00002')
-        self.assertEqual(copies[1].name, 'MISC/2019/00005')
-        self.assertEqual(copies[2].name, 'MISC/2019/00006')
-        self.assertEqual(copies[3].name, 'MISC/2019/00001')
-        self.assertEqual(copies[4].name, 'MISC/2019/00003')
-        self.assertEqual(copies[5].name, 'MISC/2019/00004')
+        # Ordered by date
+        self.assertEqual(copies[0].name, 'XMISC/2019/00002')
+        self.assertEqual(copies[1].name, 'XMISC/2019/00005')
+        self.assertEqual(copies[2].name, 'XMISC/2019/00006')
+        self.assertEqual(copies[3].name, 'XMISC/2019/00001')
+        self.assertEqual(copies[4].name, 'XMISC/2019/00003')
+        self.assertEqual(copies[5].name, 'XMISC/2019/00004')
+
+        # Can't have twice the same name
+        with self.assertRaises(ValidationError):
+            copies[0].name = 'XMISC/2019/00001'
 
         # Lets remove the order by date
-        copies[0].name = 'MISC/2019/10001'
-        copies[1].name = 'MISC/2019/10002'
-        copies[2].name = 'MISC/2019/10003'
-        copies[3].name = 'MISC/2019/10004'
-        copies[4].name = 'MISC/2019/10005'
-        copies[5].name = 'MISC/2019/10006'
+        copies[0].name = 'XMISC/2019/10001'
+        copies[1].name = 'XMISC/2019/10002'
+        copies[2].name = 'XMISC/2019/10003'
+        copies[3].name = 'XMISC/2019/10004'
+        copies[4].name = 'XMISC/2019/10005'
+        copies[5].name = 'XMISC/2019/10006'
 
         copies[4].with_context(force_delete=True).unlink()
         copies[5].button_draft()
 
         wizard = Form(self.env['account.resequence.wizard'].with_context(default_journal_id=self.test_move.journal_id.id))
         wizard.first_date = '2019-01-01'
-        self.assertEqual(wizard.end_date, fields.Date.to_date('2019-12-31'))
 
         new_values = json.loads(wizard.new_values)
-        self.assertEqual(new_values[str(copies[0].id)]['new_by_date'], 'MISC/2019/10002')
-        self.assertEqual(new_values[str(copies[0].id)]['new_by_name'], 'MISC/2019/10001')
+        self.assertEqual(new_values[str(copies[0].id)]['new_by_date'], 'XMISC/2019/10002')
+        self.assertEqual(new_values[str(copies[0].id)]['new_by_name'], 'XMISC/2019/10001')
 
-        self.assertEqual(new_values[str(copies[1].id)]['new_by_date'], 'MISC/2019/10004')
-        self.assertEqual(new_values[str(copies[1].id)]['new_by_name'], 'MISC/2019/10002')
+        self.assertEqual(new_values[str(copies[1].id)]['new_by_date'], 'XMISC/2019/10004')
+        self.assertEqual(new_values[str(copies[1].id)]['new_by_name'], 'XMISC/2019/10002')
 
-        self.assertEqual(new_values[str(copies[2].id)]['new_by_date'], 'MISC/2019/10005')
-        self.assertEqual(new_values[str(copies[2].id)]['new_by_name'], 'MISC/2019/10003')
+        self.assertEqual(new_values[str(copies[2].id)]['new_by_date'], 'XMISC/2019/10005')
+        self.assertEqual(new_values[str(copies[2].id)]['new_by_name'], 'XMISC/2019/10003')
 
-        self.assertEqual(new_values[str(copies[3].id)]['new_by_date'], 'MISC/2019/10001')
-        self.assertEqual(new_values[str(copies[3].id)]['new_by_name'], 'MISC/2019/10004')
+        self.assertEqual(new_values[str(copies[3].id)]['new_by_date'], 'XMISC/2019/10001')
+        self.assertEqual(new_values[str(copies[3].id)]['new_by_name'], 'XMISC/2019/10004')
 
-        self.assertEqual(new_values[str(copies[5].id)]['new_by_date'], 'MISC/2019/10003')
-        self.assertEqual(new_values[str(copies[5].id)]['new_by_name'], 'MISC/2019/10005')
+        self.assertEqual(new_values[str(copies[5].id)]['new_by_date'], 'XMISC/2019/10003')
+        self.assertEqual(new_values[str(copies[5].id)]['new_by_name'], 'XMISC/2019/10005')
 
         wizard.save().resequence()
 
         self.assertEqual(copies[3].state, 'posted')
-        self.assertEqual(copies[5].name, 'MISC/2019/10005')
+        self.assertEqual(copies[5].name, 'XMISC/2019/10005')
         self.assertEqual(copies[5].state, 'draft')
 
     def test_add_followers_on_post(self):

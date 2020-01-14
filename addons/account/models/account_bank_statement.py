@@ -411,47 +411,43 @@ class AccountBankStatement(models.Model):
         """ Changes statement state to Running."""
         for statement in self:
             if not statement.name:
-                statement._set_next_sequence('name')
+                statement._set_next_sequence()
             statement.state = 'open'
 
     def button_reopen(self):
         self.state = 'open'
 
-    def _get_previous_sequence_domain(self, relaxed=False):
+    def _get_last_sequence_domain(self, relaxed=False):
         self.ensure_one()
         where_string = "WHERE journal_id = %(journal_id)s AND name != '/'"
         param = {'journal_id': self.journal_id.id}
 
+        sequence_number_reset = self._deduce_sequence_number_reset(self.search([('date', '<', self.date)], order='date desc', limit=1).name)
         if not relaxed:
-            if self.journal_id.sequence_number_reset == 'year':
+            if sequence_number_reset == 'year':
                 where_string += " AND date_trunc('year', date) = date_trunc('year', %(date)s) "
                 param['date'] = self.date
-            elif self.journal_id.sequence_number_reset == 'month':
+            elif sequence_number_reset == 'month':
                 where_string += " AND date_trunc('month', date) = date_trunc('month', %(date)s) "
                 param['date'] = self.date
         return where_string, param
 
     def _get_starting_sequence(self):
         self.ensure_one()
-        last_sequence = self._get_previous_sequence('name', relaxed=True)
+        last_sequence = self._get_last_sequence('name', relaxed=True)
         if last_sequence:
-            if self.journal_id.sequence_number_reset == 'year':
-                sequence = re.match(r'(?P<prefix1>.*?)(?P<year>\d{4})(?P<prefix2>.*?)(?P<seq>\d+)$', last_sequence)
+            sequence_number_reset = self._deduce_sequence_number_reset(self.search([('date', '<', self.date)], order='date desc', limit=1).name)
+            if sequence_number_reset == 'year':
+                sequence = re.match(self._sequence_yearly_regex, last_sequence)
                 if sequence:
                     return '%s%04d%s%s' % (sequence.group('prefix1'), self.date.year, sequence.group('prefix2'), "0" * len(sequence.group('seq')))
-            elif self.journal_id.sequence_number_reset == 'month':
-                sequence = re.match(r'(?P<prefix1>.*?)(?P<year>\d{4})(?P<prefix2>.*?)(?P<month>\d{2})(?P<prefix3>.*?)(?P<seq>\d+)$', last_sequence)
+            elif sequence_number_reset == 'month':
+                sequence = re.match(self._sequence_monthly_regex, last_sequence)
                 if sequence:
                     return '%s%04d%s%02d%s%s' % (sequence.group('prefix1'), self.date.year, sequence.group('prefix2'), self.date.month, sequence.group('prefix3'), "0" * len(sequence.group('seq')))
 
         # There was no pattern found, propose one
-        if self.journal_id.sequence_number_reset == 'year':
-            starting_sequence = "%s/%04d/00000" % (self.journal_id.code, self.date.year)
-        elif self.journal_id.sequence_number_reset == 'month':
-            starting_sequence = "%s/%04d/%02d/0000" % (self.journal_id.code, self.date.year, self.date.month)
-        elif self.journal_id.sequence_number_reset == 'never':
-            starting_sequence = "00000000"
-        return starting_sequence
+        return "%s/%04d/%02d/0000" % (self.journal_id.code, self.date.year, self.date.month)
 
 
 class AccountBankStatementLine(models.Model):
