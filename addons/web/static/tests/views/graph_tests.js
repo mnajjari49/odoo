@@ -222,7 +222,7 @@ QUnit.module('Views', {
         assert.hasClass(graph.$buttons.find('button[data-mode="bar"]'),'active',
             'bar type button should be active');
 
-        graph.destroy();
+        // graph.destroy();
     });
 
     QUnit.test('displaying line chart with only 1 data point', async function (assert) {

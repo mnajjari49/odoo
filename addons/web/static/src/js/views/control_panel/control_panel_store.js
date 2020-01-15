@@ -68,6 +68,8 @@ odoo.define('web.ControlPanelStore', function (require) {
     const Domain = require('web.Domain');
     const pyUtils = require('web.py_utils');
 
+    const { parseArch } = require('web.viewUtils');
+
     const { Store } = owl;
     const { COMPARISON_TIME_RANGE_OPTIONS,
         DEFAULT_INTERVAL, DEFAULT_PERIOD, DEFAULT_YEAR,
@@ -280,13 +282,13 @@ odoo.define('web.ControlPanelStore', function (require) {
          * Activate a filter of type 'field' with given 'autocompleteValues' value and label
          * @todo
          */
-        addAutoCompletionValues({ state }, filterId, value, label, isExactValue) {
+        addAutoCompletionValues({ state }, filterId, value, operator, label) {
             let activity = state.query.find(queryElem => {
                 return queryElem.filterId === filterId && queryElem.value === value;
             });
             if (!activity) {
                 const { groupId } = state.filters[filterId];
-                state.query.push({ filterId, groupId, isExactValue, label, value });
+                state.query.push({ filterId, groupId, operator, label, value });
             }
         }
 
@@ -485,16 +487,9 @@ odoo.define('web.ControlPanelStore', function (require) {
                         if (f.hasOptions) {
                             this.dispatch('toggleFilterWithOptions', f.id);
                         } else if (f.type === 'field') {
-                            const { selection, type } = this.fields[f.fieldName];
-                            let { isExactValue, label, value } = f.defaultValue;
-                            if (type === 'selection') {
-                                label = selection.find(([val, _]) => val === value)[1];
-                            } else {
-                                label = label.toString();
-                            }
-                            this.dispatch('addAutoCompletionValues', f.id, value, label, isExactValue);
-                        }
-                        else {
+                            let { operator, label, value } = f.defaultAutocompleteValue;
+                            this.dispatch('addAutoCompletionValues', f.id, value, operator, label);
+                        } else {
                             this.dispatch('toggleFilter', f.id);
                         }
                     });
@@ -631,12 +626,23 @@ odoo.define('web.ControlPanelStore', function (require) {
          * @private
          */
         _createGroupOfFiltersFromArch() {
+
+            const children = this.parsedArch.children.filter(child => child.tag !== 'searchpanel');
+            const preFilters = children.reduce((acc, child) => {
+                if (child.tag === 'group') {
+                    return acc.concat(child.children.map(this._evalArchChild.bind(this)));
+                } else {
+                    return [...acc, this._evalArchChild(child)];
+                }
+            }, []);
+            preFilters.push({ tag: 'separator' });
+
             // create groups and filters
             let currentTag;
             let currentGroup = [];
             let pregroupOfGroupBys = [];
 
-            this.preFilters.forEach(preFilter => {
+            preFilters.forEach(preFilter => {
                 if (preFilter.tag !== currentTag || ['separator', 'field'].includes(preFilter.tag)) {
                     if (currentGroup.length) {
                         if (currentTag === 'groupBy') {
@@ -749,6 +755,35 @@ odoo.define('web.ControlPanelStore', function (require) {
             return f;
         }
 
+        _evalArchChild(child) {
+            if (child.attrs.context) {
+                try {
+                    const context = pyUtils.eval('context', child.attrs.context);
+                    child.attrs.context = context;
+                    if (context.group_by) {
+                        // let us extract basic data since we just evaluated context
+                        // and use a correct tag!
+                        child.attrs.fieldName = context.group_by.split(':')[0];
+                        child.attrs.defaultInterval = context.group_by.split(':')[1];
+                        child.tag = 'groupBy';
+                    }
+                } catch (e) { }
+            }
+            if (child.attrs.name in this.searchDefaults) {
+                child.attrs.isDefault = true;
+                const value = this.searchDefaults[child.attrs.name];
+                if (child.tag === 'field') {
+                    if (value instanceof Array) {
+                        value = value[0];
+                    }
+                    child.attrs.defaultAutocompleteValue = { value, operator: '=' };
+                } else if (child.tag === 'groupBy') {
+                    child.attrs.defaultRank = typeof value === 'number' ? value : 100;
+                }
+            }
+            return child;
+        }
+
         /**
          * @private
          * @param {Object} filter
@@ -798,8 +833,7 @@ odoo.define('web.ControlPanelStore', function (require) {
                     }
                     if (attrs.filter_domain) {
                         filter.filterDomain = attrs.filter_domain;
-                    }
-                    if (attrs.operator) {
+                    } else if (attrs.operator) {
                         filter.operator = attrs.operator;
                     }
                     if (attrs.context) {
@@ -807,13 +841,38 @@ odoo.define('web.ControlPanelStore', function (require) {
                     }
                     if (filter.isDefault) {
                         filter.defaultRank = -10;
-                        filter.defaultValue = attrs.defaultValue;
+                        filter.defaultAutocompleteValue = attrs.defaultAutocompleteValue;
+                        this._prepareDefaultLabel(filter);
                     }
                     break;
             }
             if (filter.fieldName) {
                 const { string } = this.fields[filter.fieldName];
                 filter.description = string;
+            }
+        }
+
+        _prepareDefaultLabel(filter) {
+            const { fieldType,  fieldName, defaultAutocompleteValue } = filter;
+            const { selection, context, relation } = this.fields[fieldName];
+            if (fieldType === 'selection') {
+                defaultAutocompleteValue.label = selection.find(([val, _]) => {
+                    val === defaultAutocompleteValue.value;
+                })[1];
+            } else if (fieldType === 'many2one') {
+                const promise = this.env.services.rpc({
+                    args: [defaultAutocompleteValue.value],
+                    context: context,
+                    method: 'name_get',
+                    model: relation,
+                }).then(results => {
+                    defaultAutocompleteValue.label = results[0][1];
+                }).guardedCatch(() => {
+                    defaultAutocompleteValue.label = defaultAutocompleteValue.value;
+                });
+                this.labelPromisses.push(promise);
+            } else {
+                defaultAutocompleteValue.label = defaultAutocompleteValue.value;
             }
         }
 
@@ -850,11 +909,9 @@ odoo.define('web.ControlPanelStore', function (require) {
          */
         _getAutoCompletionFilterDomain(filter, filterActivities) {
             // don't work yet!
-            const domains = filterActivities.map(({ label, value, isExactValue }) => {
+            const domains = filterActivities.map(({ label, value, operator }) => {
                 let domain;
-                if (isExactValue) {
-                    domain = [[filter.fieldName, '=', value]];
-                } else if (filter.filterDomain) {
+                if (filter.filterDomain) {
                     domain = Domain.prototype.stringToArray(
                         filter.filterDomain,
                         {
@@ -862,13 +919,17 @@ odoo.define('web.ControlPanelStore', function (require) {
                             raw_value: value,
                         }
                     );
+                } else if (operator) {
+                    domain = [[filter.fieldName, operator, value]];
                 } else {
                     // Create new domain
-                    let operator = '=';
+                    let operator;
                     if (filter.operator) {
                         operator = filter.operator;
                     } else if (['char', 'text', 'many2many', 'one2many', 'html'].includes(filter.fieldType)) {
                         operator = 'ilike';
+                    } else {
+                        operator = "="
                     }
                     domain = [[filter.fieldNname, operator, value]];
                 }
@@ -1008,7 +1069,6 @@ odoo.define('web.ControlPanelStore', function (require) {
                     );
                 }
             } else {
-                // TODO check if we don't need the action domain!
                 return filterDomain;
             }
         }
@@ -1036,7 +1096,7 @@ odoo.define('web.ControlPanelStore', function (require) {
             // we do it for other fields (my guess being that the test should simply
             // be adapted)
             if (filter.type === 'field' && filter.isDefault && filter.fieldType === 'many2one') {
-                context[`default_${filter.fieldName}`] = filter.defaultValue.value;
+                context[`default_${filter.fieldName}`] = filter.defaultAutocompleteValue.value;
             }
             return context;
         }
@@ -1370,11 +1430,21 @@ odoo.define('web.ControlPanelStore', function (require) {
             this.withSearchBar = 'withSearchBar' in config ? config.withSearchBar : true;
             this.searchMenuTypes = config.searchMenuTypes || [];
 
+            this.searchDefaults = [];
+            for (const key in this.actionContext) {
+                const match = /^search_default_(.*)$/.exec(key);
+                if (match) {
+                    this.searchDefaults[match[1]] = this.actionContext[key];
+                    delete this.actionContext[key];
+                }
+            }
+            this.labelPromisses = [];
+
             const viewInfo = config.viewInfo || {};
 
+            this.parsedArch = this._cleanArch(parseArch(viewInfo.arch || '<search/>'));
             this.fields = viewInfo.fields || {};
-            this.favoriteFilters = viewInfo.favoriteFilters || [];
-            this.preFilters = viewInfo.preFilters || [];
+            this.favoriteFilters = viewInfo.favoriteFilters;
             this.activateDefaultFavorite = config.activateDefaultFavorite;
 
             this.dynamicFilters = config.dynamicFilters || [];

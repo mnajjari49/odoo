@@ -326,7 +326,6 @@
         <script type="text/javascript" src="/web/static/src/js/views/control_panel/search/favorite_menu.js"></script>
         <script type="text/javascript" src="/web/static/src/js/views/control_panel/search/add_new_favorite_menu.js"></script>
         <script type="text/javascript" src="/web/static/src/js/views/control_panel/search/control_panel_parameters.js"></script>
-        <script type="text/javascript" src="/web/static/src/js/views/control_panel/search/control_panel_arch_parser.js"></script>
         <script type="text/javascript" src="/web/static/src/js/views/search_panel.js"></script>
         <script type="text/javascript" src="/web/static/src/js/views/field_manager_mixin.js"></script>
         <script type="text/javascript" src="/web/static/src/js/views/file_upload_mixin.js"></script>

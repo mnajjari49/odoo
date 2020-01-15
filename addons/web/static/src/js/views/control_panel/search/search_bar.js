@@ -213,7 +213,7 @@ odoo.define('web.SearchBar', function (require) {
                     source.filterId,
                     source.value || label,
                     label,
-                    Boolean(source.label)
+                    '=' // to change
                 );
                 this.state.inputValue = "";
                 this.searchInputRef.el.value = "";

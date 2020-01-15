@@ -6,7 +6,6 @@ var core = require('web.core');
 var rpc = require('web.rpc');
 var session = require('web.session');
 var utils = require('web.utils');
-const parseControlPanelArch = require('web.parseControlPanelArch');
 
 return core.Class.extend({
     init: function () {
@@ -112,7 +111,6 @@ return core.Class.extend({
                     var fvg = result.fields_views[view_descr[1]];
                     if (view_descr[1] === 'search') {
                         fvg.favoriteFilters = result.filters;
-                        fvg.preFilters = await parseControlPanelArch(fvg.arch, fvg.fields, context);
                     }
                     fvg.viewFields = fvg.fields;
                     fvg.fields = result.fields;

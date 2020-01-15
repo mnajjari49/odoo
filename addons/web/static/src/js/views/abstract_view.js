@@ -32,7 +32,7 @@ var mvc = require('web.mvc');
 var SearchPanel = require('web.SearchPanel');
 var viewUtils = require('web.viewUtils');
 
-const { Store, Component } = owl;
+const { Component } = owl;
 
 var Factory = mvc.Factory;
 
@@ -173,6 +173,8 @@ var AbstractView = Factory.extend({
             });
         }
         if (params.searchQuery) {
+            // TODO: see if we need to check 'timeRange' in searchMenuTypes
+            // and remove timeRanges from searchQuery!
             this._updateMVCParams(params.searchQuery);
         }
 
@@ -298,12 +300,14 @@ var AbstractView = Factory.extend({
      *   is ready
      */
     _createControlPanel: async function (parent, alterQuery) {
-        const controlPanelStore = await this._createControlPanelStore();
-
+        const controlPanelStore = this._createControlPanelStore();
         this.controlPanelProps.controlPanelStore = controlPanelStore;
         const controlPanel = new ControlPanel(null, this.controlPanelProps);
-        await controlPanel.mount(document.createDocumentFragment());
-
+        const prom = Promise.all(controlPanelStore.labelPromisses);
+        // we should not wait here
+        await prom.then(() => {
+            controlPanel.mount(document.createDocumentFragment())
+        });
         this.controllerParams.controlPanelStore = controlPanelStore;
         this.controllerParams.controlPanel = controlPanel;
         const query = controlPanelStore.getQuery();
@@ -319,7 +323,7 @@ var AbstractView = Factory.extend({
      *
      * @private
      */
-    _createControlPanelStore: async function () {
+    _createControlPanelStore: function () {
         return new ControlPanelStore(this.controlPanelStoreConfig);
     },
     /**
