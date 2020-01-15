@@ -10,7 +10,6 @@ odoo.define('web.CalendarController', function (require) {
  */
 
 var AbstractController = require('web.AbstractController');
-var config = require('web.config');
 var core = require('web.core');
 var Dialog = require('web.Dialog');
 var dialogs = require('web.view_dialogs');
@@ -111,25 +110,6 @@ var CalendarController = AbstractController.extend({
             this.$('.o_calendar_buttons').replaceWith(this.$buttons);
         }
     },
-    /**
-     * In mobile, we want to display a special 'Today' button on the bottom
-     * right corner of the control panel. This is the pager area, and as there
-     * is no pager in Calendar views, we fool the system by defining a fake
-     * pager (which is actually our button) such that it will be inserted in the
-     * desired place.
-     *
-     * @todo get rid of this hack once the ControlPanel layout will be reworked
-     *
-     * @param {jQueryElement} $node the button should be appended to this
-     *   element to be displayed in the bottom right corner of the control panel
-     */
-    renderPager: function ($node) {
-        if (config.device.isMobile) {
-            this.$todayButton = $(QWeb.render('CalendarView.TodayButtonMobile'));
-            this.$todayButton.on('click', this._move.bind(this, 'today'));
-            $node.append(this.$todayButton);
-        }
-    },
 
     //--------------------------------------------------------------------------
     // Private
@@ -145,7 +125,7 @@ var CalendarController = AbstractController.extend({
      */
     _extractLastPartOfClassName(startClassName, classList) {
         var result;
-        classList.forEach(function(value){
+        classList.forEach(function (value) {
             if (value && value.indexOf(startClassName) === 0) {
                 result = value.substring(startClassName.length);
             }
@@ -170,9 +150,7 @@ var CalendarController = AbstractController.extend({
      * @return {{}}
      */
     _renderButtonsParameters: function () {
-        return {
-            isMobile: config.device.isMobile,
-        };
+        return {};
     },
     /**
      * @override

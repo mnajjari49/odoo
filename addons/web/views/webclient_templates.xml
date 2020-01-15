@@ -213,7 +213,6 @@
         <link rel="stylesheet" type="text/scss" href="/web/static/src/scss/kanban_column_progressbar.scss"/>
         <link rel="stylesheet" type="text/scss" href="/web/static/src/scss/kanban_view.scss"/>
         <link rel="stylesheet" type="text/scss" href="/web/static/src/scss/web_calendar.scss"/>
-        <link rel="stylesheet" type="text/scss" href="/web/static/src/scss/web_calendar_mobile.scss"/>
         <link rel="stylesheet" type="text/scss" href="/web/static/src/scss/search_view.scss"/>
         <link rel="stylesheet" type="text/scss" href="/web/static/src/scss/search_panel.scss"/>
         <link rel="stylesheet" type="text/scss" href="/web/static/src/scss/search_view_mobile.scss"/>
