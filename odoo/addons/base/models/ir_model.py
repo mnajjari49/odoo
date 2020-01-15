@@ -1051,7 +1051,7 @@ class IrModelSelection(models.Model):
 
         def make_xml_id(field_name, value):
             # the field value may contains exotic chars like spaces
-            sanitized_value = value.replace('.', '_').replace(' ', '_').lower()
+            sanitized_value = value.replace('.', '_').replace(' ', '_')
             return xml_id_pattern % (module, model_name, field_name, sanitized_value)
 
         # determine fields to reflect

@@ -2242,3 +2242,34 @@ class TestMany2oneReference(common.TransactionCase):
         # fake record to emulate the unlink of a non-existant record
         foo = m.browse(1 if not ids[0] else (ids[0] + 1))
         self.assertTrue(foo.unlink())
+
+
+@common.tagged('selection_field')
+class TestNewSelectionFields(common.TransactionCase):
+
+    def test_case_sensitivity(self):
+        Model = self.env['test_new_api.selection']
+        lowercase = Model.create({'sensitive': 'a'})
+        uppercase = Model.create({'sensitive': 'A'})
+
+        self.assertEqual(lowercase.sensitive, 'a')
+        self.assertEqual(uppercase.sensitive, 'A')
+        self.assertNotEqual(lowercase.sensitive, uppercase.sensitive)
+
+    def test_xmlid_gen(self):
+        field = self.env['test_new_api.selection']._fields['sensitive']
+        self.assertEqual(field.selection, [('a', 'Lowercase'), ('A', 'Uppercase')])
+
+        imf = self.env['ir.model.fields']._get('test_new_api.selection', 'sensitive')
+        lower, upper = imf.selection_ids
+        xmlids = (lower + upper)._get_external_ids()
+
+        self.assertEqual(
+            xmlids.get(lower.id),
+            ['test_new_api.selection__test_new_api_selection__sensitive__a'],
+        )
+
+        self.assertEqual(
+            xmlids.get(upper.id),
+            ['test_new_api.selection__test_new_api_selection__sensitive__A'],
+        )
