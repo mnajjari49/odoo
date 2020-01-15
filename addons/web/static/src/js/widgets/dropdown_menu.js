@@ -74,7 +74,7 @@ odoo.define('web.DropdownMenu', function (require) {
          * @param {MouseEvent} ev
          */
         _onItemSelected(ev) {
-            this.trigger('item_selected', ev.detail);
+            this.trigger('item-selected', ev.detail);
         }
 
         /**

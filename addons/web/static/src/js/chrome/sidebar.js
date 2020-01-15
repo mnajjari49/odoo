@@ -133,6 +133,7 @@ odoo.define('web.Sidebar', function (require) {
     Sidebar.components = { DropdownMenu };
     Sidebar.props = {
         modelName: String,
+        viewType: String,
     };
     Sidebar.template = 'Sidebar';
 

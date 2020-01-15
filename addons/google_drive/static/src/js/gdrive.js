@@ -14,7 +14,9 @@ odoo.define('google_drive.Sidebar', function (require) {
 
         async willStart() {
             if (this.props.viewType === "form") {
-                this.googleDocItems = await this._getGoogleDocItems(this.props.activeIds[0]);
+                this.googleDocItems = await this._getGoogleDocItems(this.sidebarProps.activeIds[0]);
+            } else {
+                this.googleDocItems = [];
             }
         },
 
@@ -25,30 +27,8 @@ odoo.define('google_drive.Sidebar', function (require) {
         /**
          * @override
          */
-        get items() {
-            const items = this._super();
-            if (this.googleDocItems) {
-                const gdItemIndex = items.other.findIndex(i => i.classname === 'oe_share_gdoc');
-                if (gdItemIndex !== -1) {
-                    items.other.splice(gdItemIndex, 1);
-                }
-                this.googleDocItems.forEach(gdItem => {
-                    const alreadyThere = items.other.some(
-                        i => i.classname === 'oe_share_gdoc' && i.label.includes(gdItem.name)
-                    );
-                    if (!alreadyThere) {
-                        items.other.unshift({
-                            callback: this._onGoogleDocItemClicked.bind(this, gdItem.id),
-                            classname: 'oe_share_gdoc',
-                            config_id: gdItem.id,
-                            label: gdItem.name,
-                            res_id: this.props.activeIds[0],
-                            res_model: this.props.model,
-                        });
-                    }
-                });
-            }
-            return items;
+        get actionItems() {
+            return this._super().concat(this.googleDocItems);
         },
 
         //--------------------------------------------------------------------------
@@ -60,18 +40,23 @@ odoo.define('google_drive.Sidebar', function (require) {
          * @returns {(Object[]|undefined)}
          */
         async _getGoogleDocItems() {
-            if (!this.props.activeIds[0]) {
-                return;
+            if (!this.sidebarProps.activeIds[0]) {
+                return [];
             }
             const results = await this.rpc({
-                args: [this.props.model, this.props.activeIds[0]],
-                context: this.props.context,
+                args: [this.props.modelName, this.sidebarProps.activeIds[0]],
+                context: this.sidebarProps.context,
                 method: 'get_google_drive_config',
                 model: 'google.drive.config',
             });
-            if (results.length) {
-                return results;
-            }
+            const mappedItems = results.map(({ id, name }) => {
+                return {
+                    callback: () => this._onGoogleDocItemClick(id),
+                    className: 'oe_share_gdoc',
+                    description: name,
+                };
+            });
+            return mappedItems;
         },
 
         //--------------------------------------------------------------------------
@@ -80,11 +65,11 @@ odoo.define('google_drive.Sidebar', function (require) {
 
         /**
          * @private
-         * @param {number} configID
+         * @param {number} itemId
          */
-        async _onGoogleDocItemClicked(configID) {
-            const resID = this.props.activeIds[0];
-            const domain = [['id', '=', configID]];
+        async _onGoogleDocItemClick(itemId) {
+            const resID = this.sidebarProps.activeIds[0];
+            const domain = [['id', '=', itemId]];
             const fields = ['google_drive_resource_id', 'google_drive_client_id'];
             const configs = await this.rpc({
                 args: [domain, fields],
@@ -92,11 +77,11 @@ odoo.define('google_drive.Sidebar', function (require) {
                 model: 'google.drive.config',
             });
             const url = await this.rpc({
-                args: [configID, resID, configs[0].google_drive_resource_id],
-                context: this.props.context,
+                args: [itemId, resID, configs[0].google_drive_resource_id],
+                context: this.sidebarProps.context,
                 method: 'get_google_drive_url',
                 model: 'google.drive.config',
-            })
+            });
             if (url) {
                 window.open(url, '_blank');
             }

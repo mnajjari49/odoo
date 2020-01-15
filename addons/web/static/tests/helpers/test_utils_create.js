@@ -387,6 +387,10 @@ odoo.define('web.test_utils_create', function (require) {
             in_DOM: true,
         });
 
+        // Wait for the components to properly call their patched callbacks.
+        await concurrency.delay(0);
+        await new Promise(r => window.requestAnimationFrame(r));
+
         if (!params.doNotDisableAHref) {
             [...viewController.el.getElementsByTagName('A')].forEach(elem => {
                 elem.addEventListener('click', ev => {

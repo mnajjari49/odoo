@@ -88,6 +88,10 @@ var AbstractController = mvc.Controller.extend(ActionMixin, WidgetAdapterMixin, 
 
         await _super;
         await this._update(this.initialState);
+
+        if (this._controlPanel) {
+            await this._controlPanel.mount(this.el, { position: 'first-child' });
+        }
     },
     /**
      * @override
@@ -107,7 +111,12 @@ var AbstractController = mvc.Controller.extend(ActionMixin, WidgetAdapterMixin, 
             this._searchPanel.on_attach_callback();
         }
         if (this._controlPanel) {
-            this._controlPanel.mount(this.el, { position: 'first-child' });
+            // TODO: remove, change with proper adapter
+            function callMounted(comp) {
+                comp.__callMounted();
+                Object.values(comp.__owl__.children).forEach(callMounted);
+            }
+            callMounted(this._controlPanel);
         }
         if (this._controlPanelStore) {
             this._controlPanelStore.on('get_controller_query_params', this, this._onGetOwnedQueryParams);
@@ -427,6 +436,15 @@ var AbstractController = mvc.Controller.extend(ActionMixin, WidgetAdapterMixin, 
         this._updateActionProps(newProps);
         this._pushState();
         return this._renderBanner();
+    },
+    /**
+     * @private
+     * @param {Object} newProps
+     * @returns {Promise}
+     */
+    _updatePagerProps(newProps) {
+        const pagerProps = Object.assign(this._getPagerProps(), newProps);
+        return this._updateActionProps({ pager: pagerProps });
     },
 
     //--------------------------------------------------------------------------

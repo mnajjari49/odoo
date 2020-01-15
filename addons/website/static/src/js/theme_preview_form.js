@@ -39,8 +39,8 @@ var ThemePreviewController = FormController.extend({
      *
      * @private
      */
-    _updatePager: function () {
-        this._super(...arguments);
+    _updatePagerProps: async function () {
+        await this._super(...arguments);
 
         const $buttonSwitch = $(qweb.render('website.ThemePreview.SwitchModeButton'));
         if (!this.$switcherButton) {

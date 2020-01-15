@@ -654,10 +654,7 @@ var BasicController = AbstractController.extend(FieldManagerMixin, {
      */
     _onPagerChanged: async function (ev) {
         const { currentMinimum, limit } = ev.detail;
-        const pagerProps = this._getPagerProps();
-        this._updateActionProps({
-            pager: Object.assign(pagerProps, { disabled: true }),
-        });
+        await this._updatePagerProps({ disabled: true });
         const data = this.model.get(this.handle, { raw: true });
         const reloadParams = data.groupedBy && data.groupedBy.length ?
             { groupsLimit: limit, groupsOffset: currentMinimum - 1 } :
@@ -667,9 +664,7 @@ var BasicController = AbstractController.extend(FieldManagerMixin, {
         if (data.limit !== limit) {
             this.trigger_up('scrollTo', { top: 0 });
         }
-        return this._updateActionProps({
-            pager: Object.assign(pagerProps, { disabled: false, limit, currentMinimum }),
-        });
+        await this._updatePagerProps({ disabled: false, limit, currentMinimum });
     },
     /**
      * When a reload event triggers up, we need to reload the full view.

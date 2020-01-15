@@ -7,7 +7,6 @@ odoo.define('web.FavoriteMenu', function (require) {
     const DomainSelector = require('web.DomainSelector');
     const DropdownMenu = require('web.DropdownMenu');
     const { sprintf } = require('web.utils');
-    const { FIELD_OPERATORS, FIELD_TYPES } = require('web.controlPanelParameters');
 
     const { useRef, useState } = owl.hooks;
 
@@ -20,11 +19,11 @@ odoo.define('web.FavoriteMenu', function (require) {
                 editDialog: false,
             });
             this.domainSelectorRef = useRef('domain-selector');
-            this.domainSelector = new DomainSelector(this, this.props.action.res_model, '', {
-                readonly: false,
-                debugMode: this.env.isDebug(),
-            });
-            // this.style.mainButton.class = 'o_favorites_menu_button ' + this.style.mainButton.class;
+            this.domainSelector = new DomainSelector(this,
+                this.props.action.res_model, // Model
+                '', // Domain
+                { readonly: false } // Options
+            );
         }
 
         async willStart() {

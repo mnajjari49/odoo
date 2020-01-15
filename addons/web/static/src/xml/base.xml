@@ -87,7 +87,10 @@
                 <div class="o_cp_buttons" role="toolbar" aria-label="Control panel toolbar" t-ref="buttons">
                     <t t-slot="buttons"/>
                 </div>
-                <Sidebar t-if="storeState.sidebar and storeState.sidebar.items" modelName="props.modelName"/>
+                <Sidebar t-if="storeState.sidebar and storeState.sidebar.items"
+                    modelName="props.modelName"
+                    viewType="props.viewType"
+                />
             </div>
             <div class="o_cp_right">
                 <div t-if="storeState.cp_content.searchViewButtons or (props.withSearchBar and state.displayDropdowns)"
@@ -357,7 +360,7 @@
     </li>
     <li t-else="" class="o_menu_item" role="menuitem" t-on-keydown="_onKeydown">
         <a class="dropdown-item"
-            t-att-class="{ selected: props.isActive }"
+            t-att-class="{ selected: props.isActive, [props.className]: props.className }"
             role="menuitem"
             t-att-href="props.url or '#'"
             t-on-click.prevent="trigger('select-item', { item: props })"
@@ -573,7 +576,7 @@
                         aria-label="Previous"
                         title="Previous"
                         tabindex="-1"
-                        t-on-click.stop="_changeSelection(-1)"
+                        t-on-click="_changeSelection(-1)"
                     />
                     <button type="button"
                         class="fa fa-chevron-right btn btn-secondary o_pager_next"
@@ -582,7 +585,7 @@
                         aria-label="Next"
                         title="Next"
                         tabindex="-1"
-                        t-on-click.stop="_changeSelection(1)"
+                        t-on-click="_changeSelection(1)"
                     />
                 </span>
             </t>

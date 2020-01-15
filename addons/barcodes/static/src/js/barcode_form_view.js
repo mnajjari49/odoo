@@ -91,7 +91,7 @@ FormController.include({
     _barcodePagerFirst: function () {
         var self = this;
         return this.mutex.exec(function () {}).then(function () {
-            self._updatePager({
+            self._updatePagerProps({
                 currentMinimum: 1,
             });
         });
@@ -107,7 +107,7 @@ FormController.include({
                 return;
             }
             var state = self.model.get(self.handle, {raw: true});
-            self._updatePager({
+            self._updatePagerProps({
                 currentMinimum: state.count,
             });
         });

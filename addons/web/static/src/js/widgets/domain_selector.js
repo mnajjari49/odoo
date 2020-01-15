@@ -1,6 +1,7 @@
 odoo.define("web.DomainSelector", function (require) {
 "use strict";
 
+var config = require("web.config");
 var core = require("web.core");
 var datepicker = require("web.datepicker");
 var Domain = require("web.Domain");
@@ -74,7 +75,7 @@ var DomainNode = Widget.extend({
         this.options = _.extend({
             readonly: true,
             operators: null,
-            debugMode: false,
+            debugMode: config.isDebug(),
         }, options || {});
 
         this.readonly = this.options.readonly;

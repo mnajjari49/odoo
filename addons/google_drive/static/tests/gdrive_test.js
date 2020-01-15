@@ -121,7 +121,7 @@ odoo.define('google_drive.gdrive_integration', function (require) {
             form.destroy();
         });
 
-        QUnit.only('click on the google drive attachments after switching records', async function (assert) {
+        QUnit.test('click on the google drive attachments after switching records', async function (assert) {
             assert.expect(3);
 
             async function mockRPC(route, args) {
@@ -167,30 +167,11 @@ odoo.define('google_drive.gdrive_integration', function (require) {
                     ids: [1, 2],
                     index: 0,
                 },
-                debug: 1
             });
-
-            console.log([...document.querySelectorAll('.o_cp_sidebar .o_dropdown_toggler_btn')].find(
-                el => el.innerText.match("Action")
-            ));
 
             const actionToggleButton = [...document.querySelectorAll('.o_cp_sidebar .o_dropdown_toggler_btn')].find(
                 el => el.innerText.match("Action")
             );
-
-            await testUtils.nextTick();
-
-            console.log([...document.querySelectorAll('.o_cp_sidebar .o_dropdown_toggler_btn')].find(
-                el => el.innerText.match("Action")
-            ));
-
-            await testUtils.nextTick();
-
-            console.log([...document.querySelectorAll('.o_cp_sidebar .o_dropdown_toggler_btn')].find(
-                el => el.innerText.match("Action")
-            ));
-
-            return;
 
             currentID = 1;
             await testUtils.dom.click(actionToggleButton);

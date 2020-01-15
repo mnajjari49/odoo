@@ -233,37 +233,33 @@ var AbstractView = Factory.extend({
      * @override
      */
     getController: async function (parent) {
-        var self = this;
-        var cpDef = this.withControlPanel && this._createControlPanel(parent);
-        var spDef;
+        const _super = this._super.bind(this);
+        if (this.withControlPanel) {
+            await this._createControlPanel(parent);
+        }
+        let searchPanel = false;
         if (this.withSearchPanel) {
-            var spProto = this.config.SearchPanel.prototype;
-            var viewInfo = this.controlPanelProps.viewInfo;
-            var searchPanelParams = spProto.computeSearchPanelParams(viewInfo, this.viewType);
+            const spProto = this.config.SearchPanel.prototype;
+            const viewInfo = this.controlPanelProps.viewInfo;
+            const searchPanelParams = spProto.computeSearchPanelParams(viewInfo, this.viewType);
             if (searchPanelParams.sections) {
                 this.searchPanelParams.sections = searchPanelParams.sections;
                 this.rendererParams.withSearchPanel = true;
-                spDef = Promise.resolve(cpDef).then(this._createSearchPanel.bind(this, parent, searchPanelParams));
+                searchPanel = await this._createSearchPanel(parent, searchPanelParams);
             }
         }
-
-        var _super = this._super.bind(this);
-        return Promise.all([cpDef, spDef]).then(function ([controlPanel, searchPanel]) {
-            // get the parent of the model if it already exists, as _super will
-            // set the new controller as parent, which we don't want
-            var modelParent = self.model && self.model.getParent();
-            var prom = _super(parent);
-            prom.then(function (controller) {
-                if (searchPanel) {
-                    searchPanel.setParent(controller);
-                }
-                if (modelParent) {
-                    // if we already add a model, restore its parent
-                    self.model.setParent(modelParent);
-                }
-            });
-            return prom;
-        });
+        // get the parent of the model if it already exists, as _super will
+        // set the new controller as parent, which we don't want
+        const modelParent = this.model && this.model.getParent();
+        const controller = await _super(...arguments);
+        if (searchPanel) {
+            searchPanel.setParent(controller);
+        }
+        if (modelParent) {
+            // if we already add a model, restore its parent
+            this.model.setParent(modelParent);
+        }
+        return controller;
     },
     /**
      * Ensures that only one instance of AbstractModel is created

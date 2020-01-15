@@ -46,6 +46,14 @@ odoo.define('web.SearchBar', function (require) {
             this.noResultItem = [null, this.env._t("(no result)")];
         }
 
+        mounted() {
+            console.log('mounted');
+        }
+
+        patched() {
+            console.log('patched');
+        }
+
         //--------------------------------------------------------------------------
         // Private
         //--------------------------------------------------------------------------
