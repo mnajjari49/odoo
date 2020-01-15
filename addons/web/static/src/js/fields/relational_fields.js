@@ -32,6 +32,35 @@ var _t = core._t;
 var _lt = core._lt;
 var qweb = core.qweb;
 
+
+/**
+     * Evaluate options
+     *
+     * @private
+     * @param {Object} element a valid element object, which will serve as eval
+     *   context.
+     * @param {Object} options
+     * @returns {Object}
+     */
+const evalOptions = function (element, args) {
+    const result = {};
+    let evalContext;
+    function evalOption(mod) {
+        if (mod === undefined || mod === false || mod === true) {
+            return !!mod;
+        }
+        evalContext = evalContext || element.evalContext;
+        return new Domain(mod, evalContext).compute(evalContext);
+    }
+    if ('create' in args.options) {
+        result.create = evalOption(args.options.create);
+    }
+    if ('delete' in args.options) {
+        result.delete = evalOption(args.options.delete);
+    }
+    return result;
+}
+
 //------------------------------------------------------------------------------
 // Many2one widgets
 //------------------------------------------------------------------------------
@@ -132,6 +161,7 @@ var FieldMany2One = AbstractField.extend({
         this.nodeOptions = _.defaults(this.nodeOptions, {
             quick_create: true,
         });
+        this.noCreate = 'noCreate' in (options || {}) ? options.noCreate : false;
         this.noOpen = 'noOpen' in (options || {}) ? options.noOpen : this.nodeOptions.no_open;
         this.m2o_value = this._formatValue(this.value);
         // 'recordParams' is a dict of params used when calling functions
@@ -603,7 +633,7 @@ var FieldMany2One = AbstractField.extend({
                 if (values.length > self.limit) {
                     values = self._manageSearchMore(values, search_val, domain, context);
                 }
-                var create_enabled = self.can_create && !self.nodeOptions.no_create;
+                const create_enabled = self.can_create && !self.nodeOptions.no_create && !self.noCreate;
                 // quick create
                 var raw_result = _.map(result, function (x) { return x[1]; });
                 if (create_enabled && !self.nodeOptions.no_quick_create &&
@@ -1014,6 +1044,9 @@ var FieldX2Many = AbstractField.extend({
         this.isMany2Many = this.field.type === 'many2many' || this.attrs.widget === 'many2many';
         this.activeActions = {};
         this.recordParams = {fieldName: this.name, viewType: this.viewType};
+        this.evaluatedOptions = evalOptions(this.record, {
+            options: this.attrs.options,
+        });
         var arch = this.view && this.view.arch;
         if (arch) {
             this.activeActions.create = arch.attrs.create ?
@@ -1032,9 +1065,6 @@ var FieldX2Many = AbstractField.extend({
      * @override
      */
     start: function () {
-        this.evaluatedOptions = this._evalOptions(this.record, {
-            options: this.attrs.options,
-        });
         return this._renderControlPanel().then(this._super.bind(this));
     },
     /**
@@ -1115,7 +1145,7 @@ var FieldX2Many = AbstractField.extend({
         // in the modifiers values and options, the reset is skipped.
         if (!fieldChanged) {
             const newEval = this._evalColumnInvisibleFields();
-            const newEvaluatedOptions = this._evalOptions(record, {
+            const newEvaluatedOptions = evalOptions(record, {
                 options: this.attrs.options,
             });
             const isOptionsEqual = _.isEqual(this.evaluatedOptions, newEvaluatedOptions);
@@ -1192,33 +1222,6 @@ var FieldX2Many = AbstractField.extend({
                 column_invisible: domains,
              }).column_invisible;
         });
-    },
-    /**
-     * Evaluate options
-     *
-     * @private
-     * @param {Object} element a valid element object, which will serve as eval
-     *   context.
-     * @param {Object} options
-     * @returns {Object}
-     */
-    _evalOptions(element, args) {
-        const result = {};
-        let evalContext;
-        function evalOptions(mod) {
-            if (mod === undefined || mod === false || mod === true) {
-                return !!mod;
-            }
-            evalContext = evalContext || element.evalContext;
-            return new Domain(mod, evalContext).compute(evalContext);
-        }
-        if ('create' in args.options) {
-            result.create = evalOptions(args.options.create);
-        }
-        if ('delete' in args.options) {
-            result.delete = evalOptions(args.options.delete);
-        }
-        return result;
     },
 
     /**
@@ -2263,6 +2266,7 @@ var FieldMany2ManyTags = AbstractField.extend({
     tag_template: "FieldMany2ManyTag",
     className: "o_field_many2manytags",
     supportedFieldTypes: ['many2many'],
+    resetOnAnyFieldChange: true, // have listen to other field to re-compute options
     custom_events: _.extend({}, AbstractField.prototype.custom_events, {
         field_changed: '_onFieldChanged',
     }),
@@ -2285,6 +2289,9 @@ var FieldMany2ManyTags = AbstractField.extend({
 
         this.colorField = this.nodeOptions.color_field;
         this.hasDropdown = false;
+        this.evaluatedOptions = evalOptions(this.record, {
+            options: this.attrs.options,
+        });
     },
 
     //--------------------------------------------------------------------------
@@ -2318,7 +2325,15 @@ var FieldMany2ManyTags = AbstractField.extend({
      */
     reset: function (record, event) {
         var self = this;
-        return this._super.apply(this, arguments).then(function(){
+        // evaluation of options, conditional create/delete
+        const newEvaluatedOptions = evalOptions(record, {
+            options: this.attrs.options,
+        });
+        const isOptionsEqual = _.isEqual(this.evaluatedOptions, newEvaluatedOptions);
+        if (!isOptionsEqual) {
+            this.evaluatedOptions = newEvaluatedOptions;
+        }
+        return this._super.apply(this, arguments).then(function () {
             if (event && event.target === self) {
                 self.activate();
             }
@@ -2354,7 +2369,7 @@ var FieldMany2ManyTags = AbstractField.extend({
             colorField: this.colorField,
             elements: elements,
             hasDropdown: this.hasDropdown,
-            readonly: this.mode === "readonly",
+            readonly: this.mode === "readonly" || ('delete' in this.evaluatedOptions ? !this.evaluatedOptions.delete : false),
         };
     },
     /**
@@ -2380,6 +2395,7 @@ var FieldMany2ManyTags = AbstractField.extend({
         this.many2one = new FieldMany2One(this, this.name, this.record, {
             mode: 'edit',
             noOpen: true,
+            noCreate: 'create' in this.evaluatedOptions ? !this.evaluatedOptions.create : false,
             viewType: this.viewType,
             attrs: this.attrs,
         });
