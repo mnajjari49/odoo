@@ -581,7 +581,9 @@ class MassMailing(models.Model):
     # ------------------------------------------------------
 
     def _get_default_mailing_domain(self):
-        mailing_domain = []
+        mailing_domain = self.env.context.get('default_mailing_domain', [])
+        if isinstance(mailing_domain, str):
+            mailing_domain = literal_eval(mailing_domain)
         if self.mailing_model_name == 'mailing.list' and self.contact_list_ids:
             mailing_domain = [('list_ids', 'in', self.contact_list_ids.ids)]
 
