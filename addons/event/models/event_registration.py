@@ -22,6 +22,8 @@ class EventRegistration(models.Model):
     event_id = fields.Many2one(
         'event.event', string='Event', required=True,
         readonly=True, states={'draft': [('readonly', False)]})
+    event_name = fields.Char('Event name', related='event_id.name')
+    event_type_id = fields.Many2one('event.type', string='Event Category', related='event_id.event_type_id', store=True)
     # attendee
     partner_id = fields.Many2one(
         'res.partner', string='Contact',
@@ -64,6 +66,19 @@ class EventRegistration(models.Model):
             registration.sudo().confirm_registration()
         return registration
 
+    def write(self, vals):
+        ret = super(EventRegistration, self).write(vals)
+
+        if vals.get('state') == 'open':
+            for registration in self:
+                # auto-trigger after_sub (on subscribe) mail schedulers, if needed
+                onsubscribe_schedulers = registration.event_id.event_mail_ids.filtered(lambda s: s.interval_type == 'after_sub')
+                onsubscribe_schedulers.execute()
+        elif vals.get('state') == 'done' and 'date_closed' not in vals:
+            vals['date_closed'] = fields.Datetime.now()
+
+        return ret
+
     @api.model
     def _prepare_attendee_values(self, registration):
         """ Method preparing the values to create new attendees based on a
@@ -83,24 +98,33 @@ class EventRegistration(models.Model):
         data.update({key: value for key, value in registration.items() if key in self._fields})
         return data
 
+    def name_get(self):
+        ret_list = []
+        for registration in self:
+            if not registration.partner_id or not registration.partner_id.name:
+                name = registration.name
+            elif not registration.name or registration.name == registration.partner_id.name:
+                name = registration.partner_id.name
+            else:
+                name = registration.partner_id.name + ', ' + registration.name
+            ret_list.append((registration.id, name))
+        return ret_list
+
     def do_draft(self):
         self.write({'state': 'draft'})
 
     def confirm_registration(self):
         self.write({'state': 'open'})
 
-        # auto-trigger after_sub (on subscribe) mail schedulers, if needed
-        onsubscribe_schedulers = self.event_id.event_mail_ids.filtered(
-            lambda s: s.interval_type == 'after_sub')
-        onsubscribe_schedulers.execute()
-
-    def button_reg_close(self):
+    def action_reg_close(self):
         """ Close Registration """
-        for registration in self:
-            registration.write({'state': 'done', 'date_closed': fields.Datetime.now()})
+        self.write({'state': 'done'})
 
-    def button_reg_cancel(self):
+    def action_reg_cancel(self):
         self.write({'state': 'cancel'})
+
+    def action_reg_confirm(self):
+        self.write({'state': 'done'})
 
     @api.onchange('partner_id')
     def _onchange_partner(self):

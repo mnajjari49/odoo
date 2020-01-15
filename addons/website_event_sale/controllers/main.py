@@ -3,6 +3,7 @@
 
 from odoo import http, _
 from odoo.addons.website_event.controllers.main import WebsiteEventController
+from odoo.addons.website_sale.controllers.main import WebsiteSale
 from odoo.http import request
 
 
@@ -67,3 +68,18 @@ class WebsiteEventSaleController(WebsiteEventController):
                 'price': 0,
             }]])
         return super(WebsiteEventSaleController, self)._add_event(event_name, context, **kwargs)
+
+
+class WebsiteSale(WebsiteSale):
+    @http.route()
+    def address(self, **kw):
+        """Change the partner on the registration with the new created one."""
+        ret = super().address(**kw)
+        order = request.website.sale_get_order()
+        if order:
+            registrations = request.env['event.registration'].sudo().search([('sale_order_id', '=', order.id)])
+            if registrations:
+                registrations.write({'partner_id': order.partner_id.id})
+                print('order.partner_id', order.partner_id, order.partner_id.name)
+                print('registrations.partner_id', registrations.partner_id, registrations.partner_id.name)
+        return ret
