@@ -100,14 +100,14 @@
 "paperformat_access_employee","ir_actions_report_paperformat group_system","model_report_paperformat",group_system,1,1,1,1
 "access_report_layout","access_report_layout","model_report_layout",,1,1,1,1
 "access_wizard_ir_model_menu_create","access.wizard.ir.model.menu.create","model_wizard_ir_model_menu_create","base.group_system",1,0,1,0
-"access_reset_view_arch_wizard","access.reset.view.arch.wizard","model_reset_view_arch_wizard","base.group_system",1,0,1,0
+"access_reset_view_arch_wizard","access.reset.view.arch.wizard","model_reset_view_arch_wizard","base.group_erp_manager",1,0,1,0
 "access_ir_demo","access.ir.demo","model_ir_demo","base.group_system",1,0,1,0
 "access_ir_demo_failure","access.ir.demo_failure","model_ir_demo_failure","base.group_system",1,0,1,0
 "access_ir_demo_failure_wizard","access.ir.demo_failure.wizard","model_ir_demo_failure_wizard","base.group_system",1,0,1,0
 "access_res_config","access.res.config","model_res_config","base.group_system",1,0,1,0
 "access_res_config_installer","access.res.config.installer","model_res_config_installer","base.group_system",1,0,1,0
 "access_res_config_settings","access.res.config.settings","model_res_config_settings","base.group_system",1,1,1,0
-"access_change_password_wizard","access.change.password.wizard","model_change_password_wizard","base.group_system",1,0,1,0
+"access_change_password_wizard","access.change.password.wizard","model_change_password_wizard","base.group_erp_manager",1,0,1,0
 "access_change_password_user","access.change.password.user","model_change_password_user","base.group_system",1,0,1,0
 "access_base_module_update","access.base.module.update","model_base_module_update","base.group_system",1,0,1,0
 "access_base_language_install","access.base.language.install","model_base_language_install","base.group_system",1,1,1,0
