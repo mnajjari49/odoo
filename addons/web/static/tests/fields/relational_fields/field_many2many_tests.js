@@ -1358,6 +1358,56 @@ QUnit.module('fields', {}, function () {
 
             form.destroy();
         });
+
+        QUnit.test('many2many_tags widget: create/delete disabled on parent field based condition', async function (assert) {
+            assert.expect(7);
+            this.data.turtle.records[0].partner_ids = [2];
+
+            const form = await createView({
+                View: FormView,
+                model: 'turtle',
+                data: this.data,
+                arch: `<form string="Turtles">
+                    <sheet>
+                    <field name="display_name"/>
+                    <field name="turtle_bar"/>
+                    <field name="partner_ids" options="{'create': [('turtle_bar', '=', True)], 'delete': [('turtle_bar', '=', True)]}" widget="many2many_tags"/>
+                    </sheet>
+                    </form>`,
+                res_id: 1,
+            });
+
+            assert.containsNone(form, '.o_field_many2manytags.o_field_widget .badge .o_delete',
+                'X icon on badge should not be there in readonly mode');
+
+            await testUtils.form.clickEdit(form);
+            assert.containsOnce(form, '.o_field_many2manytags.o_field_widget .badge .o_delete',
+                'X icon on badge should not be there in readonly mode');
+
+            await testUtils.fields.many2one.clickOpenDropdown('partner_ids');
+            const $dropdown1 = form.$('.o_field_many2one input').autocomplete('widget');
+            assert.containsOnce($dropdown1, 'li.o_m2o_dropdown_option',
+                'autocomplete should contain Create and Edit...');
+
+            await testUtils.fields.editInput(form.$('.o_field_many2one input'), "Something that does not exist");
+            assert.containsN($dropdown1, 'li.o_m2o_dropdown_option', 2,
+                'autocomplete should contain Create and Create and Edit... options');
+
+            await testUtils.dom.click(form.$('.o_field_widget[name="turtle_bar"] input').first());
+            assert.containsNone(form, '.o_field_many2manytags.o_field_widget .badge .o_delete',
+                'X icon on badge should not be there after turtle_bar is not checked');
+
+            await testUtils.fields.many2one.clickOpenDropdown('partner_ids');
+            const $dropdown2 = form.$('.o_field_many2one input').autocomplete('widget');
+            assert.containsNone($dropdown2, 'li.o_m2o_dropdown_option',
+                'autocomplete should not contain Create and Edit... options');
+
+            await testUtils.fields.editInput(form.$('.o_field_many2one input'), "Something that does not exist");
+            assert.containsNone($dropdown2, 'li.o_m2o_dropdown_option',
+                'autocomplete should not contain Create and Create and Edit... options');
+
+            form.destroy();
+        });
     });
 });
 });
