@@ -44,19 +44,31 @@ class WebsiteVisitor(models.Model):
             visitor.email = email[:-1] if email else False
             visitor.mobile = mapped_data.get(visitor.id, {}).get('mobile')
 
-    def _prepare_visitor_send_mail_values(self):
-        visitor_mail_values = super(WebsiteVisitor, self)._prepare_visitor_send_mail_values()
-        if self.lead_ids:
-            lead = self.lead_ids._sort_by_confidence_level(reverse=True)[0]
-            partner_id = self.partner_id.id
-            if not self.partner_id:
-                partner_id = lead.handle_partner_assignation(action='create')[lead.id]
-                if not lead.partner_id:
-                    lead.partner_id = partner_id
+    def _message_composer_prepare(self):
+        res = super(WebsiteVisitor, self)._message_composer_prepare()
+        if not res and self.lead_ids:
+            sorted_leads = self.lead_ids._sort_by_confidence_level(reverse=True)
+            partners = sorted_leads.mapped('partner_id')
+            if not partners:
+                main_lead = self.lead_ids[0]
+                partner_id = main_lead.handle_partner_assignation(action='create')[lead.id]
+                if not main_lead.partner_id:
+                    main_lead.partner_id = partner_id
                 self.partner_id = partner_id
-            return {
-                'res_model': 'crm.lead',
-                'res_id': lead.id,
-                'partner_ids': [partner_id],
-            }
-        return visitor_mail_values
+            return True
+        return res
+
+    def _prepare_visitor_composer_context(self):
+        if self.lead_ids:
+            sorted_leads = self.lead_ids._sort_by_confidence_level(reverse=True)
+            partner = self.partner_id
+            if not partner:
+                lead_partners = sorted_leads.mapped('partner_id')
+                partner = lead_partners[0] if lead_partners else partner
+            if partner:
+                return {
+                    'default_res_model': 'crm.lead',
+                    'default_res_id': sorted_leads[0].id,
+                    'default_partner_ids': partner.id,
+                }
+        return super(WebsiteVisitor, self)._prepare_visitor_send_mail_values()
