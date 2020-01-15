@@ -24,6 +24,15 @@ function dateToServer (date) {
 }
 
 var CalendarController = AbstractController.extend({
+    events: _.extend({}, AbstractController.prototype.events, {
+        'click button.o_calendar_button_new': '_onButtonNew',
+        'click button.o_calendar_button_prev': '_onButtonNavigation',
+        'click button.o_calendar_button_today': '_onButtonNavigation',
+        'click button.o_calendar_button_next': '_onButtonNavigation',
+        'click button.o_calendar_button_day': '_onButtonScale',
+        'click button.o_calendar_button_week': '_onButtonScale',
+        'click button.o_calendar_button_month': '_onButtonScale',
+    }),
     custom_events: _.extend({}, AbstractController.prototype.custom_events, {
         changeDate: '_onChangeDate',
         changeFilter: '_onChangeFilter',
@@ -92,25 +101,7 @@ var CalendarController = AbstractController.extend({
      *   inserts them into this.options.$buttons or into a div of its template
      */
     renderButtons: function ($node) {
-        var self = this;
-        this.$buttons = $(QWeb.render('CalendarView.buttons', {
-            isMobile: config.device.isMobile,
-        }));
-        this.$buttons.on('click', 'button.o_calendar_button_new', function () {
-            self.trigger_up('switch_view', {view_type: 'form'});
-        });
-
-        _.each(['prev', 'today', 'next'], function (action) {
-            self.$buttons.on('click', '.o_calendar_button_' + action, function () {
-                self._move(action);
-            });
-        });
-        _.each(['day', 'week', 'month'], function (scale) {
-            self.$buttons.on('click', '.o_calendar_button_' + scale, function () {
-                self.model.setScale(scale);
-                self.reload();
-            });
-        });
+        this.$buttons = $(QWeb.render('CalendarView.buttons', this._renderButtonsParameters()));
 
         this.$buttons.find('.o_calendar_button_' + this.mode).addClass('active');
 
@@ -145,6 +136,23 @@ var CalendarController = AbstractController.extend({
     //--------------------------------------------------------------------------
 
     /**
+     * Find a className in an array using the start of this class and
+     * return the last part of a string
+     * @private
+     * @param {string} startClassName start of string to find in the "array"
+     * @param {array|DOMTokenList} classList array of all class
+     * @return {string|undefined}
+     */
+    _extractLastPartOfClassName(startClassName, classList) {
+        var result;
+        classList.forEach(function(value){
+            if (value && value.indexOf(startClassName) === 0) {
+                result = value.substring(startClassName.length);
+            }
+        });
+        return result;
+    },
+    /**
      * Move to the requested direction and reload the view
      *
      * @private
@@ -154,6 +162,17 @@ var CalendarController = AbstractController.extend({
     _move: function (to) {
         this.model[to]();
         return this.reload();
+    },
+    /**
+     * Parameter send to QWeb to render the template of Buttons
+     *
+     * @private
+     * @return {{}}
+     */
+    _renderButtonsParameters: function () {
+        return {
+            isMobile: config.device.isMobile,
+        };
     },
     /**
      * @override
@@ -194,6 +213,38 @@ var CalendarController = AbstractController.extend({
     //--------------------------------------------------------------------------
     // Handlers
     //--------------------------------------------------------------------------
+
+    /**
+     * @private
+     */
+    _onButtonNew: function () {
+        this.trigger_up('switch_view', {view_type: 'form'});
+    },
+    /**
+     * Handler when a user click on navigation button like prev, next, ...
+     *
+     * @private
+     * @param {Event|jQueryEvent} jsEvent
+     */
+    _onButtonNavigation: function (jsEvent) {
+        var action = this._extractLastPartOfClassName('o_calendar_button_', jsEvent.currentTarget.classList);
+        if (action) {
+            this._move(action);
+        }
+    },
+    /**
+     * Handler when a user click on scale button like day, month, ...
+     *
+     * @private
+     * @param {Event|jQueryEvent} jsEvent
+     */
+    _onButtonScale: function (jsEvent) {
+        var scale = this._extractLastPartOfClassName('o_calendar_button_', jsEvent.currentTarget.classList);
+        if (scale) {
+            this.model.setScale(scale);
+            this.reload();
+        }
+    },
 
     /**
      * @private
