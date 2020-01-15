@@ -13,12 +13,6 @@ from odoo.exceptions import UserError
 class SaleOrder(models.Model):
     _inherit = "sale.order"
 
-    @api.model
-    def _default_warehouse_id(self):
-        company = self.env.company.id
-        warehouse_ids = self.env['stock.warehouse'].search([('company_id', '=', company)], limit=1)
-        return warehouse_ids
-
     incoterm = fields.Many2one(
         'account.incoterms', 'Incoterm',
         help="International Commercial Terms are a series of predefined commercial terms used in international transactions.")
@@ -29,10 +23,11 @@ class SaleOrder(models.Model):
         states={'draft': [('readonly', False)], 'sent': [('readonly', False)]}
         ,help="If you deliver all products at once, the delivery order will be scheduled based on the greatest "
         "product lead time. Otherwise, it will be based on the shortest.")
-    warehouse_id = fields.Many2one(
-        'stock.warehouse', string='Warehouse',
-        required=True, readonly=True, states={'draft': [('readonly', False)], 'sent': [('readonly', False)]},
-        default=_default_warehouse_id, check_company=True)
+    # warehouse_id = fields.Many2one(
+    #     'stock.warehouse', string='Warehouse',
+    #     required=True, readonly=True, states={'draft': [('readonly', False)], 'sent': [('readonly', False)]},
+    #     default=_default_warehouse_id, check_company=True)
+    warehouse_id = fields.Many2one('stock.warehouse', compute='_compute_warehouse_id', store=True)
     picking_ids = fields.One2many('stock.picking', 'sale_id', string='Transfers')
     delivery_count = fields.Integer(string='Delivery Orders', compute='_compute_picking_ids')
     procurement_group_id = fields.Many2one('procurement.group', 'Procurement Group', copy=False)
@@ -64,11 +59,17 @@ class SaleOrder(models.Model):
                 expected_date = min(dates_list) if order.picking_policy == 'direct' else max(dates_list)
                 order.expected_date = fields.Datetime.to_string(expected_date)
 
-    @api.model
-    def create(self, vals):
-        if 'warehouse_id' not in vals and 'company_id' in vals and vals.get('company_id') != self.env.company.id:
-            vals['warehouse_id'] = self.env['stock.warehouse'].search([('company_id', '=', vals.get('company_id'))], limit=1).id
-        return super(SaleOrder, self).create(vals)
+    @api.depends('user_id')
+    def _compute_warehouse_id(self):
+        for order in self:
+            if order.user_id:
+                if order.user_id.property_warehouse_id:
+                    order.warehouse_id = order.user_id.property_warehouse_id.id
+            if not order.warehouse_id:
+                company = order.company_id.id
+                warehouse_id = order.env['stock.warehouse'].search([('company_id', '=', company)], order='sequence', limit=1)
+                order.warehouse_id = warehouse_id.id
+
 
     def write(self, values):
         if values.get('order_line') and self.state == 'sale':
