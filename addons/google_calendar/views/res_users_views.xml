@@ -12,7 +12,7 @@
                             <field name="google_calendar_rtoken"/>
                             <field name="google_calendar_token"/>
                             <field name="google_calendar_token_validity"/>
-                            <field name="google_calendar_last_sync_date"/>
+                            <field name="google_calendar_sync_token"/>
                             <field name="google_calendar_cal_id"/>
                         </group>
                     </page>

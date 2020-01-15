@@ -35,7 +35,7 @@ CalendarController.include({
             params: {
                 model: this.modelName,
                 fromurl: window.location.href,
-                local_context: context,
+                local_context: context, // LUL TODO remove this local_context
             }
         }).then(function (o) {
             if (o.status === "need_auth") {
