@@ -424,6 +424,8 @@ class SurveyQuestion(models.Model):
             stats.update(self._get_stats_summary_simple(user_input_lines))
             if self.question_type == 'numerical_box':
                 stats.update(self._get_stats_summary_data_numerical(user_input_lines))
+            if self.question_type == 'date':
+                stats.update(self._get_stats_summary_common_lines(user_input_lines))
         return stats
 
     def _get_stats_summary_data_choice(self, user_input_lines):
@@ -451,12 +453,17 @@ class SurveyQuestion(models.Model):
             'numerical_max': max(all_values, default=0),
             'numerical_min': min(all_values, default=0),
             'numerical_average': round(lines_sum / len(all_values) or 1, 2),
-            'numerical_common_lines': collections.Counter(all_values).most_common(5),
+            'common_lines': collections.Counter(all_values).most_common(5),
         }
 
     def _get_stats_summary_simple(self, user_input_lines):
         return {
             'right_inputs': user_input_lines.filtered(lambda line: line.answer_is_correct).mapped('user_input_id'),
+        }
+
+    def _get_stats_summary_common_lines(self, user_input_lines):
+        return {
+            'common_lines': collections.Counter(user_input_lines.filtered(lambda line: not line.skipped).mapped('value_%s' % self.question_type)).most_common(5)
         }
 
 class SurveyQuestionAnswer(models.Model):
