@@ -2489,8 +2489,9 @@ class BaseModel(MetaModel('DummyModel', (object,), {'_register': False})):
                             # when the table already exists (IntegrityError)
                             field.update_db_notnull(self, columns.get(field.name))
 
-        if self._auto:
-            self._add_sql_constraints()
+            @self.pool.post_init
+            def apply_sql_constraints():
+                self._add_sql_constraints()
 
         if must_create_table:
             self._execute_sql()
