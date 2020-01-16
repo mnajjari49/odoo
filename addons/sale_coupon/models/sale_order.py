@@ -264,10 +264,6 @@ class SaleOrder(models.Model):
         ])._filter_programs_from_common_rules(self)
         return programs
 
-    def _get_applied_coupon_program_coming_from_another_so(self):
-        # TODO: Remove me in master as no more used
-        pass
-
     def _get_valid_applied_coupon_program(self):
         self.ensure_one()
         # applied_coupon_ids's coupons might be coming from:
@@ -415,7 +411,7 @@ class SaleOrderLine(models.Model):
         return super(SaleOrderLine, self | related_program_lines).unlink()
 
     def _compute_tax_id(self):
-        # VFE TODO Adapt
+        # VFE TODO make sure it works fine (needs some depends?)
         reward_lines = self.filtered('is_reward_line')
         super(SaleOrderLine, self - reward_lines)._compute_tax_id()
         # Discount reward line is split per tax, the discount is set on the line but not on the product
@@ -427,6 +423,23 @@ class SaleOrderLine(models.Model):
             # If company_id is set, always filter taxes by the company
             taxes = line.tax_id.filtered(lambda r: not line.company_id or r.company_id == line.company_id)
             line.tax_id = fpos.map_tax(taxes, line.product_id, line.order_id.partner_shipping_id)
+
+    def _compute_price_unit(self):
+        """Reward SO line prices is defined by the coupons on line creation.
+
+        To update the coupons effects, the dedicated button/method has to be called manually.
+        It cannot be managed here as we can be in a newId situation.
+        """
+        reward_lines = self.filtered('is_reward_line')
+        super(SaleOrderLine, self - reward_lines)._compute_price_unit()
+        for line in reward_lines:
+            line = line.with_company(line.company_id)
+            line.price_unit = line.env['account.tax']._fix_tax_included_price_company(
+                line.price_unit,
+                line.product_id.taxes_id,
+                line.tax_id,
+                line.env.company)
+            line.discount = line.discount or 0.0
 
     # Invalidation of `sale.coupon.program.order_count`
     # `test_program_rules_validity_dates_and_uses`,

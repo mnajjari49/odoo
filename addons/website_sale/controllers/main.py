@@ -693,7 +693,7 @@ class WebsiteSale(http.Controller):
                 partner_id = self._checkout_form_save(mode, post, kw)
                 if mode[1] == 'billing':
                     order.partner_id = partner_id
-                    order.onchange_partner_id()
+                    order.flush(['partner_shipping_id']) # Ensure the compute is done before assigning partner_invoice_id
                     # This is the *only* thing that the front end user will see/edit anyway when choosing billing address
                     order.partner_invoice_id = partner_id
                     if not kw.get('use_same'):

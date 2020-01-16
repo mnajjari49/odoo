@@ -276,18 +276,12 @@ class Website(models.Model):
             so_data = self._prepare_sale_order_values(partner, pricelist)
             sale_order = self.env['sale.order'].with_company(request.website.company_id.id).sudo().create(so_data)
 
-            # set fiscal position
-            if request.website.partner_id.id != partner.id:
-                # VFE TODO update
-                sale_order.onchange_partner_shipping_id()
-            else: # For public user, fiscal position based on geolocation
+            # set fiscal position based on geoip for public users.
+            if request.website.partner_id.id == partner.id:
                 country_code = request.session['geoip'].get('country_code')
                 if country_code:
                     country_id = request.env['res.country'].search([('code', '=', country_code)], limit=1).id
                     sale_order.fiscal_position_id = request.env['account.fiscal.position'].sudo().with_company(request.website.company_id.id)._get_fpos_by_region(country_id)
-                else:
-                    # if no geolocation, use the public user fp
-                    sale_order.onchange_partner_shipping_id()
 
             request.session['sale_order_id'] = sale_order.id
 
@@ -296,6 +290,7 @@ class Website(models.Model):
             request.session['sale_order_id'] = sale_order.id
 
         # check for change of pricelist with a coupon
+        # VFE TODO get property with correct company ...
         pricelist_id = pricelist_id or partner.property_product_pricelist.id
 
         # check for change of partner_id ie after signup

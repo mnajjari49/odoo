@@ -140,7 +140,7 @@ class SaleOrder(models.Model):
 
     user_id = fields.Many2one(
         'res.users', string='Salesperson', index=True, tracking=2, required=True,
-        compute="_compute_partner_information", store=True, readonly=False,
+        compute="_compute_user_id", store=True, readonly=False,
         domain=lambda self: [('groups_id', 'in', self.env.ref('sales_team.group_sale_salesman').id)])
     partner_id = fields.Many2one(
         'res.partner', string='Customer', readonly=True,
@@ -149,19 +149,19 @@ class SaleOrder(models.Model):
         domain="['|', ('company_id', '=', False), ('company_id', '=', company_id)]",)
     partner_invoice_id = fields.Many2one(
         'res.partner', string='Invoice Address',
-        compute="_compute_partner_information", store=True, required=True,
+        compute="_compute_partner_adress_info", store=True, required=True,
         readonly=True,
         states={'draft': [('readonly', False)], 'sent': [('readonly', False)], 'sale': [('readonly', False)]},
         domain="['|', ('company_id', '=', False), ('company_id', '=', company_id)]",)
     partner_shipping_id = fields.Many2one(
         'res.partner', string='Delivery Address', readonly=True, required=True,
-        compute="_compute_partner_information", store=True,
+        compute="_compute_partner_adress_info", store=True,
         states={'draft': [('readonly', False)], 'sent': [('readonly', False)], 'sale': [('readonly', False)]},
         domain="['|', ('company_id', '=', False), ('company_id', '=', company_id)]",)
 
     pricelist_id = fields.Many2one(
         'product.pricelist', string='Pricelist', check_company=True, required=True,
-        compute="_compute_partner_information", store=True, readonly=False,
+        compute="_compute_partner_properties", store=True, readonly=False,
         states={'draft': [('readonly', False)], 'sent': [('readonly', False)]},
         domain="['|', ('company_id', '=', False), ('company_id', '=', company_id)]", tracking=1,
         help="If you change the pricelist, only newly added lines will be affected.")
@@ -188,19 +188,18 @@ class SaleOrder(models.Model):
         'Terms and conditions', compute="_compute_note",
         store=True, readonly=False)
 
-    # VFE FIXME remove onchange magic in create() and remove those pre_compute=False
-    amount_untaxed = fields.Monetary(string='Untaxed Amount', store=True, compute='_amount_all', tracking=5, pre_compute=False)
+    amount_untaxed = fields.Monetary(string='Untaxed Amount', store=True, compute='_amount_all', tracking=5)
     amount_by_group = fields.Binary(string="Tax amount by group", compute='_amount_by_group',
         help="type: [(name, amount, base, formated amount, formated base)]")
-    amount_tax = fields.Monetary(string='Taxes', store=True, compute='_amount_all', pre_compute=False)
-    amount_total = fields.Monetary(string='Total', store=True, compute='_amount_all', tracking=4, pre_compute=False)
+    amount_tax = fields.Monetary(string='Taxes', store=True, compute='_amount_all')
+    amount_total = fields.Monetary(string='Total', store=True, compute='_amount_all', tracking=4)
     currency_rate = fields.Float(
         "Currency Rate", compute='_compute_currency_rate', compute_sudo=True, store=True, digits=(12, 6),
         help='The rate of the currency to the currency of rate 1 applicable at the date of the order')
 
     payment_term_id = fields.Many2one(
         'account.payment.term', string='Payment Terms', check_company=True,
-        compute="_compute_partner_information", store=True, readonly=False,
+        compute="_compute_partner_properties", store=True, readonly=False,
         domain="['|', ('company_id', '=', False), ('company_id', '=', company_id)]",)
     fiscal_position_id = fields.Many2one(
         'account.fiscal.position', string='Fiscal Position',
@@ -257,19 +256,25 @@ class SaleOrder(models.Model):
                 order.validity_date = False
 
     @api.depends('partner_id', 'company_id')
-    def _compute_partner_information(self):
-        print("compute_partner_information")
+    def _compute_partner_properties(self):
         for order in self:
             order = order.with_company(order.company_id)
-            partner = order.partner_id
-            partner_user = partner.user_id or partner.commercial_partner_id.user_id
-            order.pricelist_id = partner.property_product_pricelist
-            order.payment_term_id = partner.property_payment_term_id
-            addr = partner.address_get(['delivery', 'invoice'])\
-                if partner else {}
+            order.pricelist_id = order.partner_id.property_product_pricelist
+            order.payment_term_id = order.partner_id.property_payment_term_id
+
+    @api.depends('partner_id')
+    def _compute_partner_adress_info(self):
+        for order in self:
+            addr = order.partner_id.address_get(['delivery', 'invoice'])\
+                if order.partner_id else {}
             order.partner_invoice_id = addr.get('invoice', False)
             order.partner_shipping_id = addr.get('delivery', False)
-            order.user_id = partner_user or self.env.user
+
+    @api.depends('partner_id')
+    def _compute_user_id(self):
+        for order in self:
+            partner = order.partner_id
+            order.user_id = partner.user_id or partner.commercial_partner_id.user_id or self.env.user
 
     @api.depends('partner_id', 'company_id')
     def _compute_note(self):
@@ -1075,15 +1080,17 @@ class SaleOrderLine(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
-        for values in vals_list:
-            if values.get('display_type', self.default_get(['display_type']).get('display_type', False)):
-                # VFE TODO make product_id compute on display_type ? :D
-                values.update(product_id=False, price_unit=0, product_uom_qty=0, product_uom=False, customer_lead=0)
+        # for values in vals_list:
+        #     # if values.get('display_type', self.default_get(['display_type']).get('display_type', False)):
+        #     #     # VFE TODO make product_id compute on display_type ? :D
+        #     #     values.update(product_id=False, price_unit=0, product_uom_qty=0, product_uom=False, customer_lead=0)
 
-            if values.get('product_id') and 'product_uom' not in values:
-                # VFE TODO try to remove
-                product = self.env['product.product'].browse(values['product_id'])
-                values['product_uom'] = product.uom_id.id
+        #     # if 'product_uom_qty' in values and 'product_uom' not in values:
+        #     #     # VFE hack to keep Odoo work
+        #     #     # For long term, all SO lines creation should provide both UOM and QTY
+        #     #     # Or we should split the compute method.
+        #     #     product = self.env['product.product'].browse(values['product_id'])
+        #     #     values['product_uom'] = product.uom_id.id
 
         lines = super().create(vals_list)
         for line in lines:
@@ -1103,9 +1110,6 @@ class SaleOrderLine(models.Model):
         ('non_accountable_null_fields',
             "CHECK(display_type IS NULL OR (product_id IS NULL AND price_unit = 0 AND product_uom_qty = 0 AND product_uom IS NULL AND customer_lead = 0))",
             "Forbidden values on non-accountable sale order line"),
-        ('down_payments',
-            "CHECK(NOT is_downpayment OR (product_uom_qty = 0 AND qty_delivered = 0))",
-            "You cannot order or deliver a down payment.")
     ]
 
     def _update_line_quantity(self, values):
@@ -1190,11 +1194,11 @@ class SaleOrderLine(models.Model):
     product_updatable = fields.Boolean(compute='_compute_product_updatable', string='Can Edit Product')
     product_uom_qty = fields.Float(
         string='Quantity', digits='Product Unit of Measure',
-        compute="_compute_product_information",
+        compute="_compute_product_uom_qty",
         store=True, readonly=False)
     product_uom = fields.Many2one(
         'uom.uom', string='Unit of Measure', copy=True,
-        compute="_compute_product_information", store=True, readonly=False,
+        compute="_compute_product_uom", store=True, readonly=False,
         domain="[('category_id', '=', product_uom_category_id)]")
     product_uom_category_id = fields.Many2one(related='product_id.uom_id.category_id')
     product_custom_attribute_value_ids = fields.One2many('product.attribute.custom.value', 'sale_order_line_id', string="Custom Values")
@@ -1254,11 +1258,18 @@ class SaleOrderLine(models.Model):
         ('line_note', "Note")],
         help="Technical field for UX purpose.")
 
-    @api.depends('product_id', 'company_id', 'is_downpayment')
-    def _compute_product_information(self):
+    @api.depends('product_id')
+    def _compute_product_uom_qty(self):
+        # reset qty on product change
+        display_lines = self.filtered('display_type')
+        display_lines.product_uom_qty = 0.0
+        (self-display_lines).product_uom_qty = 1.0
+
+    @api.depends('product_id')
+    def _compute_product_uom(self):
         for line in self:
-            line.product_uom = line.product_uom or line.product_id.uom_id
-            line.product_uom_qty = line.product_uom_qty or (1.0 if not line.is_downpayment else 0.0)
+            line.product_uom = line.product_id.uom_id \
+                if line.product_uom.category_id != line.product_id.uom_id.category_id else line.product_uom
 
     @api.depends('product_id', 'product_custom_attribute_value_ids', 'product_no_variant_attribute_value_ids')
     def _compute_name(self):
@@ -1275,10 +1286,9 @@ class SaleOrderLine(models.Model):
     def _compute_tax_id(self):
         for line in self:
             line = line.with_company(line.company_id)
-            fpos = line.order_id.fiscal_position_id
             # If company_id is set, always filter taxes by the company
             taxes = line.product_id.taxes_id.filtered(lambda t: t.company_id == line.env.company)
-            line.tax_id = fpos.map_tax(taxes)
+            line.tax_id = line.order_id.fiscal_position_id.map_tax(taxes)
 
     # VFE TODO make depends returned by an extendable function
     # Or make a depends_extend ? :D

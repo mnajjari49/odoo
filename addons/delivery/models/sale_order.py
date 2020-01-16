@@ -166,7 +166,4 @@ class SaleOrderLine(models.Model):
         :rtype: bool
         :returns: whether there are lines which cannot be deleted in self.
         """
-        return super()._check_line_unlink() or any(
-            line.is_delivery
-            for line in self
-        )
+        return super(SaleOrderLine, self.filtered(lambda l: not l.is_delivery))._check_line_unlink()
