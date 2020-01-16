@@ -11,8 +11,6 @@ from odoo.tools.misc import formatLang
 from odoo.osv import expression
 from odoo.tools import float_is_zero, float_compare
 
-
-
 from werkzeug.urls import url_encode
 
 
@@ -23,24 +21,14 @@ class SaleOrder(models.Model):
     _order = 'date_order desc, id desc'
     _check_company_auto = True
 
-    # VFE TODO make compute on company_id ?
-    def _default_validity_date(self):
-        if self.env['ir.config_parameter'].sudo().get_param('sale.use_quotation_validity_days'):
-            days = self.env.company.quotation_validity_days
-            if days > 0:
-                return fields.Date.to_string(datetime.now() + timedelta(days))
-        return False
-
     @api.depends('order_line.price_total')
     def _amount_all(self):
         """
         Compute the total amounts of the SO.
         """
         for order in self:
-            amount_untaxed = amount_tax = 0.0
-            for line in order.order_line:
-                amount_untaxed += line.price_subtotal
-                amount_tax += line.price_tax
+            amount_untaxed = sum(order.order_line.mapped('price_subtotal'))
+            amount_tax = sum(order.order_line.mapped('price_tax'))
             order.update({
                 'amount_untaxed': amount_untaxed,
                 'amount_tax': amount_tax,
@@ -90,22 +78,6 @@ class SaleOrder(models.Model):
             empty_list_help_document_name=_("sale order"),
         )
         return super(SaleOrder, self).get_empty_list_help(help)
-
-    @api.model
-    def _default_note(self):
-        return self.env['ir.config_parameter'].sudo().get_param('account.use_invoice_terms') and self.env.company.invoice_terms or ''
-
-    @api.model
-    def _get_default_team(self):
-        return self.env['crm.team']._get_default_team_id()
-
-    @api.onchange('fiscal_position_id')
-    def _compute_tax_id(self):
-        """
-        Trigger the recompute of the taxes if the fiscal position is changed on the SO.
-        """
-        for order in self:
-            order.order_line._compute_tax_id()
 
     def _search_invoice_ids(self, operator, value):
         return ['&', ('order_line.invoice_lines.move_id.type', 'in', ('out_invoice', 'out_refund')), ('order_line.invoice_lines.move_id', operator, value)]
@@ -342,6 +314,7 @@ class SaleOrder(models.Model):
             else:
                 order.expected_date = False
 
+    @api.depends('validity_date')
     def _compute_remaining_validity_days(self):
         for record in self:
             if record.validity_date:
@@ -351,6 +324,7 @@ class SaleOrder(models.Model):
 
     @api.depends('transaction_ids')
     def _compute_authorized_transaction_ids(self):
+        # VFE TODO make related with domain ?
         for trans in self:
             trans.authorized_transaction_ids = trans.transaction_ids.filtered(lambda t: t.state == 'authorized')
 
@@ -521,7 +495,7 @@ class SaleOrder(models.Model):
         """
         self.ensure_one()
         self = self.with_company(self.company_id)
-        journal = self.env['account.move'].with_company(self.company_id).with_context(default_type='out_invoice')._get_default_journal()
+        journal = self.env['account.move'].with_context(default_type='out_invoice')._get_default_journal()
         if not journal:
             raise UserError(_('Please define an accounting sales journal for the company %s (%s).') % (self.company_id.name, self.company_id.id))
 
@@ -537,7 +511,7 @@ class SaleOrder(models.Model):
             'team_id': self.team_id.id,
             'partner_id': self.partner_invoice_id.id,
             'partner_shipping_id': self.partner_shipping_id.id,
-            'fiscal_position_id': (self.fiscal_position_id or self.fiscal_position_id.get_fiscal_position(self.partner_invoice_id.id)).id,
+            'fiscal_position_id': self.fiscal_position_id, # VFE TODO split in separate commit the non recomputation of fiscal positions.
             'invoice_origin': self.name,
             'invoice_payment_term_id': self.payment_term_id.id,
             'invoice_payment_ref': self.reference,
