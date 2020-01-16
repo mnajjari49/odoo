@@ -13,6 +13,10 @@
         .fc-day-header {
             word-spacing: 1000px; // force line break in week mode
         }
+
+        .fc-event.o_dummy {
+            background-color: rgb(153, 204, 255);
+        }
     }
 
 }
