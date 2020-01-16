@@ -2,12 +2,6 @@
 <odoo>
     <data>
 
-        <record id="tax_report_title" model="account.tax.report.line">
-            <field name="name">VAT report</field>
-            <field name="country_id" ref="base.se"/>
-            <field name="sequence">1</field>
-        </record>
-
         <!-- -->
         <!--A-->
         <!-- -->
@@ -15,7 +9,6 @@
             <field name="name">A. Sales subject to VAT or self-supply excluding VAT</field>
             <field name="country_id" ref="base.se"/>
             <field name="sequence">1</field>
-            <field name="parent_id" ref="tax_report_title"/>
         </record>
 
         <record id="tax_report_line_05" model="account.tax.report.line">
@@ -61,7 +54,6 @@
             <field name="name">B. Output VAT on sales or self-supply in boxes 05-08</field>
             <field name="country_id" ref="base.se"/>
             <field name="sequence">2</field>
-            <field name="parent_id" ref="tax_report_title"/>
         </record>
 
         <record id="tax_report_line_10" model="account.tax.report.line">
@@ -98,7 +90,6 @@
             <field name="name">C. Purchases subject to VAT where there is reverse tax liability</field>
             <field name="country_id" ref="base.se"/>
             <field name="sequence">3</field>
-            <field name="parent_id" ref="tax_report_title"/>
         </record>
 
         <record id="tax_report_line_20" model="account.tax.report.line">
@@ -153,7 +144,6 @@
             <field name="name">D. Output VAT on purchases in boxes 20-24</field>
             <field name="country_id" ref="base.se"/>
             <field name="sequence">4</field>
-            <field name="parent_id" ref="tax_report_title"/>
         </record>
 
         <record id="tax_report_line_30" model="account.tax.report.line">
@@ -190,7 +180,6 @@
             <field name="name">H. Value added Tax in conjunction with imports</field>
             <field name="country_id" ref="base.se"/>
             <field name="sequence">5</field>
-            <field name="parent_id" ref="tax_report_title"/>
         </record>
 
         <record id="tax_report_line_50" model="account.tax.report.line">
@@ -209,7 +198,6 @@
             <field name="name">I. Output VAT on imports in box 50</field>
             <field name="country_id" ref="base.se"/>
             <field name="sequence">6</field>
-            <field name="parent_id" ref="tax_report_title"/>
         </record>
 
         <record id="tax_report_line_60" model="account.tax.report.line">
@@ -246,7 +234,6 @@
             <field name="name">E. Sales etc. which are exempt from VAT</field>
             <field name="country_id" ref="base.se"/>
             <field name="sequence">7</field>
-            <field name="parent_id" ref="tax_report_title"/>
         </record>
 
         <record id="tax_report_line_35" model="account.tax.report.line">
@@ -330,7 +317,6 @@
             <field name="name">F. Input VAT</field>
             <field name="country_id" ref="base.se"/>
             <field name="sequence">8</field>
-            <field name="parent_id" ref="tax_report_title"/>
         </record>
 
         <record id="tax_report_line_48" model="account.tax.report.line">
@@ -349,7 +335,6 @@
             <field name="name">G. VAT to pay or be refunded</field>
             <field name="country_id" ref="base.se"/>
             <field name="sequence">9</field>
-            <field name="parent_id" ref="tax_report_title"/>
         </record>
 
         <record id="tax_report_line_49" model="account.tax.report.line">
