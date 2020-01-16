@@ -5,7 +5,7 @@
             <field name="name">account.debit.note.form</field>
             <field name="model">account.debit.note</field>
             <field name="arch" type="xml">
-                <form string="Adjust Invoice">
+                <form string="Create Debit Note">
                     <field name="residual" invisible="1"/>
                     <field name="move_type" invisible="1"/>
                     <group>
