@@ -233,6 +233,8 @@ class TestSaleProductAttributeValueConfig(TestSaleProductAttributeValueCommon):
         # CASE: no_variant combination, it's another variant now
 
         self.computer_ssd_attribute_lines.write({'active': False})
+        self.assertEqual(self.ssd_attribute.product_tmpl_ids, self.env['product.template'])
+        self.assertFalse(self.ssd_attribute.is_used_on_products)
         self.ssd_attribute.create_variant = 'no_variant'
         self._add_ssd_attribute_line()
         computer_ssd_256 = self._get_product_template_attribute_value(self.ssd_256)
