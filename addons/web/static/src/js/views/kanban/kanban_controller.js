@@ -62,17 +62,19 @@ var KanbanController = BasicController.extend({
      * @returns {Promise}
      */
     renderButtons: function ($node) {
-        if (this.hasButtons && this.is_action_enabled('create')) {
-            this.$buttons = $(qweb.render(this.buttons_template, {
-                btnClass: 'btn-primary',
-                widget: this,
-            }));
-            this.$buttons.on('click', 'button.o-kanban-button-new', this._onButtonNew.bind(this));
-            this.$buttons.on('keydown', this._onButtonsKeyDown.bind(this));
-            this._updateButtons();
-            return Promise.resolve(this.$buttons.appendTo($node));
+        if (!this.hasButtons || !this.is_action_enabled('create')) {
+            return;
         }
-        return Promise.resolve();
+        this.$buttons = $(qweb.render(this.buttons_template, {
+            btnClass: 'btn-primary',
+            widget: this,
+        }));
+        this.$buttons.on('click', 'button.o-kanban-button-new', this._onButtonNew.bind(this));
+        this.$buttons.on('keydown', this._onButtonsKeyDown.bind(this));
+        this._updateButtons();
+        if ($node) {
+            this.$buttons.appendTo($node);
+        }
     },
 
     //--------------------------------------------------------------------------

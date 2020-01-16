@@ -235,12 +235,12 @@ var AbstractView = Factory.extend({
     getController: async function (parent) {
         const _super = this._super.bind(this);
         if (this.withControlPanel) {
-            await this._createControlPanel(parent);
+            this._createControlPanel();
         }
         let searchPanel = false;
         if (this.withSearchPanel) {
             const spProto = this.config.SearchPanel.prototype;
-            const viewInfo = this.controlPanelProps.viewInfo;
+            const viewInfo = this.controlPanelStoreConfig.viewInfo;
             const searchPanelParams = spProto.computeSearchPanelParams(viewInfo, this.viewType);
             if (searchPanelParams.sections) {
                 this.searchPanelParams.sections = searchPanelParams.sections;
@@ -290,29 +290,26 @@ var AbstractView = Factory.extend({
      * Instantiates and starts a ControlPanel.
      *
      * @private
-     * @param {Widget} parent
-     * @param {Function} [alterQuery] a function meant to alter the fetched query.
+     * @param {Function} [queryModifier] a function meant to alter the fetched query.
      * @returns {Promise<ControlPanel>} resolved when the controlPanel
      *   is ready
      */
-    _createControlPanel: async function (parent, alterQuery) {
+    _createControlPanel: async function (queryModifier) {
         const controlPanelStore = this._createControlPanelStore();
         this.controlPanelProps.controlPanelStore = controlPanelStore;
         const controlPanel = new ControlPanel(null, this.controlPanelProps);
-        const prom = Promise.all(controlPanelStore.labelPromisses);
-        // we should not wait here
-        await prom.then(() => {
-            controlPanel.mount(document.createDocumentFragment())
+        const prom = controlPanelStore.isReady.then(async function() {
+            await controlPanel.mount(document.createDocumentFragment());
+            return controlPanel;
         });
         this.controllerParams.controlPanelStore = controlPanelStore;
         this.controllerParams.controlPanel = controlPanel;
         const query = controlPanelStore.getQuery();
-        if (alterQuery) {
-            alterQuery(query);
+        if (queryModifier) {
+            queryModifier(query);
         }
         this._updateMVCParams(query);
-
-        return controlPanel;
+        return prom;
     },
     /**
      * Create the control panel store

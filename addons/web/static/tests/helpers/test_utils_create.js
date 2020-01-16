@@ -290,6 +290,7 @@ odoo.define('web.test_utils_create', function (require) {
      * @param {any[]} [params.domain] the initial domain for the view
      * @param {Object} [params.context] the initial context for the view
      * @param {string[]} [params.groupBy] the initial groupBy for the view
+     * @param {Object[]} [params.favoriteFilters] the favorite filters one would like to have at initialization
      * @param {integer} [params.fieldDebounce=0] the debounce value to use for the
      *   duration of the test.
      * @param {AbstractView} params.View the class that will be instantiated
@@ -319,6 +320,10 @@ odoo.define('web.test_utils_create', function (require) {
         // add mock environment: mock server, session, fieldviewget, ...
         const mockServer = testUtilsMock.addMockEnvironment(widget, params);
         const viewInfo = testUtilsMock.fieldsViewGet(mockServer, params);
+
+        if (params.favoriteFilters) {
+            viewInfo.favoriteFilters = params.favoriteFilters;
+        }
 
         // create the view
         const View = params.View;

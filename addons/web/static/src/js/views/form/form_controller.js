@@ -170,7 +170,9 @@ var FormController = BasicController.extend({
             });
             this._updateButtons();
         }
-        this.$buttons.appendTo($node);
+        if ($node) {
+            this.$buttons.appendTo($node);
+        }
     },
     /**
      * The form view has to prevent a click on the pager if the form is dirty

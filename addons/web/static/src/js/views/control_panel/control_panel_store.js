@@ -112,6 +112,8 @@ odoo.define('web.ControlPanelStore', function (require) {
                     this._prepareInitialState();
                 }
             }
+
+            this.isReady = Promise.all(this.labelPromisses);
         }
 
         //-----------------------------------------------------------------------------------------------
@@ -1444,7 +1446,7 @@ odoo.define('web.ControlPanelStore', function (require) {
 
             this.parsedArch = this._cleanArch(parseArch(viewInfo.arch || '<search/>'));
             this.fields = viewInfo.fields || {};
-            this.favoriteFilters = viewInfo.favoriteFilters;
+            this.favoriteFilters = viewInfo.favoriteFilters || [];
             this.activateDefaultFavorite = config.activateDefaultFavorite;
 
             this.dynamicFilters = config.dynamicFilters || [];

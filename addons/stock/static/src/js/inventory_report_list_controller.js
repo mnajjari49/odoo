@@ -29,7 +29,10 @@ var InventoryReportListController = ListController.extend({
         var $buttonToDate = $(qweb.render('InventoryReport.Buttons'));
         $buttonToDate.on('click', this._onOpenWizard.bind(this));
 
-        $buttonToDate.prependTo($node.find('.o_list_buttons'));
+        if ($node) {
+            // TODO won't work adapt
+            $buttonToDate.prependTo($node.find('.o_list_buttons'));
+        }
     },
 
     // -------------------------------------------------------------------------

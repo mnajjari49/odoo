@@ -127,20 +127,22 @@ var ListController = BasicController.extend({
      * @param {jQuery} $node
      */
     renderButtons: function ($node) {
-        if (!this.noLeaf && this.hasButtons) {
-            this.$buttons = $(qweb.render(this.buttons_template, {widget: this}));
-            this.$buttons.on('click', '.o_list_button_add', this._onCreateRecord.bind(this));
-
-            this._assignCreateKeyboardBehavior(this.$buttons.find('.o_list_button_add'));
-            this.$buttons.find('.o_list_button_add').tooltip({
-                delay: {show: 200, hide: 0},
-                title: function () {
-                    return qweb.render('CreateButton.tooltip');
-                },
-                trigger: 'manual',
-            });
-            this.$buttons.on('mousedown', '.o_list_button_discard', this._onDiscardMousedown.bind(this));
-            this.$buttons.on('click', '.o_list_button_discard', this._onDiscard.bind(this));
+        if (this.noLeaf || !this.hasButtons) {
+            return;
+        }
+        this.$buttons = $(qweb.render(this.buttons_template, {widget: this}));
+        this.$buttons.on('click', '.o_list_button_add', this._onCreateRecord.bind(this));
+        this._assignCreateKeyboardBehavior(this.$buttons.find('.o_list_button_add'));
+        this.$buttons.find('.o_list_button_add').tooltip({
+            delay: {show: 200, hide: 0},
+            title: function () {
+                return qweb.render('CreateButton.tooltip');
+            },
+            trigger: 'manual',
+        });
+        this.$buttons.on('mousedown', '.o_list_button_discard', this._onDiscardMousedown.bind(this));
+        this.$buttons.on('click', '.o_list_button_discard', this._onDiscard.bind(this));
+        if ($node) {
             this.$buttons.appendTo($node);
         }
     },

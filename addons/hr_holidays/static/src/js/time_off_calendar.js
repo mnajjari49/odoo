@@ -39,6 +39,7 @@ odoo.define('hr_holidays.dashboard.view_custo', function(require) {
             if ($node) {
                 this.$buttons.appendTo($node);
             } else {
+                // TODO not sure it is still good
                 this.$('.o_calendar_buttons').replaceWith(this.$buttons);
             }
         },

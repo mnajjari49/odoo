@@ -90,6 +90,7 @@ var AbstractController = mvc.Controller.extend(ActionMixin, WidgetAdapterMixin, 
         await this._update(this.initialState);
 
         if (this._controlPanel) {
+            await this._controlPanelStore.isReady;
             await this._controlPanel.mount(this.el, { position: 'first-child' });
         }
     },
@@ -423,7 +424,8 @@ var AbstractController = mvc.Controller.extend(ActionMixin, WidgetAdapterMixin, 
     _update: async function (state, params={}) {
         // AAB: update the control panel -> this will be moved elsewhere at some point
         if (!this.$buttons) {
-            await this.renderButtons(this.$buttons);
+            this.renderButtons();
+            // here this.$buttons could still be undefined!
         }
         const newProps = {
             cp_content: {

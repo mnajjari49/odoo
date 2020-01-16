@@ -110,6 +110,7 @@ var CalendarController = AbstractController.extend({
         if ($node) {
             this.$buttons.appendTo($node);
         } else {
+            // TODO not sure still good!
             this.$('.o_calendar_buttons').replaceWith(this.$buttons);
         }
     },

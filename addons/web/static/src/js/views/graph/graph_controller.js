@@ -84,17 +84,18 @@ var GraphController = AbstractController.extend(GroupByMenuMixin,{
      * nothing
      */
     renderButtons: function ($node) {
+        var context = {
+            measures: _.sortBy(_.pairs(_.omit(this.measures, '__count__')), function (x) { return x[1].string.toLowerCase(); }),
+        };
+        this.$buttons = $(qweb.render('GraphView.buttons', context));
+        this.$measureList = this.$buttons.find('.o_graph_measures_list');
+        this.$buttons.find('button').tooltip();
+        this.$buttons.click(this._onButtonClick.bind(this));
+        this._updateButtons();
         if ($node) {
-            var context = {
-                measures: _.sortBy(_.pairs(_.omit(this.measures, '__count__')), function (x) { return x[1].string.toLowerCase(); }),
-            };
-            this.$buttons = $(qweb.render('GraphView.buttons', context));
-            this.$measureList = this.$buttons.find('.o_graph_measures_list');
-            this.$buttons.find('button').tooltip();
-            this.$buttons.click(this._onButtonClick.bind(this));
-            this._updateButtons();
-            this.$buttons.appendTo($node);
             if (this.isEmbedded) {
+                // for now when the graph view is embedded, the dashboard call renderButtons with $node provided
+                // TODO change this?
                 const node = $node[0];
                 this._addGroupByMenu(node, this.groupableFields).then(function(){
                     const groupByButton = node.querySelector('.o_dropdown_toggler_btn');
@@ -102,7 +103,7 @@ var GraphController = AbstractController.extend(GroupByMenuMixin,{
                     groupByButton.classList.add('btn-outline-secondary');
                 });
             }
-
+            this.$buttons.appendTo($node);
         }
     },
 

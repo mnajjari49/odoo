@@ -90,18 +90,18 @@ odoo.define('web.PivotController', function (require) {
          *   does nothing
          */
         renderButtons: function ($node) {
-            if ($node) {
-                const context = {
-                    measures: Object.entries(this.measures)
-                        .filter(x => x[0] !== '__count')
-                        .sort((a, b) => a[1].string.toLowerCase() > b[1].string.toLowerCase() ? 1 : -1),
-                };
-                this.$buttons = $(QWeb.render('PivotView.buttons', context));
-                this.$buttons.click(this._onButtonClick.bind(this));
-                this.$buttons.find('button').tooltip();
+            const context = {
+                measures: Object.entries(this.measures)
+                    .filter(x => x[0] !== '__count')
+                    .sort((a, b) => a[1].string.toLowerCase() > b[1].string.toLowerCase() ? 1 : -1),
+            };
+            this.$buttons = $(QWeb.render('PivotView.buttons', context));
+            this.$buttons.click(this._onButtonClick.bind(this));
+            this.$buttons.find('button').tooltip();
 
+            this._updateButtons();
+            if ($node) {
                 this.$buttons.appendTo($node);
-                this._updateButtons();
             }
         },
 

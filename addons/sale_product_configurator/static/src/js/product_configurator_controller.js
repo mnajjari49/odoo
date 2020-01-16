@@ -50,6 +50,7 @@ var ProductConfiguratorFormController = FormController.extend({
         this._super.apply(this, arguments);
 
         if (this.renderer.state.context.configuratorMode === 'options') {
+            // TODO won't work adapt
             this.$el.closest('.modal').addClass('d-none');
         }
     },
