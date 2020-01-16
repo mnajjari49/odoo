@@ -67,7 +67,7 @@
                             <field name="sequence" widget="handle" />
                             <field name="title"/>
                             <field name="is_individual"/>
-                            <field name="answer_ids"/>
+                            <field name="answer_ids" widget="many2many_tags"/>
                         </tree>
                     </field>
                 </page>
