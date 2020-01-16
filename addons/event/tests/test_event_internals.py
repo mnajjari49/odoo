@@ -22,7 +22,7 @@ class TestEventData(TestEventCommon):
 
         event = self.event_0.with_user(self.env.user)
         event.write({
-            'registration_ids': [(0, 0, {'partner_id': self.customer.id})],
+            'registration_ids': [(0, 0, {'partner_id': self.customer.id, 'name': 'test_reg'})],
             'date_begin': datetime(2020, 1, 31, 15, 0, 0),
             'date_end': datetime(2020, 4, 5, 18, 0, 0),
         })
@@ -63,7 +63,7 @@ class TestEventData(TestEventCommon):
         self.assertFalse(event.is_online)
         self.assertEqual(event.address_id, self.env.user.company_id.partner_id)
         # seats: coming from event type configuration
-        self.assertEqual(event.seats_availability, 'limited')
+        self.assertTrue(event.seats_limited)
         self.assertEqual(event.seats_available, event.event_type_id.default_registration_max)
         self.assertEqual(event.seats_unconfirmed, 0)
         self.assertEqual(event.seats_reserved, 0)
@@ -80,15 +80,18 @@ class TestEventData(TestEventCommon):
         self.assertTrue(event.auto_confirm)
         for x in range(5):
             reg = self.env['event.registration'].create({
-                'event_id': event.id
+                'event_id': event.id,
+                'name': 'reg_open',
             })
             self.assertEqual(reg.state, 'open')
         reg_draft = self.env['event.registration'].create({
-            'event_id': event.id
+            'event_id': event.id,
+            'name': 'reg_draft',
         })
         reg_draft.write({'state': 'draft'})
         reg_done = self.env['event.registration'].create({
-            'event_id': event.id
+            'event_id': event.id,
+            'name': 'reg_done',
         })
         reg_done.write({'state': 'done'})
         self.assertEqual(event.seats_available, event.event_type_id.default_registration_max - 6)
@@ -117,7 +120,7 @@ class TestEventData(TestEventCommon):
             'is_online': True,
         })
         self.assertEqual(event.date_tz, self.env.user.tz)
-        self.assertEqual(event.seats_availability, 'unlimited')
+        self.assertFalse(event.seats_limited)
         self.assertFalse(event.auto_confirm)
         self.assertEqual(event.twitter_hashtag, 'somuchwow')
         self.assertTrue(event.is_online)
@@ -126,7 +129,7 @@ class TestEventData(TestEventCommon):
         event.update({'event_type_id': event_type.id})
         event._onchange_type()
         self.assertEqual(event.date_tz, 'Europe/Paris')
-        self.assertEqual(event.seats_availability, 'limited')
+        self.assertTrue(event.seats_limited)
         self.assertEqual(event.seats_min, event_type.default_registration_min)
         self.assertEqual(event.seats_max, event_type.default_registration_max)
         self.assertTrue(event.auto_confirm)
@@ -220,8 +223,7 @@ class TestEventSecurity(TestEventCommon):
         event._onchange_type()
         event.flush()
 
-        registration = self.env['event.registration'].create({'event_id': event.id})
-        registration.write({'name': 'Myself'})
+        registration = self.env['event.registration'].create({'event_id': event.id, 'name': 'Myself'})
 
         stage = self.env.ref('event.event_stage_done')
         stage.write({'name': 'ManagerEnded'})
