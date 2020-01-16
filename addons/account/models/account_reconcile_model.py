@@ -79,6 +79,26 @@ class AccountReconcileModelLine(models.Model):
                 except re.error:
                     raise UserError(_('The regex is not valid'))
 
+class AccountReconcileModelMatchLine():
+    _name = 'account.reconcile.model.match.line'
+    _description = 'Rules for partner matching'
+    _order = 'sequence, id'
+
+    sequence = fields.Integer(required=True, default=10)
+    partner_id = fields.Many2one('res.partner', string='Partner', required=True)
+
+    # account_number
+    account_number
+    # note
+    match_note = fields.Selection(selection=[
+        ('contains', 'Contains'),
+        ('not_contains', 'Not Contains'),
+        ('match_regex', 'Match Regex'),
+    ], string='Note', help='''The reconciliation model will only be applied when the note:
+        * Contains: The proposition note must contains this string (case insensitive).
+        * Not Contains: Negation of "Contains".
+        * Match Regex: Define your own regular expression.''')
+    match_note_param = fields.Char(string='Note Parameter')
 
 class AccountReconcileModel(models.Model):
     _name = 'account.reconcile.model'
@@ -93,7 +113,8 @@ class AccountReconcileModel(models.Model):
     rule_type = fields.Selection(selection=[
         ('writeoff_button', 'Manually create a write-off on clicked button.'),
         ('writeoff_suggestion', 'Suggest counterpart values.'),
-        ('invoice_matching', 'Match existing invoices/bills.')
+        ('invoice_matching', 'Match existing invoices/bills.'),
+        ('partner_matching', 'Match partners.'),
     ], string='Type', default='writeoff_button', required=True)
     auto_reconcile = fields.Boolean(string='Auto-validate',
         help='Validate the statement line automatically (reconciliation based on your rule).')
@@ -712,6 +733,8 @@ class AccountReconcileModel(models.Model):
             query_res = self._cr.dictfetchall()
 
             for res in query_res:
+                if res["model_id"] == 3:  # <--- here check if model has partner id
+                    partner_map[res["id"]] = 9  # <--- partner id
                 grouped_candidates.setdefault(res['id'], {})
                 grouped_candidates[res['id']].setdefault(res['model_id'], True)
 
