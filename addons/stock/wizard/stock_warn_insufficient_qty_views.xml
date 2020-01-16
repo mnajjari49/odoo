@@ -24,7 +24,7 @@
                         </tree>
                     </field>
                 </div>
-                <div>
+                <div name="description">
                     Are you sure you want to confirm this operation? This may lead to inconsistencies in your inventory.
                 </div>
                 <footer>
