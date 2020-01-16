@@ -331,7 +331,7 @@
         <!-- -->
         <!--G-->
         <!-- -->
-        <record id="tax_report_title_input_vat" model="account.tax.report.line">
+        <record id="tax_report_title_vat_debt_credit" model="account.tax.report.line">
             <field name="name">G. VAT to pay or be refunded</field>
             <field name="country_id" ref="base.se"/>
             <field name="sequence">9</field>
@@ -343,7 +343,7 @@
             <field name="tag_name">49</field>
             <field name="country_id" ref="base.se"/>
             <field name="sequence">1</field>
-            <field name="parent_id" ref="tax_report_title_input_vat"/>
+            <field name="parent_id" ref="tax_report_title_vat_debt_credit"/>
         </record>
 
     </data>
