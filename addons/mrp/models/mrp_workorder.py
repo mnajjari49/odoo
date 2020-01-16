@@ -131,6 +131,7 @@ class MrpWorkorder(models.Model):
     last_working_user_id = fields.One2many('res.users', string='Last user that worked on this work order.', compute='_compute_working_users')
 
     next_work_order_id = fields.Many2one('mrp.workorder', "Next Work Order", check_company=True)
+    previous_work_order_ids = fields.One2many('mrp.workorder', "next_work_order_id", check_company=True)
     scrap_ids = fields.One2many('stock.scrap', 'workorder_id')
     scrap_count = fields.Integer(compute='_compute_scrap_move_count', string='Scrap Move')
     production_date = fields.Datetime('Production Date', related='production_id.date_planned_start', store=True, readonly=False)
@@ -168,11 +169,8 @@ class MrpWorkorder(models.Model):
     def _onchange_finished_lot_id(self):
         """When the user changes the lot being currently produced, suggest
         a quantity to produce consistent with the previous workorders. """
-        previous_wo = self.env['mrp.workorder'].search([
-            ('next_work_order_id', '=', self.id)
-        ])
-        if previous_wo:
-            line = previous_wo.finished_workorder_line_ids.filtered(lambda line: line.product_id == self.product_id and line.lot_id == self.finished_lot_id)
+        if self.previous_work_order_ids:
+            line = self.previous_work_order_ids.finished_workorder_line_ids.filtered(lambda line: line.product_id == self.product_id and line.lot_id == self.finished_lot_id)
             if line:
                 self.qty_producing = line.qty_done
 
@@ -377,7 +375,13 @@ class MrpWorkorder(models.Model):
                     line_values = workorder._generate_lines_values(move, qty_to_consume - qty_already_consumed)
                     self.env['mrp.workorder.line'].create(line_values)
 
-    def _defaults_from_finished_workorder_line(self, finished_wo):
+    def _defaults_from_finished_workorder_line(self):
+        """Prefill production info depending of previous production step.
+
+        The quantity to consume and the finished_lot are prefilled from the
+        previous production on the previous workorder.
+        """
+        finished_wo = self.previous_work_order_ids
         suggested_lot = False
         suggested_qty = finished_wo.qty_produced - self.qty_produced
 
@@ -425,7 +429,7 @@ class MrpWorkorder(models.Model):
 
         # Suggest a finished lot on the next workorder
         if self.next_work_order_id and self.next_work_order_id.state != 'done':
-            self.next_work_order_id._defaults_from_finished_workorder_line(self)
+            self.next_work_order_id._defaults_from_finished_workorder_line()
             # As we may have changed the quantity to produce on the next workorder,
             # make sure to update its wokorder lines
             self.next_work_order_id._apply_update_workorder_lines()
@@ -436,17 +440,14 @@ class MrpWorkorder(models.Model):
         # Test if the production is done
         rounding = self.production_id.product_uom_id.rounding
         if float_compare(self.qty_produced, self.production_id.product_qty, precision_rounding=rounding) < 0:
-            previous_wo = self.env['mrp.workorder'].search([
-                ('next_work_order_id', '=', self.id)
-            ])
-            if not previous_wo:
+            if not self.previous_work_order_ids:
                 # self is the first workorder
                 self.qty_producing = self.qty_remaining
                 self.finished_lot_id = False
                 if self.product_tracking == 'serial':
                     self.qty_producing = 1
             else:
-                self._defaults_from_finished_workorder_line(previous_wo)
+                self._defaults_from_finished_workorder_line()
 
             self._apply_update_workorder_lines()
         else:
