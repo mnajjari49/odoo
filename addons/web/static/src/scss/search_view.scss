@@ -95,14 +95,65 @@
     }
 }
 
-.o_favorite_edit_dialog {
+.o_filter_editor {
+    display: flex;
+    flex-flow: column wrap;
 
-    label {
-        font-weight: bold;
-    }
+    .o_section {
+        display: flex;
+        flex: 1 1;
+        flex-flow: row wrap;
 
-    .modal-body > div:not(:first-child) {
-        margin-top: 16px;
+        &:not(:first-child) {
+            margin-top: 16px;
+        }
+
+        .o_section_header {
+            flex: 1;
+            font-weight: bold;
+        }
+
+        .o_section_content {
+            flex: 5;
+        }
+
+        .o_fieldname_cells {
+            align-items: center;
+            display: flex;
+            flex-flow: row wrap;
+
+            .o_group_by_separator {
+                display: inline-block;
+                margin: 3px;
+                text-align: center;
+            }
+
+            .o_fieldname_cell {
+                background: $o-brand-lightsecondary;
+                border: 1px solid darken($o-brand-lightsecondary, 10%);
+                cursor: pointer;
+                display: flex;
+                flex-flow: row wrap;
+                min-width: 100px;
+                padding: 2px 5px;
+
+                > * {
+                    border: none;
+                    display: inline-block;
+                    flex: 1;
+
+                    &:not(:first-child) {
+                        margin-left: 5px;
+                    }
+                }
+
+                .fa {
+                    align-items: center;
+                    display: flex;
+                    flex: 0;
+                }
+            }
+        }
     }
 }
 
@@ -227,24 +278,20 @@
 // Favorites
 .o_favorite_menu {
 
-    .o-searchview-custom-public a:after {
-        content: "\f0c0";
-        font-family: FontAwesome;
-        font-weight: normal;
-        margin-left: 5px;
-    }
-
-    .o_save_name { // save button
-        display: none; // hidden by default
-        @include o-search-options-dropdown-custom-item;
-    }
 }
 
 // Time Ranges
 .o_time_range_menu {
 
-    .dropdown-item-text > label,
-    .custom-control-label {
+}
+
+.o_time_range_editor {
+
+    label {
         font-weight: bold;
+    }
+
+    .o_time_range_section:not(:first-child) {
+        padding-top: 0.5rem;
     }
 }

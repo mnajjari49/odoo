@@ -1,52 +1,47 @@
 odoo.define('web.TimeRangeMenu', function (require) {
     "use strict";
 
+    const { DEFAULT_TIMERANGE } = require('web.controlPanelParameters');
     const DropdownMenu = require('web.DropdownMenu');
-    const { COMPARISON_TIME_RANGE_OPTIONS, DEFAULT_TIMERANGE,
-            DEFAULT_COMPARISON_TIME_RANGE, TIME_RANGE_OPTIONS} = require('web.controlPanelParameters');
+    const TimeRangeEditor = require('web.TimeRangeEditor');
 
-    const { useState } = owl.hooks;
+    const { useDispatch, useGetters, useState } = owl.hooks;
 
     class TimeRangeMenu extends DropdownMenu {
         constructor() {
             super(...arguments);
 
+            this.dispatch = useDispatch(this.env.controlPanelStore);
+            this.getters = useGetters(this.env.controlPanelStore);
+
             this.fields = Object.keys(this.props.fields).reduce((acc, fieldName) => {
-                const field = this.props.fields[fieldName];
-                if (['date', 'datetime'].includes(field.type) && field.sortable && !acc.find(f => f.name === fieldName)) {
+                const { sortable, string, type } = this.props.fields[fieldName];
+                if (
+                    ['date', 'datetime'].includes(type) && sortable &&
+                    !acc.some(f => f.value === fieldName)
+                ) {
                     acc.push({
-                        name: fieldName,
-                        description: field.string || fieldName,
+                        value: fieldName,
+                        description: string || fieldName,
                     });
                 }
                 return acc;
             }, []);
-            this.periodOptions = TIME_RANGE_OPTIONS;
-            this.comparisonTimeRangeOptions = COMPARISON_TIME_RANGE_OPTIONS;
-            this.periodGroups = Object.values(this.periodOptions).reduce((acc, o) => {
-                if (!acc.includes(o.groupNumber)) {
-                    acc.push(o.groupNumber);
-                }
-                return acc;
-            }, []);
 
-            const { comparisonRangeId, fieldName, rangeId } = this.items.find(timeRange => timeRange.isActive) ||
-                { rangeId: DEFAULT_TIMERANGE, comparisonRangeId: false, fieldName: (this.fields[0] || {}) .name };
+            const activeTimeRange = this.getters.getFiltersOfType('timeRange').find(
+                timeRange => timeRange.isActive
+            );
+            const state = activeTimeRange ? {
+                    comparisonRangeId: activeTimeRange.comparisonRangeId,
+                    fieldName: activeTimeRange.fieldName,
+                    rangeId: activeTimeRange.rangeId,
+                } : {
+                    comparisonRangeId: false,
+                    fieldName: this.fields[0] && this.fields[0].value,
+                    rangeId: DEFAULT_TIMERANGE,
+                };
 
-            this.state = useState({
-                isComparing: Boolean(comparisonRangeId),
-                fieldName,
-                comparisonRangeId,
-                rangeId,
-            });
-        }
-
-        //--------------------------------------------------------------------------
-        // Getters
-        //--------------------------------------------------------------------------
-
-        get items() {
-            return this.getters.getFiltersOfType('timeRange');
+            this.state = useState(state);
         }
 
         //--------------------------------------------------------------------------
@@ -58,37 +53,24 @@ odoo.define('web.TimeRangeMenu', function (require) {
          */
         _onApply() {
             this.dispatch('activateTimeRange',
-                this.state.fieldName, // Field name
-                this.state.rangeId, // Time range option id
-                this.state.isComparing ? (this.state.comparisonRangeId || DEFAULT_COMPARISON_TIME_RANGE) : undefined // Comparison time range id
+                this.state.fieldName,
+                this.state.rangeId,
+                this.state.comparisonRangeId
             );
         }
 
         /**
          * @private
-         * @param {Event} ev
+         * @param {OwlEvent} ev
          */
-        _onComparisonRangeChanged(ev) {
-            this.state.comparisonRangeId = ev.target.value;
-        }
-
-        /**
-         * @private
-         * @param {Event} ev
-         */
-        _onFieldNameChanged(ev) {
-            this.state.fieldName = ev.target.value;
-        }
-
-        /**
-         * @private
-         * @param {Event} ev
-         */
-        _onRangeChanged(ev) {
-            this.state.rangeId = ev.target.value;
+        _onTimeRangeChange(ev) {
+            Object.assign(this.state, ev.detail);
         }
     }
 
+    TimeRangeMenu.components = Object.assign({}, DropdownMenu.components, {
+        TimeRangeEditor,
+    });
     TimeRangeMenu.defaultProps = Object.assign({}, DropdownMenu.defaultProps, {
         icon: 'fa fa-calendar',
         title: "Time Ranges",

@@ -37,7 +37,26 @@ odoo.define('web.ControlPanel', function (require) {
                 searchView: useRef('searchView'),
                 searchViewButtons: useRef('searchViewButtons'),
             };
-            if (this.constructor.name === 'ControlPanel') window.top.cp = this; // TODO: REMOVE
+
+            // <<<<<<<<<<<<<<<<<<< TO REMOVE
+
+            if (this.constructor.name === 'ControlPanel') {
+                window.top.cp = this;
+                this.getChild = (name, comp = this) => {
+                    if (comp.constructor.name === name) {
+                        return comp;
+                    }
+                    for (const child of Object.values(comp.__owl__.children)) {
+                        const found = this.getChild(name, child);
+                        if (found) {
+                            return found;
+                        }
+                    }
+                    return false;
+                };
+            }
+
+            // >>>>>>>>>>>>>>>>>>>
         }
 
         mounted() {
@@ -148,3 +167,4 @@ odoo.define('web.ControlPanel', function (require) {
 
     return ControlPanel;
 });
+

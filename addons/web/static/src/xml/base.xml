@@ -380,6 +380,143 @@
     </li>
 </t>
 
+<t t-name="FilterEditor" owl="1">
+    <div class="o_filter_editor" t-on-keydown="_onKeydown">
+        <div class="o_section o_main_section">
+            <label class="o_section_header">Description</label>
+            <div class="o_section_content">
+                <input type="text" class="o_input"
+                    t-att-value="props.filter.description"
+                    t-on-input="_onDescriptionInput"
+                />
+                <div class="custom-control custom-checkbox">
+                    <input type="checkbox" t-attf-id="o_default_name_{{ id }}" class="custom-control-input"
+                        name="default"
+                        t-att-checked="props.filter.isDefault"
+                        t-on-change="_onCheckboxChange"
+                    />
+                    <label t-attf-for="o_default_name_{{ id }}" class="custom-control-label">Use by default</label>
+                </div>
+                <div class="custom-control custom-checkbox">
+                    <input type="checkbox" t-attf-id="o_shared_name_{{ id }}" class="custom-control-input"
+                        name="shared"
+                        t-att-checked="!props.filter.userId"
+                        t-on-change="_onCheckboxChange"
+                    />
+                    <label t-attf-for="o_shared_name_{{ id }}" class="custom-control-label">
+                        Share with all users <i role="img" class="fa fa-users" aria-label="Users" title="Users"/>
+                    </label>
+                </div>
+            </div>
+        </div>
+        <div class="o_section">
+            <label class="o_section_header">Domain</label>
+            <div class="o_section_content">
+                <div class="o_domain_selector_container" t-ref="domain-selector"/>
+                <button class="btn btn-secondary"
+                    t-on-click="trigger('filter-change', { domain: '[]' })"
+                    >
+                    Reset domain
+                </button>
+            </div>
+        </div>
+        <div class="o_section">
+            <label class="o_section_header">Group By</label>
+            <div class="o_section_content">
+                <div class="o_fieldname_cells">
+                    <t t-foreach="groupByFilters" t-as="groupBy" t-key="groupBy.id">
+                        <div t-if="!groupBy_first" class="o_group_by_separator">
+                            <i class="fa fa-chevron-right"/>
+                        </div>
+                        <div t-if="state.editedGroupBy === groupBy_index" class="o_fieldname_cell" tabindex="0">
+                            <select t-on-change="_onGroupByChange(groupBy_index)">
+                                <option t-foreach="getters.getFiltersOfType('groupBy')" t-as="option" t-key="option.id"
+                                    t-att-value="option.hasOptions ? option.fieldName + ':' + option.defaultOptionId : option.fieldName"
+                                    t-att-selected="option.fieldName === groupBy.fieldName"
+                                    t-esc="option.description"
+                                />
+                            </select>
+                            <select t-if="groupBy.hasOptions" t-on-change="_onGroupByChange(groupBy_index)">
+                                <option t-foreach="groupBy.options" t-as="option" t-key="option.optionId"
+                                    t-attf-value="{{ groupBy.fieldName }}:{{ option.optionId }}"
+                                    t-att-selected="option.optionId === groupBy.activeOptionId"
+                                    t-esc="option.description"
+                                />
+                            </select>
+                        </div>
+                        <div t-else="" class="o_fieldname_cell" tabindex="0"
+                            t-esc="_getGroupByDescription(groupBy)"
+                            t-on-click="_toggleEditedGroupBy(groupBy_index)"
+                        />
+                    </t>
+                    <button class="btn btn-secondary" t-on-click="_onAddGroupBy">
+                        Add <i class="fa fa-plus-circle"/>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="o_section">
+            <label class="o_section_header">Sort By</label>
+            <div class="o_section_content">
+                <div class="o_fieldname_cells">
+                    <t t-foreach="props.filter.orderedBy" t-as="orderedBy" t-key="orderedBy.id">
+                        <div t-if="state.editedOrderedBy === orderedBy_index" class="o_fieldname_cell" tabindex="0">
+                            <select t-on-change="_onOrderedByChange(orderedBy_index)">
+                                <option t-foreach="Object.keys(props.fields)" t-as="fieldName" t-key="fieldName"
+                                    t-att-value="fieldName"
+                                    t-att-selected="fieldName === orderedBy.name"
+                                    t-esc="props.fields[fieldName].string or fieldName"
+                                />
+                            </select>
+                            <select t-on-change="_onOrderedByChange(orderedBy_index)">
+                                <option t-attf-value="{{ orderedBy.name }} asc"
+                                    t-att-selected="orderedBy.asc"
+                                    >
+                                    Ascending
+                                </option>
+                                <option t-attf-value="{{ orderedBy.name }} desc"
+                                    t-att-selected="!orderedBy.asc"
+                                    >
+                                    Descending
+                                </option>
+                            </select>
+                        </div>
+                        <div t-else="" class="o_fieldname_cell" tabindex="0" t-on-click="_toggleEditedOrderedBy(orderedBy_index)">
+                            <span t-esc="props.fields[orderedBy.name].string or orderedBy.name"/>
+                            <i t-attf-class="fa fa-chevron-{{ orderedBy.asc ? 'up' : 'down' }}"/>
+                        </div>
+
+                    </t>
+                    <button class="btn btn-secondary" t-on-click="_onAddOrderedBy">
+                        Add <i class="fa fa-plus-circle"/>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="o_section">
+            <label class="o_section_header">
+                Time Ranges
+            </label>
+            <div class="o_section_content">
+                <div class="custom-control custom-checkbox">
+                    <input type="checkbox" class="custom-control-input" t-attf-id="o_toggle_time_range_{{ id }}"
+                        t-att-checked="state.activateTimeRange"
+                        t-on-change="_onToggleTimeRanges"
+                    />
+                    <label t-attf-for="o_toggle_time_range_{{ id }}" class="custom-control-label">Activate time ranges</label>
+                </div>
+                <TimeRangeEditor t-if="state.activateTimeRange"
+                    comparisonRangeId="state.timeRange.comparisonRangeId"
+                    fieldName="state.timeRange.fieldName"
+                    fields="fields"
+                    rangeId="state.timeRange.rangeId"
+                    t-on-time-range-change="_onTimeRangeChange"
+                />
+            </div>
+        </div>
+    </div>
+</t>
+
 <t t-name="FavoriteMenu" t-inherit="DropdownMenu" t-inherit-mode="primary" owl="1">
     <xpath expr="//ul[@role='menu']" position="inside">
         <AddNewFavoriteMenu actionName="props.action.name" favorites="items"/>
@@ -392,43 +529,15 @@
     <xpath expr="//div[1]" position="inside">
         <Dialog t-if="state.editDialog"
             title="'Edit favorite'"
-            size="'medium'"
-            contentClass="'o_favorite_edit_dialog'"
             stopClicks="true"
             t-on-dialog_closed="_closeEditDialog"
             >
-            <div class="o_favorite_name">
-                <label t-attf-for="o_favorite_name_{{ id }}">Name</label>
-                <input type="text" t-attf-id="o_favorite_name_{{ id }}"
-                    class="o_input"
-                    t-att-value="state.editDialog.description"
-                    t-on-input="_onDescriptionInput"
-                />
-            </div>
-            <div class="o_favorite_checkboxes">
-                <div class="custom-control custom-checkbox">
-                    <input type="checkbox" t-attf-id="o_default_name_{{ id }}" class="custom-control-input"
-                        name="default"
-                        t-att-checked="state.editDialog.isDefault"
-                        t-on-change="_onCheckboxChange"
-                    />
-                    <label t-attf-for="o_default_name_{{ id }}" class="custom-control-label">Use by default</label>
-                </div>
-                <div class="custom-control custom-checkbox">
-                    <input type="checkbox" t-attf-id="o_shared_name_{{ id }}" class="custom-control-input"
-                        name="shared"
-                        t-att-checked="!state.editDialog.userId"
-                        t-on-change="_onCheckboxChange"
-                    />
-                    <label t-attf-for="o_shared_name_{{ id }}" class="custom-control-label">
-                        Share with all users <i role="img" class="fa fa-users" aria-label="Users" title="Users"/>
-                    </label>
-                </div>
-            </div>
-            <div class="o_favorite_domain">
-                <label>Domain</label>
-                <div class="o_domain_selector_container" t-ref="domain-selector"/>
-            </div>
+            <FilterEditor
+                action="props.action"
+                fields="props.fields"
+                filter="state.editDialog.favorite"
+                t-on-filter-change="_onFilterChange"
+            />
             <t t-set="buttons">
                 <button type="button"
                     class="btn btn-primary"
@@ -497,48 +606,62 @@
     </xpath>
 </t>
 
-<t t-name="TimeRangeMenu" owl="1" t-inherit="DropdownMenu" t-inherit-mode="primary">
-    <xpath expr="//t[@t-foreach='items']" position="replace">
-        <li class="o_menu_item dropdown-item-text" role="menuitem">
-            <label t-attf-for="field_select_{{id}}">Based On</label>
-            <select t-attf-id="field_select_{{id}}" class="o_input" t-on-change="_onFieldNameChanged">
-                <option t-foreach="fields" t-as="field" t-key="field.name"
-                    t-att-selected="state.fieldName === field.name"
-                    t-att-value="field.name"
+<t t-name="TimeRangeEditor" owl="1">
+    <div class="o_time_range_editor">
+        <div class="o_time_range_section">
+            <label t-attf-for="field_select_{{ id }}">Based On</label>
+            <select t-attf-id="field_select_{{ id }}" class="o_input" t-on-change="_onFieldNameChange">
+                <option t-foreach="props.fields" t-as="field" t-key="field.value"
+                    t-att-selected="props.fieldName === field.value"
+                    t-att-value="field.value"
                     t-esc="field.description"
                 />
             </select>
-        </li>
-        <li class="o_menu_item dropdown-item-text" role="menuitem">
-            <label t-attf-for="range_select_{{id}}">Range</label>
-            <select t-attf-id="range_select_{{id}}" class="o_input" t-on-change="_onRangeChanged">
+        </div>
+        <div class="o_time_range_section">
+            <label t-attf-for="range_select_{{ id }}">Range</label>
+            <select t-attf-id="range_select_{{ id }}" class="o_input" t-on-change="_onRangeIdChange">
                 <optgroup t-foreach="periodGroups" t-as="group" t-key="group" label="">
                     <t t-foreach="Object.values(periodOptions)" t-as="option" t-key="option_index">
                         <option t-if="option.groupNumber === group"
-                            t-att-selected="state.rangeId === option.id"
+                            t-att-selected="props.rangeId === option.id"
                             t-att-value="option.id"
                             t-esc="env._t(option.description)"
                         />
                     </t>
                 </optgroup>
             </select>
-        </li>
-        <li class="o_menu_item dropdown-item-text" role="menuitem">
+        </div>
+        <div class="o_time_range_section">
             <div class="custom-control custom-checkbox">
-                <input type="checkbox" t-attf-id="checkbox_select_{{id}}"
+                <input type="checkbox" t-attf-id="checkbox_select_{{ id }}"
                     class="custom-control-input"
                     t-att-checked="state.isComparing"
-                    t-on-change="state.isComparing = !state.isComparing"
+                    t-on-change="_onComparingChange"
                 />
-                <label t-attf-for="checkbox_select_{{id}}" class="custom-control-label">Compare To</label>
+                <label t-attf-for="checkbox_select_{{ id }}" class="custom-control-label">Compare To</label>
             </div>
-            <select t-if="state.isComparing" class="o_input" t-on-change="_onComparisonRangeChanged">
+            <select t-if="state.isComparing" class="o_input" t-on-change="_onComparisonRangeIdChange">
                 <option t-foreach="Object.values(comparisonTimeRangeOptions)" t-as="option" t-key="option_index"
-                    t-att-selected="state.comparisonRangeId === option.id"
+                    t-att-selected="props.comparisonRangeId === option.id"
                     t-att-value="option.id"
                     t-esc="env._t(option.description)"
                 />
             </select>
+        </div>
+    </div>
+</t>
+
+<t t-name="TimeRangeMenu" owl="1" t-inherit="DropdownMenu" t-inherit-mode="primary">
+    <xpath expr="//t[@t-foreach='items']" position="replace">
+        <li class="o_menu_item dropdown-item-text" role="menuitem">
+            <TimeRangeEditor
+                comparisonRangeId="state.comparisonRangeId"
+                fieldName="state.fieldName"
+                fields="fields"
+                rangeId="state.rangeId"
+                t-on-time-range-change="_onTimeRangeChange"
+            />
         </li>
         <li class="o_menu_item dropdown-item-text" role="menuitem">
             <button type="button" class="btn btn-primary" t-on-click="_onApply">Apply</button>

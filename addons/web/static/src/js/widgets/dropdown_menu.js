@@ -5,7 +5,7 @@ odoo.define('web.DropdownMenu', function (require) {
     const { useExternalListener } = require('web.custom_hooks');
 
     const { Component, hooks } = owl;
-    const { useDispatch, useGetters, useRef, useState } = hooks;
+    const { useRef, useState } = hooks;
 
     // Used to provide unique ids to its template elements.
     let dropdownId = 0;
@@ -17,10 +17,6 @@ odoo.define('web.DropdownMenu', function (require) {
             debugger
             this.id = dropdownId ++;
             this.dropdownMenu = useRef('dropdown');
-            if ('controlPanelStore' in this.env) {
-                this.dispatch = useDispatch(this.env.controlPanelStore);
-                this.getters = useGetters(this.env.controlPanelStore);
-            }
             this.state = useState({ open: false });
             useExternalListener(window, 'click', this._onWindowClick);
             useExternalListener(window, 'keydown', this._onWindowKeydown);

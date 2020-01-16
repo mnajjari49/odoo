@@ -3,12 +3,11 @@ odoo.define('web.FavoriteMenu', function (require) {
 
     const AddNewFavoriteMenu = require('web.AddNewFavoriteMenu');
     const Dialog = require('web.OwlDialog');
-    const Domain = require('web.Domain');
-    const DomainSelector = require('web.DomainSelector');
     const DropdownMenu = require('web.DropdownMenu');
+    const FilterEditor = require('web.FilterEditor');
     const { sprintf } = require('web.utils');
 
-    const { useRef, useState } = owl.hooks;
+    const { useDispatch, useGetters, useState } = owl.hooks;
 
     class FavoriteMenu extends DropdownMenu {
         constructor() {
@@ -18,41 +17,8 @@ odoo.define('web.FavoriteMenu', function (require) {
                 deleteDialog: false,
                 editDialog: false,
             });
-            this.domainSelectorRef = useRef('domain-selector');
-            this.domainSelector = new DomainSelector(this,
-                this.props.action.res_model, // Model
-                '', // Domain
-                { readonly: false } // Options
-            );
-        }
-
-        async willStart() {
-            await this.domainSelector.appendTo(document.createDocumentFragment());
-        }
-
-        patched() {
-            if (this.state.editDialog) {
-                this.domainSelectorRef.el.innerHTML = "";
-                this.domainSelectorRef.el.appendChild(this.domainSelector.el);
-            }
-        }
-
-        _trigger_up(ev) {
-            switch (ev.name) {
-                case 'get_session':
-                    ev.data.callback(this.env.session);
-                    break;
-                case 'call_service':
-                    this.env.bus.trigger('call_service', { data: ev.data });
-                    break;
-                case 'domain_changed':
-                    this.state.editDialog.domain = Domain.prototype.arrayToString(
-                        this.domainSelector.getDomain()
-                    );
-                    break;
-                default:
-                    console.warn('Trigger up:', ev);
-            }
+            this.dispatch = useDispatch(this.env.controlPanelStore);
+            this.getters = useGetters(this.env.controlPanelStore);
         }
 
         //--------------------------------------------------------------------------
@@ -107,7 +73,7 @@ odoo.define('web.FavoriteMenu', function (require) {
          * @private
          */
         _saveFavorite() {
-            const { description, domain, favoriteId, isDefault, userId } = this.state.editDialog;
+            const { description, id } = this.state.editDialog.favorite;
 
             if (!description.length) {
                 return this._doWarn(
@@ -115,60 +81,20 @@ odoo.define('web.FavoriteMenu', function (require) {
                     this.env._t("A name for your favorite is required.")
                 );
             }
-            if (this.items.some(f => f.id !== favoriteId && f.description === description)) {
+            if (this.items.some(f => f.id !== id && f.description === description)) {
                 return this._doWarn(
                     this.env._t("Error"),
                     this.env._t("Filter with same name already exists.")
                 );
             }
 
-            this.dispatch('editFavorite', favoriteId, {
-                description,
-                domain,
-                isDefault,
-                userId,
-            });
+            this.dispatch('editFavorite', id, this.state.editDialog.favorite);
             this._closeEditDialog();
         }
 
         //--------------------------------------------------------------------------
         // Handlers
         //--------------------------------------------------------------------------
-
-        /**
-         * @private
-         * @param {Event} ev
-         */
-        _onCheckboxChange(ev) {
-            const { checked, id } = ev.target;
-            if (id.startsWith('o_default_name_')) {
-                this.state.editDialog.isDefault = checked;
-                if (checked) {
-                    this.state.editDialog.userId = this.env.session.uid;
-                }
-            } else {
-                this.state.editDialog.userId = false;
-                if (checked) {
-                    this.state.editDialog.isDefault = false;
-                }
-            }
-        }
-
-        /**
-         * @private
-         * @param {Event} ev
-         */
-        _onDefaultChange(ev) {
-            this.state.editDialog.isDefault = ev.target.checked;
-        }
-
-        /**
-         * @private
-         * @param {InputEvent} ev
-         */
-        _onDescriptionInput(ev) {
-            this.state.editDialog.description = ev.target.value;
-        }
 
         _onDrag(item, ev) {
             if (!item.editable) {
@@ -224,20 +150,26 @@ odoo.define('web.FavoriteMenu', function (require) {
          * @private
          * @param {OwlEvent} ev
          */
+        _onFilterChange(ev) {
+            Object.assign(this.state.editDialog.favorite, ev.detail);
+        }
+
+        /**
+         * @private
+         * @param {OwlEvent} ev
+         */
         async _onItemEdited(ev) {
-            const { description, domain, id, isDefault, userId } = this.items.find(fav => fav.id === ev.detail.item.id);
-            const title = sprintf(this.env._t("Edit filter"), description);
+            const storeFavorite = this.items.find(fav => fav.id === ev.detail.item.id);
+            const favorite = Object.assign({}, storeFavorite, {
+                orderedBy: Object.assign([], storeFavorite.orderedBy),
+                groupBys: Object.assign([], storeFavorite.groupBys),
+            });
+            if (storeFavorite.timeRanges) {
+                favorite.timeRanges = Object.assign({}, storeFavorite.timeRanges);
+            }
+            const title = sprintf(this.env._t("Edit filter"), favorite.description);
 
-            await this.domainSelector.setDomain(domain, true);
-
-            this.state.editDialog = {
-                description,
-                domain,
-                favoriteId: id,
-                isDefault,
-                title,
-                userId,
-            };
+            this.state.editDialog = { title, favorite };
         }
 
         /**
@@ -261,19 +193,12 @@ odoo.define('web.FavoriteMenu', function (require) {
                 this.dispatch('toggleFilter', item.id);
             }
         }
-
-        /**
-         * @private
-         * @param {Event} ev
-         */
-        _onSharedChange(ev) {
-            this.state.editDialog.userId = ev.target.checked ? false : this.env.session.uid;
-        }
     }
 
     FavoriteMenu.components = Object.assign({}, DropdownMenu.components, {
         AddNewFavoriteMenu,
         Dialog,
+        FilterEditor,
     });
     FavoriteMenu.defaultProps = Object.assign({}, DropdownMenu.defaultProps, {
         icon: 'fa fa-star',

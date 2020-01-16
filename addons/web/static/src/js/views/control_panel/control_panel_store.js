@@ -1,6 +1,18 @@
 odoo.define('web.ControlPanelStore', function (require) {
     "use strict";
 
+    function areArraysEqual(a, b) {
+        if (a.length !== b.length) {
+            return false;
+        }
+        for (let i = 0; i < a.length; i ++) {
+            if (a[i] !== b[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     /**
      * DATA STRUCTURES
      *
@@ -252,23 +264,54 @@ odoo.define('web.ControlPanelStore', function (require) {
          * @param {Object} values
          */
         async editFavorite({ state }, filterId, values) {
-            const favorite = Object.assign(state.filters[filterId], values);
+            const favorite = state.filters[filterId];
             const irFilterValues = {};
+            let updateQuery = false;
 
-            if ('description' in values) {
+            if ('description' in values && favorite.description !== values.description) {
                 irFilterValues.name = values.description;
             }
-            if ('domain' in values) {
+            if ('domain' in values && favorite.domain !== values.domain) {
+                updateQuery = true;
                 irFilterValues.domain = values.domain;
             }
-            if ('isDefault' in values) {
+            if ('isDefault' in values && favorite.isDefault !== values.isDefault) {
                 irFilterValues.is_default = values.isDefault;
             }
-            if ('userId' in values) {
+            if ('orderedBy' in values && !areArraysEqual(favorite.orderedBy, values.orderedBy)) {
+                updateQuery = true;
+                const sort = values.orderedBy.map(
+                    ({ name, asc }) => [name, asc ? 'asc' : 'desc'].join(' ')
+                );
+                irFilterValues.sort = JSON.stringify(sort);
+            }
+            if ('userId' in values && favorite.userId !== values.userId) {
                 irFilterValues.user_id = values.userId;
                 favorite.groupNumber = values.userId ?
                     FAVORITE_PRIVATE_GROUP :
                     FAVORITE_SHARED_GROUP;
+            }
+
+            // Context values
+            const context = {};
+            if ('groupBys' in values && !areArraysEqual(favorite.groupBys, values.groupBys)) {
+                context.group_by = values.groupBys;
+            }
+            if ('timeRanges' in values && favorite.timeRanges !== values.timeRanges) {
+                const { fieldName, rangeId, comparisonRangeId } = values.timeRanges;
+                context.time_ranges = {
+                    field: fieldName,
+                    range: rangeId,
+                    comparisonRange: comparisonRangeId,
+                };
+            }
+            if (Object.keys(context).length) {
+                updateQuery = true;
+                irFilterValues.context = context;
+            }
+
+            if (!Object.keys(irFilterValues).length) {
+                return;
             }
 
             const irFilter = {
@@ -276,6 +319,15 @@ odoo.define('web.ControlPanelStore', function (require) {
                 id: favorite.serverSideId,
                 model_id: this.modelName,
             };
+
+            // Update filter and trigger a query change
+            Object.assign(favorite, values);
+            if (updateQuery) {
+                const queryElement = state.query.find(e => e.filterId === filterId);
+                if (queryElement) {
+                    queryElement.revNumber = (queryElement.revNumber || 0) + 1;
+                }
+            }
 
             await dataManager.edit_filter(irFilter, irFilterValues);
         }
@@ -773,7 +825,7 @@ odoo.define('web.ControlPanelStore', function (require) {
             }
             if (child.attrs.name in this.searchDefaults) {
                 child.attrs.isDefault = true;
-                const value = this.searchDefaults[child.attrs.name];
+                let value = this.searchDefaults[child.attrs.name];
                 if (child.tag === 'field') {
                     if (value instanceof Array) {
                         value = value[0];

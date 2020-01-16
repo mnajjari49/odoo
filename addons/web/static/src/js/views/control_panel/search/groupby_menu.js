@@ -4,7 +4,18 @@ odoo.define('web.GroupByMenu', function (require) {
     const DropdownMenu = require('web.DropdownMenu');
     const GroupByMenuGenerator = require('web.GroupByMenuGenerator');
 
+    const { useDispatch, useGetters } = owl.hooks;
+
     class GroupByMenu extends DropdownMenu {
+
+        constructor() {
+            super(...arguments);
+
+            if (this.env.controlPanelStore) {
+                this.dispatch = useDispatch(this.env.controlPanelStore);
+                this.getters = useGetters(this.env.controlPanelStore);
+            }
+        }
 
         //--------------------------------------------------------------------------
         // Getters

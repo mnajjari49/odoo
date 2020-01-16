@@ -4,7 +4,16 @@ odoo.define('web.FilterMenu', function (require) {
     const DropdownMenu = require('web.DropdownMenu');
     const FilterMenuGenerator = require('web.FilterMenuGenerator');
 
+    const { useDispatch, useGetters } = owl.hooks;
+
     class FilterMenu extends DropdownMenu {
+
+        constructor() {
+            super(...arguments);
+
+            this.dispatch = useDispatch(this.env.controlPanelStore);
+            this.getters = useGetters(this.env.controlPanelStore);
+        }
 
         //--------------------------------------------------------------------------
         // Getters
