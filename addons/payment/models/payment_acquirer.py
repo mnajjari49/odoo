@@ -572,7 +572,10 @@ class PaymentTransaction(models.Model):
 
     date = fields.Datetime('Validation Date', readonly=True)
     acquirer_id = fields.Many2one('payment.acquirer', string='Acquirer', readonly=True, required=True)
-    provider = fields.Selection(string='Provider', related='acquirer_id.provider', readonly=True)
+    # VFE test_sale_invoicing_from_transaction crashes if not stored
+    # Selection choices are not correctly transmitted to related field :c
+    # CHECK LATER WITH RCO
+    provider = fields.Selection(related='acquirer_id.provider', store=True)
     type = fields.Selection([
         ('validation', 'Validation of the bank card'),
         ('server2server', 'Server To Server'),
