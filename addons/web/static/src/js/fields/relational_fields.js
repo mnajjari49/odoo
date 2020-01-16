@@ -2639,6 +2639,21 @@ var FieldStatus = AbstractField.extend({
     },
 
     //--------------------------------------------------------------------------
+    // Public
+    //--------------------------------------------------------------------------
+
+    /**
+     * return always true to show statusbar widget if there is no value
+     * set(even in readonly mode).
+     *
+     * @override
+     * @returns {boolean} true
+     */
+    isSet: function () {
+        return true;
+    },
+
+    //--------------------------------------------------------------------------
     // Private
     //--------------------------------------------------------------------------
 

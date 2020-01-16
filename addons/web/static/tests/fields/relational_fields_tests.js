@@ -811,22 +811,22 @@ QUnit.module('relational_fields', {
         form.destroy();
     });
 
-    QUnit.test('statusbar with no status', async function (assert) {
+    QUnit.test('statusbar with no status should displayed in readonly mode', async function (assert) {
         assert.expect(2);
 
         this.data.product.records = [];
-        var form = await createView({
+        const form = await createView({
             View: FormView,
             model: 'partner',
             data: this.data,
-            arch:'<form string="Partners">' +
-                    '<header><field name="product_id" widget="statusbar"/></header>' +
-                '</form>',
+            arch: `<form string="Partners">
+                    <header><field name="product_id" widget="statusbar"/></header>
+                </form>`,
             res_id: 1,
             config: {device: {isMobile: false}},
         });
 
-        assert.hasClass(form.$('.o_statusbar_status'), 'o_field_empty');
+        assert.doesNotHaveClass(form.$('.o_statusbar_status'), 'o_field_empty');
         assert.strictEqual(form.$('.o_statusbar_status').children().length, 0,
             'statusbar widget should be empty');
         form.destroy();
