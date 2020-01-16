@@ -13,8 +13,10 @@ var SlideArchiveDialog = Dialog.extend({
      * @override
      */
     init: function (parent, options) {
+
+        const dialogTitle = options.slideTarget.is('.o_wslides_js_category_archive') ? _t('Archive Category') : _t('Archive Slide');
         options = _.defaults(options || {}, {
-            title: _t('Archive Slide'),
+            title: dialogTitle,
             size: 'medium',
             buttons: [{
                 text: _t('Archive'),
@@ -27,7 +29,8 @@ var SlideArchiveDialog = Dialog.extend({
         });
 
         this.$slideTarget = options.slideTarget;
-        this.slideId = this.$slideTarget.data('slideId');
+        this.slideId = this.$slideTarget.data('slideId') || false;
+        this.categoryId = this.$slideTarget.data('categoryId') || false;
         this._super(parent, options);
     },
 
@@ -37,24 +40,39 @@ var SlideArchiveDialog = Dialog.extend({
 
     /**
      * Calls 'archive' on slide controller and then visually removes the slide dom element
+     * (or in case of category, reloads the page after re-sequencing slides)
      */
     _onClickArchive: function () {
-        var self = this;
+        const self = this;
+        const isCategory = this.categoryId || false;
+        let rpcParams;
+        if (isCategory) {
+            rpcParams = {
+                route: '/slides/category/archive',
+                params: {category_id: this.categoryId}
+            };
+        } else {
+            rpcParams = {
+                route: '/slides/slide/archive',
+                params: {slide_id: this.slideId},
+            };
+        }
 
-        this._rpc({
-            route: '/slides/slide/archive',
-            params: {
-                slide_id: this.slideId
-            },
-        }).then(function () {
-            self.$slideTarget.closest('.o_wslides_slides_list_slide').remove();
-            self.close();
+        this._rpc(rpcParams).then(function (result) {
+            if (result) {
+                if (isCategory) {
+                    window.location.reload();
+                } else {
+                    self.$slideTarget.closest('.o_wslides_slides_list_slide').remove();
+                    self.close();
+                }
+            }
         });
     }
 });
 
 publicWidget.registry.websiteSlidesSlideArchive = publicWidget.Widget.extend({
-    selector: '.o_wslides_js_slide_archive',
+    selector: '.o_wslides_js_slide_archive, .o_wslides_js_category_archive',
     xmlDependencies: ['/website_slides/static/src/xml/slide_management.xml'],
     events: {
         'click': '_onArchiveSlideClick',
