@@ -1,0 +1,365 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <record id="tax_report_title" model="account.tax.report.line">
+            <field name="name">VAT report</field>
+            <field name="country_id" ref="base.se"/>
+            <field name="sequence">1</field>
+        </record>
+
+        <!-- -->
+        <!--A-->
+        <!-- -->
+        <record id="tax_report_title_sales" model="account.tax.report.line">
+            <field name="name">A. Sales subject to VAT or self-supply excluding VAT</field>
+            <field name="country_id" ref="base.se"/>
+            <field name="sequence">1</field>
+            <field name="parent_id" ref="tax_report_title"/>
+        </record>
+
+        <record id="tax_report_line_05" model="account.tax.report.line">
+            <field name="name">05 - Sales subject to BAT not included in other boxes below</field>
+            <field name="code">a05</field>
+            <field name="tag_name">05</field>
+            <field name="country_id" ref="base.se"/>
+            <field name="sequence">1</field>
+            <field name="parent_id" ref="tax_report_title_sales"/>
+        </record>
+
+        <record id="tax_report_line_06" model="account.tax.report.line">
+            <field name="name">06 - Self-supply subject to VAT</field>
+            <field name="code">a06</field>
+            <field name="tag_name">06</field>
+            <field name="country_id" ref="base.se"/>
+            <field name="sequence">2</field>
+            <field name="parent_id" ref="tax_report_title_sales"/>
+        </record>
+
+        <record id="tax_report_line_07" model="account.tax.report.line">
+            <field name="name">07 - Taxable basis for profit margin taxation</field>
+            <field name="code">a07</field>
+            <field name="tag_name">07</field>
+            <field name="country_id" ref="base.se"/>
+            <field name="sequence">3</field>
+            <field name="parent_id" ref="tax_report_title_sales"/>
+        </record>
+
+        <record id="tax_report_line_08" model="account.tax.report.line">
+            <field name="name">08 - Rental Income - voluntary tax liability</field>
+            <field name="code">a08</field>
+            <field name="tag_name">08</field>
+            <field name="country_id" ref="base.se"/>
+            <field name="sequence">4</field>
+            <field name="parent_id" ref="tax_report_title_sales"/>
+        </record>
+
+        <!-- -->
+        <!--B-->
+        <!-- -->
+        <record id="tax_report_title_output_vat_sales" model="account.tax.report.line">
+            <field name="name">B. Output VAT on sales or self-supply in boxes 05-08</field>
+            <field name="country_id" ref="base.se"/>
+            <field name="sequence">2</field>
+            <field name="parent_id" ref="tax_report_title"/>
+        </record>
+
+        <record id="tax_report_line_10" model="account.tax.report.line">
+            <field name="name">10 - Output VAT 25%</field>
+            <field name="code">b10</field>
+            <field name="tag_name">10</field>
+            <field name="country_id" ref="base.se"/>
+            <field name="sequence">1</field>
+            <field name="parent_id" ref="tax_report_title_output_vat_sales"/>
+        </record>
+
+        <record id="tax_report_line_11" model="account.tax.report.line">
+            <field name="name">11 - Output VAT 12%</field>
+            <field name="code">b11</field>
+            <field name="tag_name">11</field>
+            <field name="country_id" ref="base.se"/>
+            <field name="sequence">2</field>
+            <field name="parent_id" ref="tax_report_title_output_vat_sales"/>
+        </record>
+
+        <record id="tax_report_line_12" model="account.tax.report.line">
+            <field name="name">12 - Output VAT 6%</field>
+            <field name="code">b12</field>
+            <field name="tag_name">12</field>
+            <field name="country_id" ref="base.se"/>
+            <field name="sequence">3</field>
+            <field name="parent_id" ref="tax_report_title_output_vat_sales"/>
+        </record>
+
+        <!-- -->
+        <!--C-->
+        <!-- -->
+        <record id="tax_report_title_purchases" model="account.tax.report.line">
+            <field name="name">C. Purchases subject to VAT where there is reverse tax liability</field>
+            <field name="country_id" ref="base.se"/>
+            <field name="sequence">3</field>
+            <field name="parent_id" ref="tax_report_title"/>
+        </record>
+
+        <record id="tax_report_line_20" model="account.tax.report.line">
+            <field name="name">20 - Purchases of goods from another EU country</field>
+            <field name="code">c20</field>
+            <field name="tag_name">20</field>
+            <field name="country_id" ref="base.se"/>
+            <field name="sequence">1</field>
+            <field name="parent_id" ref="tax_report_title_purchases"/>
+        </record>
+
+        <record id="tax_report_line_21" model="account.tax.report.line">
+            <field name="name">21 - Purchases of services from another EU country under the main rule</field>
+            <field name="code">c21</field>
+            <field name="tag_name">21</field>
+            <field name="country_id" ref="base.se"/>
+            <field name="sequence">2</field>
+            <field name="parent_id" ref="tax_report_title_purchases"/>
+        </record>
+
+        <record id="tax_report_line_22" model="account.tax.report.line">
+            <field name="name">22 - Purchases of services from a country outside the EU</field>
+            <field name="code">c22</field>
+            <field name="tag_name">22</field>
+            <field name="country_id" ref="base.se"/>
+            <field name="sequence">3</field>
+            <field name="parent_id" ref="tax_report_title_purchases"/>
+        </record>
+
+        <record id="tax_report_line_23" model="account.tax.report.line">
+            <field name="name">23 - Purchases of goods in Sweden</field>
+            <field name="code">c23</field>
+            <field name="tag_name">23</field>
+            <field name="country_id" ref="base.se"/>
+            <field name="sequence">3</field>
+            <field name="parent_id" ref="tax_report_title_purchases"/>
+        </record>
+
+        <record id="tax_report_line_24" model="account.tax.report.line">
+            <field name="name">24 - Other purchases of services</field>
+            <field name="code">c24</field>
+            <field name="tag_name">24</field>
+            <field name="country_id" ref="base.se"/>
+            <field name="sequence">4</field>
+            <field name="parent_id" ref="tax_report_title_purchases"/>
+        </record>
+
+        <!-- -->
+        <!--D-->
+        <!-- -->
+        <record id="tax_report_title_output_vat_purchases" model="account.tax.report.line">
+            <field name="name">D. Output VAT on purchases in boxes 20-24</field>
+            <field name="country_id" ref="base.se"/>
+            <field name="sequence">4</field>
+            <field name="parent_id" ref="tax_report_title"/>
+        </record>
+
+        <record id="tax_report_line_30" model="account.tax.report.line">
+            <field name="name">30 - Output VAT 25%</field>
+            <field name="code">d30</field>
+            <field name="tag_name">30</field>
+            <field name="country_id" ref="base.se"/>
+            <field name="sequence">1</field>
+            <field name="parent_id" ref="tax_report_title_output_vat_purchases"/>
+        </record>
+
+        <record id="tax_report_line_31" model="account.tax.report.line">
+            <field name="name">31 - Output VAT 12%</field>
+            <field name="code">d31</field>
+            <field name="tag_name">31</field>
+            <field name="country_id" ref="base.se"/>
+            <field name="sequence">2</field>
+            <field name="parent_id" ref="tax_report_title_output_vat_purchases"/>
+        </record>
+
+        <record id="tax_report_line_32" model="account.tax.report.line">
+            <field name="name">32 - Output VAT 6%</field>
+            <field name="code">d32</field>
+            <field name="tag_name">32</field>
+            <field name="country_id" ref="base.se"/>
+            <field name="sequence">3</field>
+            <field name="parent_id" ref="tax_report_title_output_vat_purchases"/>
+        </record>
+
+        <!-- -->
+        <!--H-->
+        <!-- -->
+        <record id="tax_report_title_imports" model="account.tax.report.line">
+            <field name="name">H. Value added Tax in conjunction with imports</field>
+            <field name="country_id" ref="base.se"/>
+            <field name="sequence">5</field>
+            <field name="parent_id" ref="tax_report_title"/>
+        </record>
+
+        <record id="tax_report_line_50" model="account.tax.report.line">
+            <field name="name">50 - Taxable value in conjunction with an import</field>
+            <field name="code">h50</field>
+            <field name="tag_name">50</field>
+            <field name="country_id" ref="base.se"/>
+            <field name="sequence">1</field>
+            <field name="parent_id" ref="tax_report_title_imports"/>
+        </record>
+
+        <!-- -->
+        <!--I-->
+        <!-- -->
+        <record id="tax_report_title_output_vat_imports" model="account.tax.report.line">
+            <field name="name">I. Output VAT on imports in box 50</field>
+            <field name="country_id" ref="base.se"/>
+            <field name="sequence">6</field>
+            <field name="parent_id" ref="tax_report_title"/>
+        </record>
+
+        <record id="tax_report_line_60" model="account.tax.report.line">
+            <field name="name">60 - Payable value added tax 25%</field>
+            <field name="code">i60</field>
+            <field name="tag_name">60</field>
+            <field name="country_id" ref="base.se"/>
+            <field name="sequence">1</field>
+            <field name="parent_id" ref="tax_report_title_output_vat_imports"/>
+        </record>
+
+        <record id="tax_report_line_61" model="account.tax.report.line">
+            <field name="name">61 - Payable value added tax 12%</field>
+            <field name="code">i61</field>
+            <field name="tag_name">61</field>
+            <field name="country_id" ref="base.se"/>
+            <field name="sequence">2</field>
+            <field name="parent_id" ref="tax_report_title_output_vat_imports"/>
+        </record>
+
+        <record id="tax_report_line_62" model="account.tax.report.line">
+            <field name="name">62 - Payable value added tax 6%</field>
+            <field name="code">i62</field>
+            <field name="tag_name">62</field>
+            <field name="country_id" ref="base.se"/>
+            <field name="sequence">3</field>
+            <field name="parent_id" ref="tax_report_title_output_vat_imports"/>
+        </record>
+
+        <!-- -->
+        <!--E-->
+        <!-- -->
+        <record id="tax_report_title_exempt_sales" model="account.tax.report.line">
+            <field name="name">E. Sales etc. which are exempt from VAT</field>
+            <field name="country_id" ref="base.se"/>
+            <field name="sequence">7</field>
+            <field name="parent_id" ref="tax_report_title"/>
+        </record>
+
+        <record id="tax_report_line_35" model="account.tax.report.line">
+            <field name="name">35 - Sales of goods to another EU country</field>
+            <field name="code">e35</field>
+            <field name="tag_name">35</field>
+            <field name="country_id" ref="base.se"/>
+            <field name="sequence">1</field>
+            <field name="parent_id" ref="tax_report_title_exempt_sales"/>
+        </record>
+
+        <record id="tax_report_line_36" model="account.tax.report.line">
+            <field name="name">36 - Sales of goods outside the EU</field>
+            <field name="code">e36</field>
+            <field name="tag_name">36</field>
+            <field name="country_id" ref="base.se"/>
+            <field name="sequence">2</field>
+            <field name="parent_id" ref="tax_report_title_exempt_sales"/>
+        </record>
+
+        <record id="tax_report_line_37" model="account.tax.report.line">
+            <field name="name">37 - Purchases of goods by an intermediary in triangulation</field>
+            <field name="code">e37</field>
+            <field name="tag_name">37</field>
+            <field name="country_id" ref="base.se"/>
+            <field name="sequence">3</field>
+            <field name="parent_id" ref="tax_report_title_exempt_sales"/>
+        </record>
+
+        <record id="tax_report_line_38" model="account.tax.report.line">
+            <field name="name">38 - Sales of goods by an intermediary in triangulation</field>
+            <field name="code">e38</field>
+            <field name="tag_name">38</field>
+            <field name="country_id" ref="base.se"/>
+            <field name="sequence">4</field>
+            <field name="parent_id" ref="tax_report_title_exempt_sales"/>
+        </record>
+
+        <record id="tax_report_line_39" model="account.tax.report.line">
+            <field name="name">39 - Sale of services to a taxable person (a business owner) in another EU country, in
+                accordance with the principal rule
+            </field>
+            <field name="code">e39</field>
+            <field name="tag_name">39</field>
+            <field name="country_id" ref="base.se"/>
+            <field name="sequence">5</field>
+            <field name="parent_id" ref="tax_report_title_exempt_sales"/>
+        </record>
+
+        <record id="tax_report_line_40" model="account.tax.report.line">
+            <field name="name">40 - Other sale of services outside Sweden</field>
+            <field name="code">e40</field>
+            <field name="tag_name">40</field>
+            <field name="country_id" ref="base.se"/>
+            <field name="sequence">6</field>
+            <field name="parent_id" ref="tax_report_title_exempt_sales"/>
+        </record>
+
+        <record id="tax_report_line_41" model="account.tax.report.line">
+            <field name="name">41 - Sales in which the purchaser is subject to VAT in Sweden</field>
+            <field name="code">e41</field>
+            <field name="tag_name">41</field>
+            <field name="country_id" ref="base.se"/>
+            <field name="sequence">7</field>
+            <field name="parent_id" ref="tax_report_title_exempt_sales"/>
+        </record>
+
+        <record id="tax_report_line_42" model="account.tax.report.line">
+            <field name="name">42 - Other sales etc</field>
+            <field name="code">e42</field>
+            <field name="tag_name">42</field>
+            <field name="country_id" ref="base.se"/>
+            <field name="sequence">8</field>
+            <field name="parent_id" ref="tax_report_title_exempt_sales"/>
+        </record>
+
+        <!-- -->
+        <!--F-->
+        <!-- -->
+        <record id="tax_report_title_input_vat" model="account.tax.report.line">
+            <field name="name">F. Input VAT</field>
+            <field name="country_id" ref="base.se"/>
+            <field name="sequence">8</field>
+            <field name="parent_id" ref="tax_report_title"/>
+        </record>
+
+        <record id="tax_report_line_48" model="account.tax.report.line">
+            <field name="name">48 - Input VAT to deduct</field>
+            <field name="code">f48</field>
+            <field name="tag_name">48</field>
+            <field name="country_id" ref="base.se"/>
+            <field name="sequence">1</field>
+            <field name="parent_id" ref="tax_report_title_input_vat"/>
+        </record>
+
+        <!-- -->
+        <!--G-->
+        <!-- -->
+        <record id="tax_report_title_input_vat" model="account.tax.report.line">
+            <field name="name">G. VAT to pay or be refunded</field>
+            <field name="country_id" ref="base.se"/>
+            <field name="sequence">9</field>
+            <field name="parent_id" ref="tax_report_title"/>
+        </record>
+
+        <record id="tax_report_line_49" model="account.tax.report.line">
+            <field name="name">49 - VAT to pay or be refunded</field>
+            <field name="code">g49</field>
+            <field name="tag_name">49</field>
+            <field name="country_id" ref="base.se"/>
+            <field name="sequence">1</field>
+            <field name="parent_id" ref="tax_report_title_input_vat"/>
+        </record>
+
+    </data>
+</odoo>
