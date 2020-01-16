@@ -164,7 +164,7 @@ class ResPartnerBank(models.Model):
 
         #TODO OCO HERE >>>> currency est tjrs vide ici => prendre celle de la company si currency est vide (probablement à faire en 12 aussi)
         if(currency.name == 'EUR'):
-            return (self.l10n_ch_postal_subscription_eur and #TODO OCO le nom est foireux ...
+            return (self.l10n_ch_isr_subscription_eur and
                     self.company_id.zip and
                     self.company_id.city and
                     self.company_id.country_id.code and
@@ -175,7 +175,7 @@ class ResPartnerBank(models.Model):
                     debitor.country_id.code and
                     (number != False) and (number_deb != False))
         elif(currency.name == 'CHF'):
-            return (self.l10n_ch_postal_subscription_chf and #TODO OCO le nom est foireux ...
+            return (self.l10n_ch_isr_subscription_chf and
                     self.company_id.zip and
                     self.company_id.city and
                     self.company_id.country_id.code and

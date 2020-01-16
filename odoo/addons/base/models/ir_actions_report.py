@@ -23,7 +23,9 @@ import json
 from lxml import etree
 from contextlib import closing
 from distutils.version import LooseVersion
+from reportlab.graphics.shapes  import Image as ReportLabImage
 from reportlab.graphics.barcode import createBarcodeDrawing
+from reportlab.graphics.testdrawings import *#TODO OCO teSt
 from PyPDF2 import PdfFileWriter, PdfFileReader
 from collections import OrderedDict
 from collections.abc import Iterable
@@ -502,6 +504,14 @@ class IrActionsReport(models.Model):
                 barcode_type, value=value, format='png', width=width, height=height,
                 humanReadable=humanreadable, quiet=quiet
             )
+
+            #TODO OCO TEST
+            #barcode.add(getDrawing1())
+            qr_cross = ReportLabImage(10, 10, 20, 20, 'addons/l10n_ch/static/src/img/CH-Cross_7mm.png')
+            #test = ReportLabImage(10, 10, 20, 20, 'addons/l10n_ch/static/src/img/CH-Cross_fezgzr7mm.png')
+            #import pdb; pdb.set_trace()
+            barcode.add(qr_cross)
+
             return barcode.asString('png')
         except (ValueError, AttributeError):
             if barcode_type == 'Code128':
