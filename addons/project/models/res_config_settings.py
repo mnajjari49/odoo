@@ -19,7 +19,7 @@ class ResConfigSettings(models.TransientModel):
             self.env['project.project'].search([('rating_status', '=', 'no')]).write({'rating_status': 'stage'}) 
         if self.group_subtask_project:
             domain = []
-            if 'is_fsm' in self.env['project.project']._fields:
+            if self.env.ref('base.module_industry_fsm', raise_if_not_found=False).state == 'installed':
                 domain = [('is_fsm', '=', False)]
             self.env['project.project'].search(domain).write({'allow_subtasks': True})
         return res
