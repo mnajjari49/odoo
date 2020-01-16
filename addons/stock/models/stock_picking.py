@@ -572,6 +572,9 @@ class Picking(models.Model):
         package_level_done.write({'is_done': False})
         moves._action_assign()
         package_level_done.write({'is_done': True})
+        # With putaway rules, it could happen package and its move line don't
+        # have the same `location_dest_id`.
+        self.mapped('package_level_ids')._check_dest_location()
         return True
 
     @api.multi
