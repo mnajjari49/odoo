@@ -92,6 +92,9 @@ class ChangeProductionQty(models.TransientModel):
                                  operation.workcenter_id.time_stop +
                                  cycle_number * operation.time_cycle * 100.0 / operation.workcenter_id.time_efficiency)
                 quantity = wo.qty_production - wo.qty_produced
+                is_not_first_order = bool(wo in production.workorder_ids.mapped('next_work_order_id'))
+                if wo.operation_id.batch and wo.state in ['processing', 'ready'] and is_not_first_order:
+                    quantity = wo.qty_producing
                 if production.product_id.tracking == 'serial':
                     quantity = 1.0 if not float_is_zero(quantity, precision_digits=precision) else 0.0
                 else:
