@@ -506,10 +506,9 @@ class IrActionsReport(models.Model):
             )
 
             #TODO OCO TEST
-            #barcode.add(getDrawing1())
-            qr_cross = ReportLabImage(10, 10, 20, 20, 'addons/l10n_ch/static/src/img/CH-Cross_7mm.png')
-            #test = ReportLabImage(10, 10, 20, 20, 'addons/l10n_ch/static/src/img/CH-Cross_fezgzr7mm.png')
-            #import pdb; pdb.set_trace()
+            cross_size_ratio = 0.1214
+            import pdb; pdb.set_trace()
+            qr_cross = ReportLabImage(10, 10, 69, 69, 'addons/l10n_ch/static/src/img/CH-Cross_7mm.png')
             barcode.add(qr_cross)
 
             return barcode.asString('png')
