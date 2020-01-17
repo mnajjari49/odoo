@@ -443,9 +443,8 @@ var AbstractController = mvc.Controller.extend(ActionMixin, WidgetAdapterMixin, 
         if (this.$buttons) {
             newProps.buttons = this.$buttons;
         }
-        this._updateControlPanel(newProps);
         this._pushState();
-        return this._renderBanner();
+        return Promise.all([this._renderBanner(), this._updateControlPanel(newProps)]);
     },
     /**
      * @private
@@ -457,8 +456,12 @@ var AbstractController = mvc.Controller.extend(ActionMixin, WidgetAdapterMixin, 
         return this._updateControlPanel({ pager: pagerProps });
     },
 
+    /**
+     *
+     * @param {Object} [newProps]
+     */
     _updateControlPanel: function (newProps = {}) {
-        this._controlPanelWrapper.update(newProps);
+        return this._controlPanelWrapper.update(newProps);
     },
 
     //--------------------------------------------------------------------------

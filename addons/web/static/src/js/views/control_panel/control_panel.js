@@ -99,6 +99,7 @@ odoo.define('web.ControlPanel', function (require) {
         withBreadcrumbs: true,
         withSearchBar: true,
     };
+    // todo review default props and props
     ControlPanel.props = {
         action: Object,
         breadcrumbs: Array,
@@ -109,7 +110,7 @@ odoo.define('web.ControlPanel', function (require) {
         searchMenuTypes: Array,
         sidebar: { validate: s => typeof s === 'object' || s === null, optional: 1 },
         title: { type: String, optional: 1 },
-        viewType: String,
+        viewType: { type: String, optional: 1 },
         views: Array,
         withBreadcrumbs: Boolean,
         withSearchBar: Boolean,

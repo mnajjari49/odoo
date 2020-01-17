@@ -203,6 +203,8 @@ odoo.define('web.FavoriteMenu', function (require) {
     FavoriteMenu.defaultProps = Object.assign({}, DropdownMenu.defaultProps, {
         icon: 'fa fa-star',
         title: "Favorites",
+        // todo remove this and think!
+        viewType: "",
     });
     FavoriteMenu.props = Object.assign({}, DropdownMenu.props, {
         action: Object,

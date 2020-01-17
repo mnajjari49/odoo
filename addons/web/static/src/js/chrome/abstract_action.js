@@ -80,19 +80,19 @@ var AbstractAction = Widget.extend(ActionMixin, WidgetAdapterMixin, {
         if (this.hasControlPanel) {
             this.controlPanelStoreConfig = {
                 actionId: action.id,
-                actionContext: action.context,
+                actionContext: action.context || {},
+                actionDomain: action.domain || [],
                 env: owl.Component.env,
                 withSearchBar: this.withSearchBar,
             };
 
+            this.viewId = action.search_view_id && action.search_view_id[0]
+
             this.controlPanelProps = {
                 // TODO we should not pass action
                 action: action,
-
-                actionId: action.id,
-                context: action.context,
+                fields: {},
                 breadcrumbs: options && options.breadcrumbs,
-                viewId: action.search_view_id && action.search_view_id[0],
                 withSearchBar: this.withSearchBar,
                 searchMenuTypes: this.searchMenuTypes,
             };
@@ -110,10 +110,10 @@ var AbstractAction = Widget.extend(ActionMixin, WidgetAdapterMixin, {
             if (this.loadControlPanel) {
                 const { context, modelName, viewId, searchMenuTypes } = this.controlPanelProps;
                 const options = { load_filters: searchMenuTypes.includes('favorite') };
-                const loadFieldViewPromise = this.loadFieldView(modelName, context || {}, viewId, 'search', options);
-                proms.push(loadFieldViewPromise);
+                const loadFieldViewPromise = this.loadFieldView(modelName, context || {}, this.viewId, 'search', options);
                 const {arch, fields, favoriteFilters } = await loadFieldViewPromise;
                 this.controlPanelStoreConfig.viewInfo = {arch, fields, favoriteFilters };
+                this.controlPanelProps.fields = fields;
             }
             this._controlPanelStore = new ControlPanelStore(this.controlPanelStoreConfig);
             this.controlPanelProps.controlPanelStore = this._controlPanelStore;
@@ -127,7 +127,7 @@ var AbstractAction = Widget.extend(ActionMixin, WidgetAdapterMixin, {
     start: async function () {
         await this._super(...arguments);
         if (this.hasControlPanel) {
-            this._controlPanelWrapper = new ControlPanelWrapper(this, ControlPanel, props);
+            this._controlPanelWrapper = new ControlPanelWrapper(this, ControlPanel, this.controlPanelProps);
             await this._controlPanelWrapper.mount(this.el, { position: 'first-child' });
         }
         if (this._controlPanelStore) {

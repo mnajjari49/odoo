@@ -27,7 +27,7 @@ odoo.define('web.ControlPanelWrapper', function (require) {
             const controlPanel = Object.values(this.__owl__.children)[0];
 
             for (const key in additionnalContent) {
-                const target = controlPanel.contentRefs.buttons.el;
+                const target = controlPanel.contentRefs[key].el;
                 target.innerHTML = "";
                 target.append(...additionnalContent[key]);
             }

@@ -972,8 +972,7 @@ var Discuss = AbstractAction.extend({
 
             // Update control panel before focusing the composer, otherwise
             // focus is on the searchview
-            self._setTitle('#' + self._thread.getName());
-            self._updateControlPanel();
+            self._updateControlPanel({ title: '#' + self._thread.getName()});
             self._updateControlPanelButtons(self._thread);
 
             // Display and focus the adequate composer, and unselect possibly
