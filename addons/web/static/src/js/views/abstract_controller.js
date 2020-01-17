@@ -123,9 +123,6 @@ var AbstractController = mvc.Controller.extend(ActionMixin, WidgetAdapterMixin, 
         if (this.$buttons) {
             this.$buttons.off();
         }
-        if (this.controlPanelElements && this.controlPanelElements.$switch_buttons) {
-            this.controlPanelElements.$switch_buttons.off();
-        }
         this._super.apply(this, arguments);
         WidgetAdapterMixin.destroy.call(this);
     },
@@ -140,7 +137,6 @@ var AbstractController = mvc.Controller.extend(ActionMixin, WidgetAdapterMixin, 
             this._controlPanelStore.on('get_controller_query_params', this, this._onGetOwnedQueryParams);
         }
         this.renderer.on_attach_callback();
-        WidgetAdapterMixin.on_attach_callback.call(this);
     },
     /**
      * Called each time the controller is detached from the DOM.
@@ -150,7 +146,6 @@ var AbstractController = mvc.Controller.extend(ActionMixin, WidgetAdapterMixin, 
             this._controlPanelStore.off('get_controller_query_params', this);
         }
         this.renderer.on_detach_callback();
-        WidgetAdapterMixin.on_detach_callback.call(this);
     },
 
     //--------------------------------------------------------------------------
