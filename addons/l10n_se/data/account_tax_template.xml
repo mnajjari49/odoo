@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version='1.0' encoding='UTF-8'?>
 <odoo>
     <data noupdate="1">
         <record id="sale_tax_25_goods" model="account.tax.template">
@@ -9,27 +9,29 @@
             <field name="type_tax_use">sale</field>
             <field name="tax_group_id" ref="tax_group_25"/>
             <field name="invoice_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'plus_report_line_ids': [ref('tax_report_line_05')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2611'),
-                }),
-            ]"/>
+                    'plus_report_line_ids': [ref('tax_report_line_10')]
+                })]"/>
             <field name="refund_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'minus_report_line_ids': [ref('tax_report_line_05')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2611'),
-                }),
-            ]"/>
+                    'minus_report_line_ids': [ref('tax_report_line_10')]
+                })]"/>
         </record>
         <record id="sale_tax_25_services" model="account.tax.template">
             <field name="chart_template_id" ref="l10nse_chart_template"/>
@@ -39,27 +41,29 @@
             <field name="type_tax_use">sale</field>
             <field name="tax_group_id" ref="tax_group_25"/>
             <field name="invoice_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'plus_report_line_ids': [ref('tax_report_line_05')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2611'),
-                }),
-            ]"/>
+                    'plus_report_line_ids': [ref('tax_report_line_10')]
+                })]"/>
             <field name="refund_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'minus_report_line_ids': [ref('tax_report_line_05')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2611'),
-                }),
-            ]"/>
+                    'minus_report_line_ids': [ref('tax_report_line_10')]
+                })]"/>
         </record>
         <record id="purchase_tax_25_goods" model="account.tax.template">
             <field name="chart_template_id" ref="l10nse_chart_template"/>
@@ -69,27 +73,30 @@
             <field name="type_tax_use">purchase</field>
             <field name="tax_group_id" ref="tax_group_25"/>
             <field name="invoice_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'plus_report_line_ids': [ref('tax_report_line_23')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2641'),
-                }),
-            ]"/>
+                    'plus_report_line_ids': [ref('tax_report_line_30')]
+                })]"/>
             <field name="refund_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'minus_report_line_ids': [ref('tax_report_line_23')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2641'),
-                }),
-            ]"/>
+                    'plus_report_line_ids': [ref('tax_report_line_23')],
+                    'minus_report_line_ids': [ref('tax_report_line_30')]
+                })]"/>
         </record>
         <record id="purchase_tax_25_services" model="account.tax.template">
             <field name="chart_template_id" ref="l10nse_chart_template"/>
@@ -99,27 +106,29 @@
             <field name="type_tax_use">purchase</field>
             <field name="tax_group_id" ref="tax_group_25"/>
             <field name="invoice_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'plus_report_line_ids': [ref('tax_report_line_23')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2641'),
-                }),
-            ]"/>
+                    'plus_report_line_ids': [ref('tax_report_line_30')]
+                })]"/>
             <field name="refund_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'minus_report_line_ids': [ref('tax_report_line_23')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2641'),
-                }),
-            ]"/>
+                    'minus_report_line_ids': [ref('tax_report_line_30')]
+                })]"/>
         </record>
         <record id="sale_tax_12_goods" model="account.tax.template">
             <field name="chart_template_id" ref="l10nse_chart_template"/>
@@ -129,27 +138,29 @@
             <field name="type_tax_use">sale</field>
             <field name="tax_group_id" ref="tax_group_12"/>
             <field name="invoice_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'plus_report_line_ids': [ref('tax_report_line_05')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2621'),
-                }),
-            ]"/>
+                    'plus_report_line_ids': [ref('tax_report_line_11')]
+                })]"/>
             <field name="refund_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'minus_report_line_ids': [ref('tax_report_line_05')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2621'),
-                }),
-            ]"/>
+                    'minus_report_line_ids': [ref('tax_report_line_11')]
+                })]"/>
         </record>
         <record id="sale_tax_12_services" model="account.tax.template">
             <field name="chart_template_id" ref="l10nse_chart_template"/>
@@ -159,27 +170,29 @@
             <field name="type_tax_use">sale</field>
             <field name="tax_group_id" ref="tax_group_12"/>
             <field name="invoice_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'plus_report_line_ids': [ref('tax_report_line_05')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2621'),
-                }),
-            ]"/>
+                    'plus_report_line_ids': [ref('tax_report_line_11')]
+                })]"/>
             <field name="refund_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'minus_report_line_ids': [ref('tax_report_line_05')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2621'),
-                }),
-            ]"/>
+                    'minus_report_line_ids': [ref('tax_report_line_11')]
+                })]"/>
         </record>
         <record id="purchase_tax_12_goods" model="account.tax.template">
             <field name="chart_template_id" ref="l10nse_chart_template"/>
@@ -189,27 +202,29 @@
             <field name="type_tax_use">purchase</field>
             <field name="tax_group_id" ref="tax_group_12"/>
             <field name="invoice_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'plus_report_line_ids': [ref('tax_report_line_23')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2641'),
-                }),
-            ]"/>
+                    'plus_report_line_ids': [ref('tax_report_line_31')]
+                })]"/>
             <field name="refund_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'minus_report_line_ids': [ref('tax_report_line_23')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2641'),
-                }),
-            ]"/>
+                    'minus_report_line_ids': [ref('tax_report_line_31')]
+                })]"/>
         </record>
         <record id="purchase_tax_12_services" model="account.tax.template">
             <field name="chart_template_id" ref="l10nse_chart_template"/>
@@ -219,27 +234,29 @@
             <field name="type_tax_use">purchase</field>
             <field name="tax_group_id" ref="tax_group_12"/>
             <field name="invoice_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'plus_report_line_ids': [ref('tax_report_line_23')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2641'),
-                }),
-            ]"/>
+                    'plus_report_line_ids': [ref('tax_report_line_31')]
+                })]"/>
             <field name="refund_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'minus_report_line_ids': [ref('tax_report_line_23')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2641'),
-                }),
-            ]"/>
+                    'minus_report_line_ids': [ref('tax_report_line_31')]
+                })]"/>
         </record>
         <record id="sale_tax_6_goods" model="account.tax.template">
             <field name="chart_template_id" ref="l10nse_chart_template"/>
@@ -249,27 +266,29 @@
             <field name="type_tax_use">sale</field>
             <field name="tax_group_id" ref="tax_group_6"/>
             <field name="invoice_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'plus_report_line_ids': [ref('tax_report_line_05')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2631'),
-                }),
-            ]"/>
+                    'plus_report_line_ids': [ref('tax_report_line_12')]
+                })]"/>
             <field name="refund_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'minus_report_line_ids': [ref('tax_report_line_05')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2631'),
-                }),
-            ]"/>
+                    'minus_report_line_ids': [ref('tax_report_line_12')]
+                })]"/>
         </record>
         <record id="sale_tax_6_services" model="account.tax.template">
             <field name="chart_template_id" ref="l10nse_chart_template"/>
@@ -279,27 +298,29 @@
             <field name="type_tax_use">sale</field>
             <field name="tax_group_id" ref="tax_group_6"/>
             <field name="invoice_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'plus_report_line_ids': [ref('tax_report_line_05')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2631'),
-                }),
-            ]"/>
+                    'plus_report_line_ids': [ref('tax_report_line_12')]
+                })]"/>
             <field name="refund_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'minus_report_line_ids': [ref('tax_report_line_05')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2631'),
-                }),
-            ]"/>
+                    'minus_report_line_ids': [ref('tax_report_line_12')]
+                })]"/>
         </record>
         <record id="purchase_tax_6_goods" model="account.tax.template">
             <field name="chart_template_id" ref="l10nse_chart_template"/>
@@ -309,27 +330,29 @@
             <field name="type_tax_use">purchase</field>
             <field name="tax_group_id" ref="tax_group_6"/>
             <field name="invoice_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'plus_report_line_ids': [ref('tax_report_line_23')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2641'),
-                }),
-            ]"/>
+                    'plus_report_line_ids': [ref('tax_report_line_32')]
+                })]"/>
             <field name="refund_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'minus_report_line_ids': [ref('tax_report_line_23')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2641'),
-                }),
-            ]"/>
+                    'minus_report_line_ids': [ref('tax_report_line_32')]
+                })]"/>
         </record>
         <record id="purchase_tax_6_services" model="account.tax.template">
             <field name="chart_template_id" ref="l10nse_chart_template"/>
@@ -339,84 +362,86 @@
             <field name="type_tax_use">purchase</field>
             <field name="tax_group_id" ref="tax_group_6"/>
             <field name="invoice_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'plus_report_line_ids': [ref('tax_report_line_23')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2641'),
-                }),
-            ]"/>
+                    'plus_report_line_ids': [ref('tax_report_line_32')]
+                })]"/>
             <field name="refund_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'minus_report_line_ids': [ref('tax_report_line_23')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2641'),
-                }),
-            ]"/>
+                    'minus_report_line_ids': [ref('tax_report_line_32')]
+                })]"/>
         </record>
         <!-- Tax template VAT in EC goods -->
         <record id="sale_tax_services_EC" model="account.tax.template">
             <field name="chart_template_id" ref="l10nse_chart_template"/>
             <field name="name">Momsfri försäljning av tjänst EU</field>
             <field name="description">SE0</field>
-            <field name="amount" eval="0" />
+            <field name="amount">0</field>
             <field name="type_tax_use">sale</field>
             <field name="tax_group_id" ref="tax_group_0"/>
             <field name="invoice_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'plus_report_line_ids': [ref('tax_report_line_05')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
-                    'repartition_type': 'tax',
-                }),
-            ]"/>
+                    'repartition_type': 'tax'
+                })]"/>
             <field name="refund_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'minus_report_line_ids': [ref('tax_report_line_05')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
-                    'repartition_type': 'tax',
-                }),
-            ]"/>
+                    'repartition_type': 'tax'
+                })]"/>
         </record>
         <record id="sale_tax_goods_EC" model="account.tax.template">
             <field name="chart_template_id" ref="l10nse_chart_template"/>
             <field name="name">Momsfri Försäljning av varor EU</field>
             <field name="description">SE0</field>
-            <field name="amount" eval="0" />
+            <field name="amount">0</field>
             <field name="type_tax_use">sale</field>
             <field name="tax_group_id" ref="tax_group_0"/>
             <field name="invoice_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'plus_report_line_ids': [ref('tax_report_line_05')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
-                    'repartition_type': 'tax',
-                }),
-            ]"/>
+                    'repartition_type': 'tax'
+                })]"/>
             <field name="refund_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'minus_report_line_ids': [ref('tax_report_line_05')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
-                    'repartition_type': 'tax',
-                }),
-            ]"/>
+                    'repartition_type': 'tax'
+                })]"/>
         </record>
         <record id="purchase_goods_tax_25_EC" model="account.tax.template">
             <field name="chart_template_id" ref="l10nse_chart_template"/>
@@ -426,37 +451,41 @@
             <field name="type_tax_use">purchase</field>
             <field name="tax_group_id" ref="tax_group_25"/>
             <field name="invoice_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'plus_report_line_ids': [ref('tax_report_line_23')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2645'),
+                    'plus_report_line_ids': [ref('tax_report_line_30')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': -100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2614'),
-                }),
-            ]"/>
+                    'plus_report_line_ids': [ref('tax_report_line_30')]
+                })]"/>
             <field name="refund_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'minus_report_line_ids': [ref('tax_report_line_23')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2645'),
+                    'minus_report_line_ids': [ref('tax_report_line_30')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': -100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2614'),
-                }),
-            ]"/>
+                    'minus_report_line_ids': [ref('tax_report_line_30')]
+                })]"/>
         </record>
         <record id="purchase_goods_tax_12_EC" model="account.tax.template">
             <field name="chart_template_id" ref="l10nse_chart_template"/>
@@ -466,37 +495,41 @@
             <field name="type_tax_use">purchase</field>
             <field name="tax_group_id" ref="tax_group_12"/>
             <field name="invoice_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'plus_report_line_ids': [ref('tax_report_line_23')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2645'),
+                    'plus_report_line_ids': [ref('tax_report_line_31')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': -100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2624'),
-                }),
-            ]"/>
+                    'plus_report_line_ids': [ref('tax_report_line_31')]
+                })]"/>
             <field name="refund_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'minus_report_line_ids': [ref('tax_report_line_23')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2645'),
+                    'minus_report_line_ids': [ref('tax_report_line_31')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': -100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2624'),
-                }),
-            ]"/>
+                    'minus_report_line_ids': [ref('tax_report_line_31')]
+                })]"/>
         </record>
         <record id="purchase_goods_tax_6_EC" model="account.tax.template">
             <field name="chart_template_id" ref="l10nse_chart_template"/>
@@ -506,37 +539,41 @@
             <field name="type_tax_use">purchase</field>
             <field name="tax_group_id" ref="tax_group_6"/>
             <field name="invoice_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'plus_report_line_ids': [ref('tax_report_line_23')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2645'),
+                    'plus_report_line_ids': [ref('tax_report_line_32')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': -100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2634'),
-                }),
-            ]"/>
+                    'plus_report_line_ids': [ref('tax_report_line_32')]
+                })]"/>
             <field name="refund_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'minus_report_line_ids': [ref('tax_report_line_23')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2645'),
+                    'minus_report_line_ids': [ref('tax_report_line_32')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': -100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2634'),
-                }),
-            ]"/>
+                    'minus_report_line_ids': [ref('tax_report_line_32')]
+                })]"/>
         </record>
         <!-- Tax template VAT in EC services -->
         <record id="purchase_services_tax_25_EC" model="account.tax.template">
@@ -547,37 +584,41 @@
             <field name="type_tax_use">purchase</field>
             <field name="tax_group_id" ref="tax_group_25"/>
             <field name="invoice_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'plus_report_line_ids': [ref('tax_report_line_23')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2645'),
+                    'plus_report_line_ids': [ref('tax_report_line_30')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': -100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2614'),
-                }),
-            ]"/>
+                    'plus_report_line_ids': [ref('tax_report_line_30')]
+                })]"/>
             <field name="refund_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'minus_report_line_ids': [ref('tax_report_line_23')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2645'),
+                    'minus_report_line_ids': [ref('tax_report_line_30')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': -100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2614'),
-                }),
-            ]"/>
+                    'minus_report_line_ids': [ref('tax_report_line_30')]
+                })]"/>
         </record>
         <record id="purchase_services_tax_12_EC" model="account.tax.template">
             <field name="chart_template_id" ref="l10nse_chart_template"/>
@@ -587,37 +628,41 @@
             <field name="type_tax_use">purchase</field>
             <field name="tax_group_id" ref="tax_group_12"/>
             <field name="invoice_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'plus_report_line_ids': [ref('tax_report_line_23')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2645'),
+                    'plus_report_line_ids': [ref('tax_report_line_31')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': -100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2624'),
-                }),
-            ]"/>
+                    'plus_report_line_ids': [ref('tax_report_line_31')]
+                })]"/>
             <field name="refund_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'minus_report_line_ids': [ref('tax_report_line_23')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2645'),
+                    'minus_report_line_ids': [ref('tax_report_line_31')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': -100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2624'),
-                }),
-            ]"/>
+                    'minus_report_line_ids': [ref('tax_report_line_31')]
+                })]"/>
         </record>
         <record id="purchase_services_tax_6_EC" model="account.tax.template">
             <field name="chart_template_id" ref="l10nse_chart_template"/>
@@ -627,94 +672,98 @@
             <field name="type_tax_use">purchase</field>
             <field name="tax_group_id" ref="tax_group_6"/>
             <field name="invoice_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'plus_report_line_ids': [ref('tax_report_line_23')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2645'),
+                    'plus_report_line_ids': [ref('tax_report_line_32')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': -100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2634'),
-                }),
-            ]"/>
+                    'plus_report_line_ids': [ref('tax_report_line_32')]
+                })]"/>
             <field name="refund_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'minus_report_line_ids': [ref('tax_report_line_23')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2645'),
+                    'minus_report_line_ids': [ref('tax_report_line_32')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': -100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2634'),
-                }),
-            ]"/>
+                    'minus_report_line_ids': [ref('tax_report_line_32')]
+                })]"/>
         </record>
         <!-- Tax template VAT Export -->
         <record id="sale_tax_services_NEC" model="account.tax.template">
             <field name="chart_template_id" ref="l10nse_chart_template"/>
             <field name="name">Momsfri försäljning av tjänst utanför EU</field>
             <field name="description">SE0</field>
-            <field name="amount" eval="0" />
+            <field name="amount">0</field>
             <field name="type_tax_use">sale</field>
             <field name="tax_group_id" ref="tax_group_0"/>
             <field name="invoice_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'plus_report_line_ids': [ref('tax_report_line_05')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
-                    'repartition_type': 'tax',
-                }),
-            ]"/>
+                    'repartition_type': 'tax'
+                })]"/>
             <field name="refund_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'minus_report_line_ids': [ref('tax_report_line_05')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
-                    'repartition_type': 'tax',
-                }),
-            ]"/>
+                    'repartition_type': 'tax'
+                })]"/>
         </record>
         <record id="sale_tax_goods_NEC" model="account.tax.template">
             <field name="chart_template_id" ref="l10nse_chart_template"/>
             <field name="name">Momsfri försäljning av varor utanför EU</field>
             <field name="description">SE0</field>
-            <field name="amount" eval="0" />
+            <field name="amount">0</field>
             <field name="type_tax_use">sale</field>
             <field name="tax_group_id" ref="tax_group_0"/>
             <field name="invoice_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'plus_report_line_ids': [ref('tax_report_line_05')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
-                    'repartition_type': 'tax',
-                }),
-            ]"/>
+                    'repartition_type': 'tax'
+                })]"/>
             <field name="refund_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'minus_report_line_ids': [ref('tax_report_line_05')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
-                    'repartition_type': 'tax',
-                }),
-            ]"/>
+                    'repartition_type': 'tax'
+                })]"/>
         </record>
         <record id="purchase_goods_tax_25_NEC" model="account.tax.template">
             <field name="chart_template_id" ref="l10nse_chart_template"/>
@@ -724,37 +773,41 @@
             <field name="type_tax_use">purchase</field>
             <field name="tax_group_id" ref="tax_group_25"/>
             <field name="invoice_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'plus_report_line_ids': [ref('tax_report_line_23')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2645'),
+                    'plus_report_line_ids': [ref('tax_report_line_30')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': -100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2615'),
-                }),
-            ]"/>
+                    'plus_report_line_ids': [ref('tax_report_line_30')]
+                })]"/>
             <field name="refund_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'minus_report_line_ids': [ref('tax_report_line_23')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2645'),
+                    'minus_report_line_ids': [ref('tax_report_line_30')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': -100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2615'),
-                }),
-            ]"/>
+                    'minus_report_line_ids': [ref('tax_report_line_30')]
+                })]"/>
         </record>
         <record id="purchase_goods_tax_12_NEC" model="account.tax.template">
             <field name="chart_template_id" ref="l10nse_chart_template"/>
@@ -764,37 +817,41 @@
             <field name="type_tax_use">purchase</field>
             <field name="tax_group_id" ref="tax_group_12"/>
             <field name="invoice_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'plus_report_line_ids': [ref('tax_report_line_23')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2645'),
+                    'plus_report_line_ids': [ref('tax_report_line_31')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': -100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2625'),
-                }),
-            ]"/>
+                    'plus_report_line_ids': [ref('tax_report_line_31')]
+                })]"/>
             <field name="refund_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'minus_report_line_ids': [ref('tax_report_line_23')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2645'),
+                    'minus_report_line_ids': [ref('tax_report_line_31')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': -100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2625'),
-                }),
-            ]"/>
+                    'minus_report_line_ids': [ref('tax_report_line_31')]
+                })]"/>
         </record>
         <record id="purchase_goods_tax_6_NEC" model="account.tax.template">
             <field name="chart_template_id" ref="l10nse_chart_template"/>
@@ -804,37 +861,41 @@
             <field name="type_tax_use">purchase</field>
             <field name="tax_group_id" ref="tax_group_6"/>
             <field name="invoice_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'plus_report_line_ids': [ref('tax_report_line_23')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2645'),
+                    'plus_report_line_ids': [ref('tax_report_line_32')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': -100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2635'),
-                }),
-            ]"/>
+                    'plus_report_line_ids': [ref('tax_report_line_32')]
+                })]"/>
             <field name="refund_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'minus_report_line_ids': [ref('tax_report_line_23')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2645'),
+                    'minus_report_line_ids': [ref('tax_report_line_32')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': -100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2635'),
-                }),
-            ]"/>
+                    'minus_report_line_ids': [ref('tax_report_line_32')]
+                })]"/>
         </record>
         <record id="purchase_services_tax_25_NEC" model="account.tax.template">
             <field name="chart_template_id" ref="l10nse_chart_template"/>
@@ -844,37 +905,41 @@
             <field name="type_tax_use">purchase</field>
             <field name="tax_group_id" ref="tax_group_25"/>
             <field name="invoice_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'plus_report_line_ids': [ref('tax_report_line_23')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2645'),
+                    'plus_report_line_ids': [ref('tax_report_line_30')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': -100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2614'),
-                }),
-            ]"/>
+                    'plus_report_line_ids': [ref('tax_report_line_30')]
+                })]"/>
             <field name="refund_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'minus_report_line_ids': [ref('tax_report_line_23')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2645'),
+                    'minus_report_line_ids': [ref('tax_report_line_30')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': -100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2614'),
-                }),
-            ]"/>
+                    'minus_report_line_ids': [ref('tax_report_line_30')]
+                })]"/>
         </record>
         <record id="purchase_services_tax_12_NEC" model="account.tax.template">
             <field name="chart_template_id" ref="l10nse_chart_template"/>
@@ -884,37 +949,41 @@
             <field name="type_tax_use">purchase</field>
             <field name="tax_group_id" ref="tax_group_12"/>
             <field name="invoice_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'plus_report_line_ids': [ref('tax_report_line_23')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2645'),
+                    'plus_report_line_ids': [ref('tax_report_line_31')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': -100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2624'),
-                }),
-            ]"/>
+                    'plus_report_line_ids': [ref('tax_report_line_31')]
+                })]"/>
             <field name="refund_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'minus_report_line_ids': [ref('tax_report_line_23')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2645'),
+                    'minus_report_line_ids': [ref('tax_report_line_31')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': -100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2624'),
-                }),
-            ]"/>
+                    'minus_report_line_ids': [ref('tax_report_line_31')]
+                })]"/>
         </record>
         <record id="purchase_services_tax_6_NEC" model="account.tax.template">
             <field name="chart_template_id" ref="l10nse_chart_template"/>
@@ -924,37 +993,41 @@
             <field name="type_tax_use">purchase</field>
             <field name="tax_group_id" ref="tax_group_6"/>
             <field name="invoice_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'plus_report_line_ids': [ref('tax_report_line_23')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2645'),
+                    'plus_report_line_ids': [ref('tax_report_line_32')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': -100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2634'),
-                }),
-            ]"/>
+                    'plus_report_line_ids': [ref('tax_report_line_32')]
+                })]"/>
             <field name="refund_repartition_line_ids" eval="[(5, 0, 0),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
+                    'minus_report_line_ids': [ref('tax_report_line_23')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2645'),
+                    'minus_report_line_ids': [ref('tax_report_line_32')]
                 }),
-                (0,0, {
+                (0, 0, {
                     'factor_percent': -100,
                     'repartition_type': 'tax',
                     'account_id': ref('a2634'),
-                }),
-            ]"/>
+                    'minus_report_line_ids': [ref('tax_report_line_32')]
+                })]"/>
         </record>
     </data>
 </odoo>
