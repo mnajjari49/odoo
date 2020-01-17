@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from unittest.mock import patch
 
 from odoo.addons.event.tests.common import TestEventCommon
-from odoo.fields import Datetime as FieldsDatetime
+from odoo import exceptions
+from odoo.fields import Datetime as FieldsDatetime, Date as FieldsDate
 from odoo.tests.common import users
 from odoo.tools import mute_logger
 
@@ -146,6 +147,61 @@ class TestEventData(TestEventCommon):
         self.assertEqual(event.event_mail_ids.template_id, self.env.ref('event.event_reminder'))
 
 
+class TestEventTicketData(TestEventCommon):
+
+    def setUp(self):
+        super(TestEventTicketData, self).setUp()
+        self.ticket_date_patcher = patch('odoo.addons.event.models.event_ticket.fields.Date', wraps=FieldsDate)
+        self.ticket_date_patcher_mock = self.ticket_date_patcher.start()
+        self.ticket_date_patcher_mock.context_today.return_value = date(2020, 1, 31)
+
+    def tearDown(self):
+        super(TestEventTicketData, self).tearDown()
+        self.ticket_date_patcher.stop()
+
+    @users('user_eventmanager')
+    def test_event_ticket_fields(self):
+        """ Test event ticket fields synchronization """
+        self.event_type_complex.write({
+            'use_ticket': True,
+            'event_type_ticket_ids': [
+                (5, 0),
+                (0, 0, {
+                    'name': 'First Ticket',
+                    'seats_max': 30,
+                }), (0, 0, {  # limited in time, available (01/10 (start) < 01/31 (today) < 02/10 (end))
+                    'name': 'Second Ticket',
+                    'start_sale_date': date(2020, 1, 10),
+                    'end_sale_date': date(2020, 2, 10),
+                })
+            ],
+        })
+        first_ticket = self.event_type_complex.event_type_ticket_ids.filtered(lambda t: t.name == 'First Ticket')
+        second_ticket = self.event_type_complex.event_type_ticket_ids.filtered(lambda t: t.name == 'Second Ticket')
+
+        self.assertEqual(first_ticket.seats_availability, 'limited')
+        self.assertTrue(first_ticket.sale_available)
+        self.assertFalse(first_ticket.is_expired)
+
+        self.assertEqual(second_ticket.seats_availability, 'unlimited')
+        self.assertTrue(second_ticket.sale_available)
+        self.assertFalse(second_ticket.is_expired)
+        # sale is ended
+        second_ticket.write({'end_sale_date': date(2020, 1, 20)})
+        self.assertFalse(second_ticket.sale_available)
+        self.assertTrue(second_ticket.is_expired)
+        # sale has not started
+        second_ticket.write({
+            'start_sale_date': date(2020, 2, 10),
+            'end_sale_date': date(2020, 2, 20),
+        })
+        self.assertFalse(second_ticket.sale_available)
+        self.assertFalse(second_ticket.is_expired)
+        # incoherent dates are invalid
+        with self.assertRaises(exceptions.UserError):
+            second_ticket.write({'end_sale_date': date(2020, 1, 20)})
+
+
 class TestEventTypeData(TestEventCommon):
 
     @users('user_eventmanager')
@@ -157,11 +213,13 @@ class TestEventTypeData(TestEventCommon):
             'has_seats_limitation': True,
             'default_registration_min': 5,
             'default_registration_max': 30,
+            'use_ticket': True,
         })
         event_type._onchange_has_seats_limitation()
         self.assertTrue(event_type.has_seats_limitation)
         self.assertEqual(event_type.default_registration_min, 5)
         self.assertEqual(event_type.default_registration_max, 30)
+        self.assertEqual(event_type.event_type_ticket_ids.mapped('name'), ['Registration'])
 
         # reset seats limitation
         event_type.write({'has_seats_limitation': False})
@@ -169,3 +227,7 @@ class TestEventTypeData(TestEventCommon):
         self.assertFalse(event_type.has_seats_limitation)
         self.assertEqual(event_type.default_registration_min, 0)
         self.assertEqual(event_type.default_registration_max, 0)
+
+        # reset tickets
+        event_type.write({'use_ticket': False})
+        self.assertEqual(event_type.event_type_ticket_ids, self.env['event.type.ticket'])

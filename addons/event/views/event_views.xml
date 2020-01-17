@@ -125,6 +125,23 @@
                                     </div>
                                 </div>
                             </div>
+                            <div class="col-12 col-lg-6 o_setting_box" name="event_type_attendees_tickets">
+                                <div class="o_setting_left_pane">
+                                    <field name="use_ticket"/>
+                                </div>
+                                <div class="o_setting_right_pane">
+                                    <label for="use_ticket"/>
+                                    <div class="row mt16" attrs="{'invisible': [('use_ticket', '=', False)]}">
+                                        <div class="col-lg-9">
+                                            <field name="event_type_ticket_ids"
+                                                context="{
+                                                    'tree_view_ref': 'event.event_type_ticket_view_tree_from_type',
+                                                    'form_view_ref': 'event.event_type_ticket_view_form_from_type'
+                                                }"/>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </sheet>
                 </form>

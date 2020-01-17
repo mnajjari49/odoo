@@ -48,6 +48,12 @@ class EventType(models.Model):
 
     name = fields.Char('Event Category', required=True, translate=True)
     sequence = fields.Integer()
+    # tickets
+    use_ticket = fields.Boolean('Ticketing')
+    event_type_ticket_ids = fields.One2many(
+        'event.type.ticket', 'event_type_id',
+        string='Tickets', compute='_compute_event_type_ticket_ids',
+        readonly=False, store=True)
     # registration
     has_seats_limitation = fields.Boolean('Limited Seats', default=False)
     default_registration_min = fields.Integer(
@@ -75,6 +81,14 @@ class EventType(models.Model):
         'event.type.mail', 'event_type_id', string='Mail Schedule',
         copy=False,
         default=lambda self: self._get_default_event_type_mail_ids())
+
+    @api.depends('use_ticket')
+    def _compute_event_type_ticket_ids(self):
+        for template in self:
+            if not template.use_ticket:
+                template.event_type_ticket_ids = [(5, 0)]
+            elif not template.event_type_ticket_ids:
+                template.event_type_ticket_ids = [(0, 0, {})]
 
     @api.onchange('has_seats_limitation')
     def _onchange_has_seats_limitation(self):

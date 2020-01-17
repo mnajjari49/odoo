@@ -18,10 +18,10 @@ class EventType(models.Model):
             'price': 0,
         })]
 
-    use_ticketing = fields.Boolean('Ticketing')
+    use_ticketing = fields.Boolean('Use Ticketing')
     event_ticket_ids = fields.One2many(
         'event.event.ticket', 'event_type_id',
-        string='Tickets', default=_get_default_event_ticket_ids)
+        string='Available Tickets', default=_get_default_event_ticket_ids)
 
     @api.onchange('name')
     def _onchange_name(self):
