@@ -15,8 +15,6 @@ odoo.define('web.AbstractController', function (require) {
 var ActionMixin = require('web.ActionMixin');
 var ajax = require('web.ajax');
 var concurrency = require('web.concurrency');
-var config = require('web.config');
-var core = require('web.core');
 var mvc = require('web.mvc');
 var { WidgetAdapterMixin } = require('web.OwlCompatibility');
 
@@ -51,8 +49,7 @@ var AbstractController = mvc.Controller.extend(ActionMixin, WidgetAdapterMixin, 
      */
     init: function (parent, model, renderer, params) {
         this._super.apply(this, arguments);
-        this.controlPanelProps = params.controlPanelProps;
-        this._controlPanelStore = params.controlPanelStore;
+
         this._title = params.displayName;
         this.modelName = params.modelName;
         this.activeActions = params.activeActions;
@@ -64,12 +61,19 @@ var AbstractController = mvc.Controller.extend(ActionMixin, WidgetAdapterMixin, 
         // use a DropPrevious to correctly handle concurrent updates
         this.dp = new concurrency.DropPrevious();
 
-        if (this._controlPanelStore) {
-            this.dispatch = owl.hooks.useDispatch(this._controlPanelStore);
+        this.withControlPanel = params.withControlPanel;
+        if (this.withControlPanel) {
+            this.controlPanelProps = params.controlPanelProps;
+            this._controlPanelStore = params.controlPanelStore;
         }
 
-        // the following attributes are used when there is a searchPanel
-        this._searchPanel = params.searchPanel;
+        this.withSearchPanel = params.withSearchPanel && params.searchPanel;
+        if (this.withSearchPanel) {
+            // the following attributes are used when there is a searchPanel
+            this._searchPanel = params.searchPanel;
+        }
+
+        // todo; change those 'things'
         this.controlPanelDomain = params.controlPanelDomain || [];
         this.searchPanelDomain = this._searchPanel ? this._searchPanel.getDomain() : [];
     },
@@ -80,7 +84,7 @@ var AbstractController = mvc.Controller.extend(ActionMixin, WidgetAdapterMixin, 
      */
     willStart: async function () {
         const proms = [this._super.apply(this, ...arguments)];
-        if (this._controlPanelStore) {
+        if (this.withControlPanel) {
             proms.push(this._controlPanelStore.isReady);
         }
         return Promise.all(proms);
@@ -93,12 +97,17 @@ var AbstractController = mvc.Controller.extend(ActionMixin, WidgetAdapterMixin, 
      */
     start: async function () {
         const _super = this._super(...arguments);
-        if (this._searchPanel) {
+        debugger
+        if (this.withSearchPanel) {
             this.$('.o_content')
                 .addClass('o_controller_with_searchpanel')
                 .prepend(this._searchPanel.$el);
         }
-        if (this.controlPanelProps) {
+        // this.renderButtons();
+        // this._updateButtons();
+        // this.cp_content.buttons = this.$buttons,
+        // this.controlPanelProps.cp_content = cp_content;
+        if (this.withControlPanel) {
             this._controlPanelWrapper = new ControlPanelWrapper(this, ControlPanel, this.controlPanelProps);
             await this._controlPanelWrapper.mount(this.el, { position: 'first-child' });
         }
@@ -115,25 +124,18 @@ var AbstractController = mvc.Controller.extend(ActionMixin, WidgetAdapterMixin, 
         if (this.$buttons) {
             this.$buttons.off();
         }
-        this._super.apply(this, arguments);
+        this._super(...arguments);
         WidgetAdapterMixin.destroy.call(this, ...arguments);
     },
     /**
      * Called each time the controller is attached into the DOM.
      */
     on_attach_callback: function () {
-        if (this._searchPanel) {
+        WidgetAdapterMixin.on_attach_callback.call(this, ...arguments);
+        if (this.withSearchPanel) {
             this._searchPanel.on_attach_callback();
         }
-        if (this._controlPanel) {
-            // TODO: remove, change with proper adapter
-            function callMounted(comp) {
-                comp.__callMounted();
-                Object.values(comp.__owl__.children).forEach(callMounted);
-            }
-            callMounted(this._controlPanel);
-        }
-        if (this._controlPanelStore) {
+        if (this.withControlPanel) {
             this._controlPanelStore.on('get_controller_query_params', this, this._onGetOwnedQueryParams);
         }
         this.renderer.on_attach_callback();
@@ -143,10 +145,8 @@ var AbstractController = mvc.Controller.extend(ActionMixin, WidgetAdapterMixin, 
      * Called each time the controller is detached from the DOM.
      */
     on_detach_callback: function () {
-        if (this._controlPanel) {
-            this._controlPanel.unmount();
-        }
-        if (this._controlPanelStore) {
+        WidgetAdapterMixin.on_detach_callback.call(this, ...arguments);
+        if (this.withControlPanel) {
             this._controlPanelStore.off('get_controller_query_params', this);
         }
         this.renderer.on_detach_callback();
@@ -194,10 +194,10 @@ var AbstractController = mvc.Controller.extend(ActionMixin, WidgetAdapterMixin, 
      */
     exportState: function () {
         var state = {};
-        if (this._controlPanelStore) {
+        if (this.withControlPanel) {
             state.cpState = this._controlPanelStore.exportState();
         }
-        if (this._searchPanel) {
+        if (this.withSearchPanel) {
             state.spState = this._searchPanel.exportState();
         }
         return state;
@@ -235,7 +235,7 @@ var AbstractController = mvc.Controller.extend(ActionMixin, WidgetAdapterMixin, 
             params = Object.assign({}, params, searchQuery);
         }
         let postponeRendering = false;
-        if (this._searchPanel) {
+        if (this.withSearchPanel) {
             this.controlPanelDomain = params.domain || this.controlPanelDomain;
             if (controllerState.spState) {
                 this._searchPanel.importState(controllerState.spState);
@@ -256,6 +256,8 @@ var AbstractController = mvc.Controller.extend(ActionMixin, WidgetAdapterMixin, 
      * Method used to assign a jQuery element to `this.$buttons`.
      */
     renderButtons: function () { },
+
+    updateButtons: function () { },
     /**
      * This is the main entry point for the controller.  Changes from the search
      * view arrive in this method, and internal changes can sometimes also call

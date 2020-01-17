@@ -61,6 +61,7 @@ var AbstractView = Factory.extend({
         Renderer: AbstractRenderer,
         Controller: AbstractController,
         SearchPanel: SearchPanel,
+        ControlPanelStore: ControlPanelStore,
     }),
 
     /**
@@ -147,6 +148,8 @@ var AbstractView = Factory.extend({
             isEmbedded: isEmbedded,
             modelName: params.modelName,
             viewType: this.viewType,
+            withControlPanel: this.withControlPanel,
+            withSearchPanel: this.withSearchPanel,
         };
 
         var controllerState = params.controllerState || {};
@@ -175,59 +178,65 @@ var AbstractView = Factory.extend({
             this._updateMVCParams(params.searchQuery);
         }
 
+        if (this.withControlPanel) {
+            const controlPanelStoreEnv = Object.assign(Object.create(Component.env), {
+                action: action || {},
+                context: this.loadParams.context || {},
+                domain: this.loadParams.domain || [],
+                modelName: params.modelName,
+            });
+            // TODO: Check useless params
+            this.controlPanelStoreConfig = {
+                env: controlPanelStoreEnv,
 
+                actionId: action.id,
+                actionContext: Object.assign({}, this.loadParams.context || {}),
+                actionDomain: this.loadParams.domain || [],
+                modelName: params.modelName,
 
-        const controlPanelStoreEnv = Object.assign(Object.create(Component.env), {
-            action: action || {},
-            context: this.loadParams.context || {},
-            domain: this.loadParams.domain || [],
-            modelName: params.modelName,
-        });
-        // TODO: Check useless params
-        this.controlPanelStoreConfig = {
-            env: controlPanelStoreEnv,
+                // control initialization
+                activateDefaultFavorite: params.activateDefaultFavorite,
+                dynamicFilters: params.dynamicFilters,
+                viewInfo: params.controlPanelFieldsView,
+                withSearchBar: params.withSearchBar,
 
-            actionId: action.id,
-            actionContext: Object.assign({}, this.loadParams.context || {}),
-            actionDomain: this.loadParams.domain || [],
-            modelName: params.modelName,
+                // used to avoid timeRanges in query
+                searchMenuTypes: params.searchMenuTypes,
 
-            // control initialization
-            activateDefaultFavorite: params.activateDefaultFavorite,
-            dynamicFilters: params.dynamicFilters,
-            viewInfo: params.controlPanelFieldsView,
-            withSearchBar: params.withSearchBar,
+                // avoid work to initialize
+                importedState: controllerState.cpState,
+            };
 
-            // used to avoid timeRanges in query
-            searchMenuTypes: params.searchMenuTypes,
+            const controlPanelStore = this._createControlPanelStore();
 
-            // avoid work to initialize
-            importedState: controllerState.cpState,
-        };
+            const query = controlPanelStore.getQuery();
+            this._updateMVCParams(query);
 
-        const controlPanelStore = this._createControlPanelStore();
+            const controlPanelProps = {
+                controlPanelStore,
+                // TODO: remove action from props and access it from somewhere else...
+                action, // needed by favorite menu subcomponents
+                breadcrumbs: params.breadcrumbs,
+                fields: this.fields,
+                modelName: params.modelName,
+                searchMenuTypes: params.searchMenuTypes,
+                withBreadcrumbs: params.withBreadcrumbs,
+                views: action.views && action.views.filter(v => v.multiRecord === this.multi_record),
+                withSearchBar: params.withSearchBar,
+                viewType: this.viewType,
+            };
+            this.controllerParams.controlPanelStore = controlPanelStore;
+            this.controllerParams.controlPanelProps = controlPanelProps;
+        }
 
-        const controlPanelProps = {
-            controlPanelStore,
-            // TODO: remove action from props and access it from somewhere else...
-            action, // needed by favorite menu subcomponents
-            breadcrumbs: params.breadcrumbs,
-            fields: this.fields,
-            modelName: params.modelName,
-            searchMenuTypes: params.searchMenuTypes,
-            withBreadcrumbs: params.withBreadcrumbs,
-            views: action.views && action.views.filter(v => v.multiRecord === this.multi_record),
-            withSearchBar: params.withSearchBar,
-            viewType: this.viewType,
-        };
-        this.controllerParams.controlPanelProps = controlPanelProps;
-
-        this.searchPanelParams = {
-            defaultNoFilter: params.searchPanelDefaultNoFilter,
-            fields: this.fields,
-            model: this.loadParams.modelName,
-            state: controllerState.spState,
-        };
+        if (this.withSearchPanel) {
+            this.searchPanelParams = {
+                defaultNoFilter: params.searchPanelDefaultNoFilter,
+                fields: this.fields,
+                model: this.loadParams.modelName,
+                state: controllerState.spState,
+            };
+        }
     },
 
     //--------------------------------------------------------------------------
@@ -293,13 +302,8 @@ var AbstractView = Factory.extend({
      *
      * @private
      */
-    _createControlPanelStore: function (queryModifier) {
-        const controlPanelStore = new ControlPanelStore(this.controlPanelStoreConfig);
-        const query = controlPanelStore.getQuery();
-        if (queryModifier) {
-            queryModifier(query);
-        }
-        this._updateMVCParams(query);
+    _createControlPanelStore: function () {
+        const controlPanelStore = new this.config.ControlPanelStore(this.controlPanelStoreConfig);
         return controlPanelStore;
     },
     /**

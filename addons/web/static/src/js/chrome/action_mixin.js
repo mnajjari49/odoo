@@ -180,9 +180,6 @@ var ActionMixin = {
         if ('title' in newProps) {
             this._title = newProps.title;
         }
-        if (this.dispatch) {
-            return this.dispatch('updateActionProps', newProps);
-        }
     },
 };
 

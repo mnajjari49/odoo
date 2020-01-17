@@ -14,7 +14,6 @@ odoo.define('web.DropdownMenu', function (require) {
         constructor() {
             super(...arguments);
 
-            debugger
             this.id = dropdownId ++;
             this.dropdownMenu = useRef('dropdown');
             this.state = useState({ open: false });

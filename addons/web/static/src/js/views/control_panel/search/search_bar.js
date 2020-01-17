@@ -292,7 +292,6 @@ odoo.define('web.SearchBar', function (require) {
          * @param {OwlEvent} ev
          */
         _onFacetRemoved(ev) {
-            debugger
             const facet = ev.detail;
             this.dispatch('deactivateGroup', facet.group.id);
         }
