@@ -120,6 +120,7 @@ class TestMultiCompany(SavepointCase):
             'product_qty': 10,
             'product_id': product.id,
             'location_id': self.stock_location_a.id,
+            'company_id': inventory.company_id.id
         })]
         inventory.with_user(self.user_b).action_validate()
         self.assertEqual(inventory.line_ids.company_id, self.company_a)
@@ -141,6 +142,7 @@ class TestMultiCompany(SavepointCase):
             'product_id': product.id,
             'product_qty': 10,
             'location_id': self.stock_location_a.id,
+            'company_id': inventory.company_id.id
         })]
         with self.assertRaises(UserError):
             inventory.with_user(self.user_a).action_validate()
