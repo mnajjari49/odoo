@@ -51,7 +51,7 @@ class Website(models.Model):
         Pricelist = self.env['product.pricelist']
         for website in self:
             website.pricelist_ids = Pricelist.search(
-                Pricelist._get_website_pricelists_domain(website.id)
+                Pricelist._get_website_pricelists_domain(website)
             )
 
     @api.depends_context('website_id')
@@ -98,24 +98,24 @@ class Website(models.Model):
         #          is cached and the result of this method will be impacted by that field value.
         #          Pass it through `partner_pl` parameter instead to invalidate the cache.
 
-        # If there is a GeoIP country, find a pricelist for it
+        # If there is a GeoIP country, try to find a pricelist for it
         self.ensure_one()
         pricelists = self.env['product.pricelist']
         if country_code:
             for cgroup in self.env['res.country.group'].search([('country_ids.code', '=', country_code)]):
                 pricelists |= cgroup.pricelist_ids.filtered(
-                    lambda pl: pl._is_available_on_website(self.id) and _check_show_visible(pl)
+                    lambda pl: pl._is_available_on_website(self) and _check_show_visible(pl)
                 )
 
         # no GeoIP or no pricelist for this country
-        if not country_code or not pricelists:
+        if all_pl and (not country_code or not pricelists):
             pricelists |= all_pl.filtered(lambda pl: _check_show_visible(pl))
 
         # if logged in, add partner pl (which is `property_product_pricelist`, might not be website compliant)
         is_public = self.user_id.id == self.env.user.id
         if not is_public:
             # keep partner_pl only if website compliant
-            partner_pl = pricelists.browse(partner_pl).filtered(lambda pl: pl._is_available_on_website(self.id) and _check_show_visible(pl))
+            partner_pl = pricelists.browse(partner_pl).filtered(lambda pl: pl._is_available_on_website(self) and _check_show_visible(pl))
             if country_code:
                 # keep partner_pl only if GeoIP compliant in case of GeoIP enabled
                 partner_pl = partner_pl.filtered(
@@ -139,6 +139,7 @@ class Website(models.Model):
             else:
                 # In the weird case we are coming from the backend (https://github.com/odoo/odoo/issues/20245)
                 website = len(self) == 1 and self or self.search([], limit=1)
+
         isocountry = req and req.session.geoip and req.session.geoip.get('country_code') or False
         partner = self.env.user.partner_id
         last_order_pl = partner.last_website_so_id.pricelist_id
@@ -167,13 +168,14 @@ class Website(models.Model):
 
     def get_current_pricelist(self):
         """
-        :returns: The current pricelist record
+        :returns: The current pricelist record, may be empty if no pricelist existing and active.
         """
+        self.ensure_one()
         # The list of available pricelists for this user.
         # If the user is signed in, and has a pricelist set different than the public user pricelist
         # then this pricelist will always be considered as available
         available_pricelists = self.get_pricelist_available()
-        pl = None
+        pl = self.env['product.pricelist']
         partner = self.env.user.partner_id
         if request and request.session.get('website_sale_current_pl'):
             # `website_sale_current_pl` is set only if the user specifically chose it:

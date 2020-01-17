@@ -51,17 +51,17 @@ class ProductPricelist(models.Model):
         domain = super(ProductPricelist, self)._get_partner_pricelist_multi_search_domain_hook()
         website = ir_http.get_request_website()
         if website:
-            domain += self._get_website_pricelists_domain(website.id)
+            domain += self._get_website_pricelists_domain(website)
         return domain
 
     def _get_partner_pricelist_multi_filter_hook(self):
         res = super(ProductPricelist, self)._get_partner_pricelist_multi_filter_hook()
         website = ir_http.get_request_website()
         if website:
-            res = res.filtered(lambda pl: pl._is_available_on_website(website.id))
+            res = res.filtered(lambda pl: pl._is_available_on_website(website))
         return res
 
-    def _is_available_on_website(self, website_id):
+    def _is_available_on_website(self, website):
         """ To be able to be used on a website, a pricelist should either:
         - Have its `website_id` set to current website (specific pricelist).
         - Have no `website_id` set and should be `selectable` (generic pricelist)
@@ -73,15 +73,19 @@ class ProductPricelist(models.Model):
         Change in this method should be reflected in `_get_website_pricelists_domain`.
         """
         self.ensure_one()
-        return self.website_published and (self.website_id.id == website_id or (not self.website_id and (self.selectable or self.sudo().code)))
+        return self.website_published and (not self.company_id or self.company_id == website.company_id) and (
+            self.website_id.id == website.id or (
+                not self.website_id and (
+                    self.selectable or self.sudo().code)))
 
-    def _get_website_pricelists_domain(self, website_id):
+    def _get_website_pricelists_domain(self, website):
         ''' Check above `_is_available_on_website` for explanation.
         Change in this method should be reflected in `_is_available_on_website`.
         '''
         return [
             '&', ('website_published', '=', True),
-            '|', ('website_id', '=', website_id),
+            '&', ('company_id', 'in', [website.company_id.id, False]),
+            '|', ('website_id', '=', website.id),
             '&', ('website_id', '=', False),
             '|', ('selectable', '=', True), ('code', '!=', False),
         ]
