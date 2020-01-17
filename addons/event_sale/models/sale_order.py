@@ -95,7 +95,7 @@ class SaleOrderLine(models.Model):
         if self.event_ticket_id and self.event_id:
             self = self.with_context(
                 fixed_sales_price=self.event_ticket_id.price,
-                fixed_sales_currency=self.event_ticket_id.currency_id.id,
+                fixed_sales_currency_id=self.event_ticket_id.currency_id.id,
             )
         super(SaleOrderLine, self)._compute_price()
 

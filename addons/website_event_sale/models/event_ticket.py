@@ -17,7 +17,7 @@ class EventTicket(models.Model):
         for ticket in self:
             ticket = ticket.with_context(
                 fixed_sales_price=ticket.price,
-                fixed_sales_currency=ticket.currency_id.id,
+                fixed_sales_currency_id=ticket.currency_id.id,
             )
             product = ticket.product_id
             pricelist, quantity, uom, date, currency = product.product_tmpl_id._get_context_values()

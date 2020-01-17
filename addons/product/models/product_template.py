@@ -12,9 +12,35 @@ _logger = logging.getLogger(__name__)
 
 def compute_price(self, price_type, currency=None, uom=None, company=None, date=False):
     """
-    :param self:
+    :param self: products whose price will be returned
     :type self: product.product or product.template
+    :param currency: res.currency
+    :param uom: uom.uom
+    :param company: res.company
+    :param date date: used for currency conversions.
 
+    :returns: dict(id:price)
+    :rtype: dict
+
+    Context keys impact:
+
+        * ``fixed_sales_price``, ``fixed_sales_currency_id``: (float, id)
+
+            Substitute value for the product(s) sales price and currency,
+            will replace lst_price and currency_id from the product
+            if the price_type is list_price/lst_price (not if 'standard_price')
+
+        * ``ptav_ids``: product.template.attribute.value list of ids
+
+            Can be used to pass ptavs whose attribute type is 'no_variant'/'dynamic',
+            to apply their potential extra prices.
+
+            If self is a product template record, can also be used to see the prices
+            for a future product (if not created) with the given combination.
+            NOTE that no check is done to see if the combination given is valid !
+
+        * ``p_id``: product_product id to specify with ``ptav_ids`` whose returned price
+            will contain the sum of ptav_ids ptavs price_extra's.
     """
     if not self:
         return {}
@@ -22,15 +48,17 @@ def compute_price(self, price_type, currency=None, uom=None, company=None, date=
     self = self.with_company(company)
 
     fixed_price, fixed_price_currency = False, None
-    if price_type == 'list_price' and self.env.context.get('fixed_sales_price') and self.env.context.get('fixed_sales_currency'):
+    if price_type == 'list_price' and self.env.context.get('fixed_sales_price') and self.env.context.get('fixed_sales_currency_id'):
         self.ensure_one()
         assert self.is_product_variant, _("A fixed price cannot be given for a template.")
         # Fixed prices should only be given for a fixed product
         fixed_price = self.env.context.get('fixed_sales_price')
-        fixed_price_currency = self.env['res.currency'].browse(self.env.context.get('fixed_sales_currency'))
+        fixed_price_currency = self.env['res.currency'].browse(self.env.context.get('fixed_sales_currency_id'))
 
     ptavs = self.env['product.template.attribute.value'].browse(self.env.context.get('ptav_ids', []))
     targeted_product_id = self.env.context.get('p_id', None)
+    if targeted_product_id:
+        self.ensure_one()
     if ptavs and targeted_product_id:
         if self[0].is_product_variant:
             # If we are computing the price on variants,
@@ -54,7 +82,6 @@ def compute_price(self, price_type, currency=None, uom=None, company=None, date=
     else:
         date = fields.Date.today()
 
-    # VFE FIXME is this better for perf purposes ???
     prices = dict.fromkeys(self.ids, 0.0)
     for template in self:
         # template = product.product or product.template
