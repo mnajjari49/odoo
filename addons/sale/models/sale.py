@@ -232,6 +232,13 @@ class SaleOrder(models.Model):
         ('date_order_conditional_required', "CHECK( (state IN ('sale', 'done') AND date_order IS NOT NULL) OR state NOT IN ('sale', 'done') )", "A confirmed sales order requires a confirmation date."),
     ]
 
+    @api.constrains('team_id')
+    def _sales_team_currency_coherence(self):
+        for order in self:
+            if order.team_id.company_id != order.company_id and order.team_id.currency_id != order.company_id.currency_id:
+                # VFE compute readonly False the currency_id ???
+                raise ValidationError(_("You cannot link orders from companies with different currencies to the same sales team."))
+
     @api.constrains('company_id', 'order_line')
     def _check_order_line_company_id(self):
         for order in self:

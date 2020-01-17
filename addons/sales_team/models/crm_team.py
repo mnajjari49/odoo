@@ -46,8 +46,7 @@ class CrmTeam(models.Model):
     company_id = fields.Many2one('res.company', string='Company',
                                  default=lambda self: self.env.company, index=True)
     currency_id = fields.Many2one(
-        "res.currency", related='company_id.currency_id',
-        string="Currency", readonly=True)
+        "res.currency", compute="_compute_currency_id", store=True)
     user_id = fields.Many2one('res.users', string='Team Leader', check_company=True)
     member_ids = fields.One2many(
         'res.users', 'sale_team_id', string='Channel Members', check_company=True,
@@ -64,6 +63,11 @@ class CrmTeam(models.Model):
     color = fields.Integer(string='Color Index', help="The color of the channel")
     dashboard_button_name = fields.Char(string="Dashboard Button", compute='_compute_dashboard_button_name')
     dashboard_graph_data = fields.Text(compute='_compute_dashboard_graph')
+
+    @api.depends('company_id')
+    def _compute_currency_id(self):
+        for team in self:
+            team.currency_id = team.company_id.currency_id or team.env.company.currency_id
 
     def _compute_dashboard_graph(self):
         for team in self:
