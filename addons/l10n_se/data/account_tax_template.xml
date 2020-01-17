@@ -720,7 +720,7 @@
                 (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
-                    'plus_report_line_ids': [ref('tax_report_line_42')]
+                    'plus_report_line_ids': [ref('tax_report_line_40')]
                 }),
                 (0, 0, {
                     'factor_percent': 100,
@@ -748,7 +748,7 @@
                 (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
-                    'plus_report_line_ids': [ref('tax_report_line_42')]
+                    'plus_report_line_ids': [ref('tax_report_line_36')]
                 }),
                 (0, 0, {
                     'factor_percent': 100,
@@ -758,7 +758,7 @@
                 (0, 0, {
                     'factor_percent': 100,
                     'repartition_type': 'base',
-                    'minus_report_line_ids': [ref('tax_report_line_42')]
+                    'minus_report_line_ids': [ref('tax_report_line_36')]
                 }),
                 (0, 0, {
                     'factor_percent': 100,
@@ -789,7 +789,7 @@
                     'repartition_type': 'tax',
                     'account_id': ref('a2615'),
                     'plus_report_line_ids': [ref('tax_report_line_60')]
-                })]"/>
+                })]"/><!--todo I probably must remove the tax_report_line_60 for the negative amount-->
             <field name="refund_repartition_line_ids" eval="[(5, 0, 0),
                 (0, 0, {
                     'factor_percent': 100,

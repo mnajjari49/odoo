@@ -28,7 +28,7 @@
             <field name="country_id" ref="base.se"/>
             <field name="sequence">2</field>
             <field name="parent_id" ref="tax_report_title_sales"/>
-        </record>
+        </record><!--todo detect give or use away your merchandise without compensation-->
 
         <record id="tax_report_line_07" model="account.tax.report.line">
             <field name="name">07 - Taxable basis for profit margin taxation</field>
@@ -37,7 +37,7 @@
             <field name="country_id" ref="base.se"/>
             <field name="sequence">3</field>
             <field name="parent_id" ref="tax_report_title_sales"/>
-        </record>
+        </record><!--todo not sure I understand this box. Shouldn't concerned items use a dedicated tax ?-->
 
         <record id="tax_report_line_08" model="account.tax.report.line">
             <field name="name">08 - Rental Income - voluntary tax liability</field>
@@ -46,7 +46,7 @@
             <field name="country_id" ref="base.se"/>
             <field name="sequence">4</field>
             <field name="parent_id" ref="tax_report_title_sales"/>
-        </record>
+        </record><!--todo dedicated tax ? Or maybe retrieve amount from account, deduct from 5 and add to 8 ?-->
 
         <!-- -->
         <!--B-->
@@ -138,7 +138,7 @@
             <field name="country_id" ref="base.se"/>
             <field name="sequence">4</field>
             <field name="parent_id" ref="tax_report_title_purchases"/>
-        </record>
+        </record><!--todo dedicated tax ? Or maybe retrieve amount from account, deduct from 22 and add to 24 ?-->
 
         <!-- -->
         <!--D-->
@@ -268,7 +268,7 @@
             <field name="country_id" ref="base.se"/>
             <field name="sequence">3</field>
             <field name="parent_id" ref="tax_report_title_exempt_sales"/>
-        </record>
+        </record><!--todo how am I supposed to catch that one ?-->
 
         <record id="tax_report_line_38" model="account.tax.report.line">
             <field name="name">38 - Sales of goods by an intermediary in triangulation</field>
@@ -277,7 +277,7 @@
             <field name="country_id" ref="base.se"/>
             <field name="sequence">4</field>
             <field name="parent_id" ref="tax_report_title_exempt_sales"/>
-        </record>
+        </record><!--todo what's the difference with box 37 ?-->
 
         <record id="tax_report_line_39" model="account.tax.report.line">
             <field name="name">39 - Sale of services to a taxable person (a business owner) in another EU country, in
