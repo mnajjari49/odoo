@@ -12,6 +12,7 @@ class ChangeProductionQty(models.TransientModel):
 
     mo_id = fields.Many2one('mrp.production', 'Manufacturing Order',
         required=True, ondelete='cascade')
+    product_uom_category_id = fields.Many2one(related='mo_id.product_uom_category_id')
     uom_id = fields.Many2one('uom.uom', string='Unit of Measure', related='mo_id.product_uom_id', readonly=False)
     product_qty = fields.Uom(
         'Quantity To Produce',
