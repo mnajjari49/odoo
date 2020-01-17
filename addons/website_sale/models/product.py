@@ -18,13 +18,13 @@ class ProductStyle(models.Model):
 
 
 class ProductPricelist(models.Model):
-    _inherit = "product.pricelist"
+    _inherit = ["product.pricelist", 'website.published.multi.mixin']
     _name = "product.pricelist"
-    _check_company_auto = True
 
-    # VFE TODO use website publish mixin?
-    website_id = fields.Many2one('website', string="Website", ondelete='restrict', domain="[('company_id', '=?', company_id)]")
-    website_published = fields.Boolean("Available on website", default=True)
+    def _default_is_published(self):
+        return True
+
+    website_id = fields.Many2one(domain="[('company_id', '=?', company_id)]")
     code = fields.Char(string='E-commerce Promotional Code', groups="base.group_user")
     selectable = fields.Boolean(help="Allow the end user to choose this price list")
 
@@ -36,6 +36,8 @@ class ProductPricelist(models.Model):
         website._get_pl_partner_order.clear_cache(website)
 
     def write(self, data):
+        # VFE TODO when archiving a pricelist, invalidate_cache of res_partner.property_product_pricelist ?
+        # And/or reset the property if it is the default one ?
         res = super(ProductPricelist, self).write(data)
         self.clear_cache()
         return res

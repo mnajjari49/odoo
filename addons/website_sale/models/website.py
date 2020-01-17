@@ -150,7 +150,9 @@ class Website(models.Model):
                                                    website.pricelist_ids,
                                                    partner_pl=partner_pl and partner_pl.id or None,
                                                    order_pl=last_order_pl and last_order_pl.id or None)
-        return self.env['product.pricelist'].browse(pricelists)
+        return self.env['product.pricelist'].browse(pricelists).filtered('active')
+        # VFE dunno why, but in tests TestWebsitePriceListAvailableGeoIP.test_get_pricelist_available and 2 others,
+        # the archived main pricelist is still given by _get_pricelist_available
 
     def get_pricelist_available(self, show_visible=False):
         return self._get_pricelist_available(request, show_visible)

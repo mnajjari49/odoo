@@ -235,6 +235,7 @@ class TestWebsitePriceListAvailable(TransactionCase):
 
         # Remove existing pricelists and create new ones
         existing_pricelists = Pricelist.search([])
+        existing_pricelists.write({'active': False})
         self.backend_pl = Pricelist.create({
             'name': 'Backend Pricelist',
             'website_id': False,
@@ -279,7 +280,6 @@ class TestWebsitePriceListAvailable(TransactionCase):
             'name': 'Website 2 Pricelist',
             'website_id': self.website2.id,
         })
-        existing_pricelists.write({'active': False})
 
         simulate_frontend_context(self)
 
@@ -349,9 +349,6 @@ class TestWebsitePriceListAvailableGeoIP(TestWebsitePriceListAvailable):
     def test_get_pricelist_available_geoip(self):
         # Test get all available pricelists with geoip and no partner pricelist (ir.property)
 
-        # property_product_pricelist will also be returned in the available pricelists
-        self.website1_be_pl += self.env.user.partner_id.property_product_pricelist
-
         pls = self.get_pricelist_available(country_code=self.BE.code)
         self.assertEqual(pls, self.website1_be_pl, "Only pricelists for BE and accessible on website should be returned, and the partner pl")
 
@@ -370,8 +367,6 @@ class TestWebsitePriceListAvailableGeoIP(TestWebsitePriceListAvailable):
     def test_get_pricelist_available_geoip4(self):
         # Test get all available with geoip and visible pricelists + promo pl
         pls_to_return = self.generic_pl_select + self.w1_pl_select + self.generic_pl_code_select
-        # property_product_pricelist will also be returned in the available pricelists
-        pls_to_return += self.env.user.partner_id.property_product_pricelist
 
         current_pl = self.w1_pl_code
         pls = self.get_pricelist_available(country_code=self.BE.code, show_visible=True, website_sale_current_pl=current_pl.id)
