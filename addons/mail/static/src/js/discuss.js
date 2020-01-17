@@ -1102,12 +1102,10 @@ var Discuss = AbstractAction.extend({
     /**
      * @private
      */
-    _updateControlPanel: function () {
-        this._updateActionProps({
-            cp_content: {
-                buttons: this.$buttons,
-            },
-        });
+    _updateControlPanel: function (newProps) {
+        this._super(Object.assign(newProps, {
+            buttons: this.$buttons,
+        }));
     },
     /**
      * Updates the control panel buttons visibility based on thread type
