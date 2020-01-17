@@ -166,6 +166,9 @@ class EventEvent(models.Model):
     auto_confirm = fields.Boolean(string='Autoconfirm Registrations')
     registration_ids = fields.One2many('event.registration', 'event_id', string='Attendees')
     event_registrations_open = fields.Boolean('Registration open', compute='_compute_event_registrations_open')
+    event_ticket_ids = fields.One2many(
+        'event.event.ticket', 'event_id', string='Event Ticket',
+        copy=True)
     # Date fields
     date_tz = fields.Selection(
         _tz_get, string='Timezone', required=True,
@@ -175,6 +178,7 @@ class EventEvent(models.Model):
     date_begin_located = fields.Char(string='Start Date Located', compute='_compute_date_begin_tz')
     date_end_located = fields.Char(string='End Date Located', compute='_compute_date_end_tz')
     is_one_day = fields.Boolean(compute='_compute_field_is_one_day')
+    start_sale_date = fields.Date('Start sale date', compute='_compute_start_sale_date')
     # Location and communication
     is_online = fields.Boolean('Online Event')
     address_id = fields.Many2one(
@@ -222,7 +226,9 @@ class EventEvent(models.Model):
     @api.depends('date_end', 'seats_available', 'seats_availability')
     def _compute_event_registrations_open(self):
         for event in self:
-            event.event_registrations_open = event.date_end > fields.Datetime.now() and (event.seats_available or event.seats_availability == 'unlimited')
+            event.event_registrations_open = (event.date_end > fields.Datetime.now()) and \
+                (event.seats_available or event.seats_availability == 'unlimited') and \
+                (not event.event_ticket_ids or any(ticket.sale_available for ticket in event.event_ticket_ids))
 
     @api.depends('stage_id', 'kanban_state')
     def _compute_kanban_state_label(self):
@@ -267,6 +273,12 @@ class EventEvent(models.Model):
         for event in self:
             event.duration_str = _format_time_ago(self.env, event.date_end - event.date_begin, add_direction=False)
 
+    @api.depends('event_ticket_ids.start_sale_date')
+    def _compute_start_sale_date(self):
+        for event in self:
+            start_dates = [ticket.start_sale_date for ticket in event.event_ticket_ids if ticket.start_sale_date]
+            event.start_sale_date = min(start_dates) if start_dates else False
+
     @api.onchange('is_online')
     def _onchange_is_online(self):
         if self.is_online:
@@ -298,6 +310,14 @@ class EventEvent(models.Model):
                         for attribute_name in self.env['event.type.mail']._get_event_mail_fields_whitelist()
                         })
                     for line in self.event_type_id.event_type_mail_ids]
+
+            # compute tickets information
+            if self.event_type_id.use_tickets:
+                self.event_ticket_ids = [(5, 0, 0)] + [
+                    (0, 0, {
+                        'name': self.name and _('Registration for %s') % self.name or ticket.name,
+                    })
+                    for ticket in self.event_type_id.event_type_ticket_ids]
 
     @api.constrains('seats_min', 'seats_max', 'seats_availability')
     def _check_seats_min_max(self):

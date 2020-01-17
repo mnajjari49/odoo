@@ -280,6 +280,13 @@
                             </group>
                         </group>
                         <notebook>
+                            <page string="Tickets" name="tickets">
+                                <field name="event_ticket_ids" context="{
+                                    'default_name': name,
+                                    'tree_view_ref': 'event_sale.event_event_ticket_view_tree_from_event',
+                                    'form_view_ref': 'event_sale.event_event_ticket_view_form_from_event',
+                                    'kanban_view_ref': 'event_sale.event_event_ticket_view_kanban_from_event'}" mode="tree,kanban"/>
+                            </page>
                             <page string="Communication" name="event_communication">
                                 <field name="event_mail_ids">
                                     <tree string="Communication" editable="bottom">
@@ -507,7 +514,9 @@
                     <field name="partner_id"/>
                     <field name="name"/>
                     <field name="email"/>
-                    <field name="event_id" />
+                    <field name="event_id"/>
+                    <field name="event_ticket_id"/>
+                    <field name="origin"/>
                     <field name="state"/>
                     <field name="company_id" groups="base.group_multi_company"/>
                     <field name="message_needaction" invisible="1"/>
@@ -543,6 +552,13 @@
                             </group>
                             <group string="Event Information" name="event">
                                 <field name="event_id" attrs="{'readonly': [('state', '!=', 'draft')]}" options="{'no_create': True}"/>
+                                <field name="event_ticket_id"
+                                    domain="[
+                                        ('event_id', '=', event_id),
+                                        '|', ('seats_availability', '=', 'unlimited'), ('seats_available', '>', 0)
+                                    ]"
+                                    attrs="{'invisible': [('event_id', '=', False)]}"
+                                    options="{'no_open': True, 'no_create': True}"/>
                                 <field name="date_open" groups="base.group_no_one"/>
                                 <field name="date_closed" groups="base.group_no_one"/>
                             </group>
@@ -663,6 +679,7 @@
                     <group expand="0" string="Group By">
                         <filter string="Partner" name="partner" domain="[]" context="{'group_by':'partner_id'}"/>
                         <filter string="Event" name="group_event" domain="[]" context="{'group_by':'event_id'}"/>
+                        <filter string="Ticket Type" name ="group_event_ticket_id" domain="[]" context="{'group_by': 'event_ticket_id'}"/>
                         <filter string="Status" name="status" domain="[]" context="{'group_by':'state'}"/>
                         <filter string="Registration Date" name="createmonth" domain="[]" context="{'group_by': 'create_date:month'}"/>
                    </group>

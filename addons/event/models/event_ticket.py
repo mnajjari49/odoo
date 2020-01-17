@@ -2,7 +2,7 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
 from odoo import api, fields, models, _
-from odoo.exceptions import UserError
+from odoo.exceptions import ValidationError, UserError
 
 
 class EventTemplateTicket(models.Model):
@@ -63,3 +63,69 @@ class EventTemplateTicket(models.Model):
 
     def _get_ticket_tz(self):
         return self.event_type_id.use_timezone and self.event_type_id.default_timezone or self.env.user.tz
+
+
+class EventTicket(models.Model):
+    _name = 'event.event.ticket'
+    _inherit = 'event.type.ticket'
+    _description = 'Event Ticket'
+
+    # description
+    name = fields.Char(string='Name', required=True, translate=True)
+    event_type_id = fields.Many2one(ondelete='set null', required=False)
+    event_id = fields.Many2one(
+        'event.event', string="Event",
+        ondelete='cascade', required=True)
+    company_id = fields.Many2one('res.company', related='event_id.company_id')
+    # sale
+    registration_ids = fields.One2many('event.registration', 'event_ticket_id', string='Registrations')
+    # seats
+    seats_reserved = fields.Integer(string='Reserved Seats', compute='_compute_seats', store=True)
+    seats_available = fields.Integer(string='Available Seats', compute='_compute_seats', store=True)
+    seats_unconfirmed = fields.Integer(string='Unconfirmed Seat Reservations', compute='_compute_seats', store=True)
+    seats_used = fields.Integer(string='Used Seats', compute='_compute_seats', store=True)
+
+    @api.depends('seats_max', 'registration_ids.state')
+    def _compute_seats(self):
+        """ Determine reserved, available, reserved but unconfirmed and used seats. """
+        # initialize fields to 0 + compute seats availability
+        for ticket in self:
+            ticket.seats_unconfirmed = ticket.seats_reserved = ticket.seats_used = ticket.seats_available = 0
+        # aggregate registrations by ticket and by state
+        if self.ids:
+            state_field = {
+                'draft': 'seats_unconfirmed',
+                'open': 'seats_reserved',
+                'done': 'seats_used',
+            }
+            query = """ SELECT event_ticket_id, state, count(event_id)
+                        FROM event_registration
+                        WHERE event_ticket_id IN %s AND state IN ('draft', 'open', 'done')
+                        GROUP BY event_ticket_id, state
+                    """
+            self.env['event.registration'].flush(['event_id', 'event_ticket_id', 'state'])
+            self.env.cr.execute(query, (tuple(self.ids),))
+            for event_ticket_id, state, num in self.env.cr.fetchall():
+                ticket = self.browse(event_ticket_id)
+                ticket[state_field[state]] += num
+        # compute seats_available
+        for ticket in self:
+            if ticket.seats_max > 0:
+                ticket.seats_available = ticket.seats_max - (ticket.seats_reserved + ticket.seats_used)
+
+    @api.constrains('seats_available', 'seats_max')
+    def _constrains_seats_available(self):
+        if any(record.seats_max and record.seats_available < 0 for record in self):
+            raise ValidationError(_('No more available seats for this ticket.'))
+
+    def _get_ticket_multiline_description(self):
+        """ Compute a multiline description of this ticket. It is used when ticket
+        description are necessary without having to encode it manually, like sales
+        information. """
+        lines = [self.display_name]
+        if self.event_id:
+            lines.append(self.event_id.display_name)
+        return '\n'.join(lines)
+
+    def _get_ticket_tz(self):
+        return self.event_id.date_tz or self.env.user.tz
