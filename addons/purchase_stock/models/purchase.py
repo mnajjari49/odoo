@@ -351,7 +351,40 @@ class PurchaseOrderLine(models.Model):
         price_unit = self._get_stock_move_price_unit()
         for move in self.move_ids.filtered(lambda x: x.state != 'cancel' and not x.location_dest_id.usage == "supplier"):
             qty += move.product_uom._compute_quantity(move.product_uom_qty, self.product_uom, rounding_method='HALF-UP')
-        template = {
+        move_vals = self._prepare_stock_move_vals(picking, price_unit)
+        if self.move_dest_ids:
+            move_dests_initial_demand = sum(self.move_dest_ids.mapped('product_qty'))
+            move_dests_initial_demand = self.product_id.uom_id._compute_quantity(
+                move_dests_initial_demand, self.product_uom, rounding_method='HALF-UP')
+            diff_quantity = move_dests_initial_demand - qty
+        else:
+            diff_quantity = self.product_qty - qty
+        if float_compare(diff_quantity, 0.0, precision_rounding=self.product_uom.rounding) > 0:
+            po_line_uom = self.product_uom
+            quant_uom = self.product_id.uom_id
+            product_uom_qty, product_uom = po_line_uom._adjust_uom_quantities(diff_quantity, quant_uom)
+            move_vals['product_uom_qty'] = product_uom_qty
+            move_vals['product_uom'] = product_uom.id
+            res.append(move_vals)
+
+        if self.move_dest_ids:
+            diff_quantity = self.product_qty - move_dests_initial_demand
+            if float_compare(diff_quantity, 0.0,  precision_rounding=self.product_uom.rounding) > 0:
+                extra_move_vals = self._prepare_stock_move_vals(picking, price_unit)
+                po_line_uom = self.product_uom
+                quant_uom = self.product_id.uom_id
+                product_uom_qty, product_uom = po_line_uom._adjust_uom_quantities(diff_quantity, quant_uom)
+                extra_move_vals['product_uom_qty'] = product_uom_qty
+                extra_move_vals['product_uom'] = product_uom.id
+                extra_move_vals['move_dest_ids'] = False
+                extra_move_vals['route_ids'] = False
+                extra_move_vals['group_id'] = self.move_dest_ids.group_id[:1].id
+                res.append(extra_move_vals)
+        return res
+
+    def _prepare_stock_move_vals(self, picking, price_unit):
+        self.ensure_one()
+        return {
             # truncate to 2000 to avoid triggering index limit error
             # TODO: remove index in master?
             'name': (self.name or '')[:2000],
@@ -379,15 +412,6 @@ class PurchaseOrderLine(models.Model):
             'route_ids': self.order_id.picking_type_id.warehouse_id and [(6, 0, [x.id for x in self.order_id.picking_type_id.warehouse_id.route_ids])] or [],
             'warehouse_id': self.order_id.picking_type_id.warehouse_id.id,
         }
-        diff_quantity = self.product_qty - qty
-        if float_compare(diff_quantity, 0.0,  precision_rounding=self.product_uom.rounding) > 0:
-            po_line_uom = self.product_uom
-            quant_uom = self.product_id.uom_id
-            product_uom_qty, product_uom = po_line_uom._adjust_uom_quantities(diff_quantity, quant_uom)
-            template['product_uom_qty'] = product_uom_qty
-            template['product_uom'] = product_uom.id
-            res.append(template)
-        return res
 
     @api.model
     def _prepare_purchase_order_line_from_procurement(self, product_id, product_qty, product_uom, company_id, values, po):
@@ -406,6 +430,7 @@ class PurchaseOrderLine(models.Model):
         for line in self.filtered(lambda l: not l.display_type):
             for val in line._prepare_stock_moves(picking):
                 values.append(val)
+            line.move_dest_ids.created_purchase_line_id = False
 
         moves = self.env['stock.move'].create(values)
         for move in moves:

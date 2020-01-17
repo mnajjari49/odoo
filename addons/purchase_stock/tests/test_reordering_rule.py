@@ -62,6 +62,16 @@ class TestReorderingRule(SavepointCase):
         # On the po generated, the source document should be the name of the reordering rule
         self.assertEqual(order_point.name, purchase_order.origin, 'Source document on purchase order should be the name of the reordering rule.')
 
+        self.assertEqual(purchase_order.order_line.product_qty, 10)
+        purchase_order.order_line.product_qty = 12
+        purchase_order.button_confirm()
+
+        self.assertEqual(purchase_order.picking_ids.move_lines.product_qty, 12)
+
+        next_picking = purchase_order.picking_ids.move_lines.move_dest_ids.picking_id
+        self.assertEqual(len(next_picking), 1)
+        self.assertEqual(next_picking.move_lines.filtered(lambda m: m.orderpoint_id == order_point).product_qty, 12)
+
     def test_reordering_rule_2(self):
         """
             - Receive products in 1 steps
