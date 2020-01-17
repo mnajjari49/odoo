@@ -21,6 +21,8 @@ var mvc = require('web.mvc');
 var { WidgetAdapterMixin } = require('web.OwlCompatibility');
 
 var session = require('web.session');
+const ControlPanelWrapper = require('web.ControlPanelWrapper');
+const ControlPanel = require('web.ControlPanel');
 
 var QWeb = core.qweb;
 
@@ -49,7 +51,7 @@ var AbstractController = mvc.Controller.extend(ActionMixin, WidgetAdapterMixin, 
      */
     init: function (parent, model, renderer, params) {
         this._super.apply(this, arguments);
-        this._controlPanel = params.controlPanel;
+        this.controlPanelProps = params.controlPanelProps;
         this._controlPanelStore = params.controlPanelStore;
         this._title = params.displayName;
         this.modelName = params.modelName;
@@ -71,6 +73,19 @@ var AbstractController = mvc.Controller.extend(ActionMixin, WidgetAdapterMixin, 
         this.controlPanelDomain = params.controlPanelDomain || [];
         this.searchPanelDomain = this._searchPanel ? this._searchPanel.getDomain() : [];
     },
+
+    /**
+     *
+     * @returns {Promise}
+     */
+    willStart: async function () {
+        const proms = [this._super.apply(this, ...arguments)];
+        if (this._controlPanelStore) {
+            proms.push(this._controlPanelStore.isReady);
+        }
+        return Promise.all(proms);
+    },
+
     /**
      * Simply renders and updates the url.
      *
@@ -83,16 +98,15 @@ var AbstractController = mvc.Controller.extend(ActionMixin, WidgetAdapterMixin, 
                 .addClass('o_controller_with_searchpanel')
                 .prepend(this._searchPanel.$el);
         }
+        if (this.controlPanelProps) {
+            this._controlPanelWrapper = new ControlPanelWrapper(this, ControlPanel, this.controlPanelProps);
+            await this._controlPanelWrapper.mount(this.el, { position: 'first-child' });
+        }
 
         this.$el.addClass('o_view_controller');
 
         await _super;
         await this._update(this.initialState);
-
-        if (this._controlPanel) {
-            await this._controlPanelStore.isReady;
-            await this._controlPanel.mount(this.el, { position: 'first-child' });
-        }
     },
     /**
      * @override

@@ -313,6 +313,7 @@
         <script type="text/javascript" src="/web/static/src/js/views/basic/basic_renderer.js"></script>
         <script type="text/javascript" src="/web/static/src/js/views/control_panel/control_panel_store.js"></script>
         <script type="text/javascript" src="/web/static/src/js/views/control_panel/control_panel.js"></script>
+        <script type="text/javascript" src="/web/static/src/js/views/control_panel/control_panel_wrapper.js"></script>
         <script type="text/javascript" src="/web/static/src/js/views/control_panel/control_panel_x2many.js"></script>
         <script type="text/javascript" src="/web/static/src/js/views/control_panel/control_panel_mobile.js"></script>
         <script type="text/javascript" src="/web/static/src/js/views/control_panel/search/search_facet.js"></script>

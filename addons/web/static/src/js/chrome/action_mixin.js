@@ -63,14 +63,7 @@ var ActionMixin = {
             this.$('.o_content').append(content);
         }
     },
-    /**
-     * Called each time the action is attached into the DOM.
-     */
-    on_attach_callback: function () { },
-    /**
-     * Called each time the action is detached from the DOM.
-     */
-    on_detach_callback: function () { },
+
     /**
      * Called by the action manager when action is restored (typically, when the
      * user clicks on the action in the breadcrumb)

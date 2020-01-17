@@ -26,7 +26,6 @@ odoo.define('web.AbstractView', function (require) {
 var AbstractModel = require('web.AbstractModel');
 var AbstractRenderer = require('web.AbstractRenderer');
 var AbstractController = require('web.AbstractController');
-const ControlPanel = require('web.ControlPanel');
 const ControlPanelStore = require('web.ControlPanelStore');
 var mvc = require('web.mvc');
 var SearchPanel = require('web.SearchPanel');
@@ -173,10 +172,10 @@ var AbstractView = Factory.extend({
             });
         }
         if (params.searchQuery) {
-            // TODO: see if we need to check 'timeRange' in searchMenuTypes
-            // and remove timeRanges from searchQuery!
             this._updateMVCParams(params.searchQuery);
         }
+
+
 
         const controlPanelStoreEnv = Object.assign(Object.create(Component.env), {
             action: action || {},
@@ -205,9 +204,13 @@ var AbstractView = Factory.extend({
             // avoid work to initialize
             importedState: controllerState.cpState,
         };
-        this.controlPanelProps = {
+
+        const controlPanelStore = this._createControlPanelStore();
+
+        const controlPanelProps = {
+            controlPanelStore,
             // TODO: remove action from props and access it from somewhere else...
-            action: action, // needed by favorite menu subcomponents
+            action, // needed by favorite menu subcomponents
             breadcrumbs: params.breadcrumbs,
             fields: this.fields,
             modelName: params.modelName,
@@ -217,6 +220,8 @@ var AbstractView = Factory.extend({
             withSearchBar: params.withSearchBar,
             viewType: this.viewType,
         };
+        this.controllerParams.controlPanelProps = controlPanelProps;
+
         this.searchPanelParams = {
             defaultNoFilter: params.searchPanelDefaultNoFilter,
             fields: this.fields,
@@ -234,9 +239,6 @@ var AbstractView = Factory.extend({
      */
     getController: async function (parent) {
         const _super = this._super.bind(this);
-        if (this.withControlPanel) {
-            this._createControlPanel();
-        }
         let searchPanel = false;
         if (this.withSearchPanel) {
             const spProto = this.config.SearchPanel.prototype;
@@ -287,37 +289,18 @@ var AbstractView = Factory.extend({
     //--------------------------------------------------------------------------
 
     /**
-     * Instantiates and starts a ControlPanel.
+     * Create the control panel store
      *
      * @private
-     * @param {Function} [queryModifier] a function meant to alter the fetched query.
-     * @returns {Promise<ControlPanel>} resolved when the controlPanel
-     *   is ready
      */
-    _createControlPanel: async function (queryModifier) {
-        const controlPanelStore = this._createControlPanelStore();
-        this.controlPanelProps.controlPanelStore = controlPanelStore;
-        const controlPanel = new ControlPanel(null, this.controlPanelProps);
-        const prom = controlPanelStore.isReady.then(async function() {
-            await controlPanel.mount(document.createDocumentFragment());
-            return controlPanel;
-        });
-        this.controllerParams.controlPanelStore = controlPanelStore;
-        this.controllerParams.controlPanel = controlPanel;
+    _createControlPanelStore: function (queryModifier) {
+        const controlPanelStore = new ControlPanelStore(this.controlPanelStoreConfig);
         const query = controlPanelStore.getQuery();
         if (queryModifier) {
             queryModifier(query);
         }
         this._updateMVCParams(query);
-        return prom;
-    },
-    /**
-     * Create the control panel store
-     *
-     * @private
-     */
-    _createControlPanelStore: function () {
-        return new ControlPanelStore(this.controlPanelStoreConfig);
+        return controlPanelStore;
     },
     /**
      * @private
