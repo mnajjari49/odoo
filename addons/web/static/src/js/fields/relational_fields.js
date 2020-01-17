@@ -1045,7 +1045,7 @@ var FieldX2Many = AbstractField.extend({
         this.activeActions = {};
         this.recordParams = {fieldName: this.name, viewType: this.viewType};
         this.evaluatedOptions = evalOptions(this.record, {
-            options: this.attrs.options,
+            options: this.attrs.options || {},
         });
         var arch = this.view && this.view.arch;
         if (arch) {
@@ -1146,7 +1146,7 @@ var FieldX2Many = AbstractField.extend({
         if (!fieldChanged) {
             const newEval = this._evalColumnInvisibleFields();
             const newEvaluatedOptions = evalOptions(record, {
-                options: this.attrs.options,
+                options: this.attrs.options || {},
             });
             const isOptionsEqual = _.isEqual(this.evaluatedOptions, newEvaluatedOptions);
             if (!isOptionsEqual) {
@@ -2290,7 +2290,7 @@ var FieldMany2ManyTags = AbstractField.extend({
         this.colorField = this.nodeOptions.color_field;
         this.hasDropdown = false;
         this.evaluatedOptions = evalOptions(this.record, {
-            options: this.attrs.options,
+            options: this.attrs.options || {},
         });
     },
 
@@ -2327,7 +2327,7 @@ var FieldMany2ManyTags = AbstractField.extend({
         var self = this;
         // evaluation of options, conditional create/delete
         const newEvaluatedOptions = evalOptions(record, {
-            options: this.attrs.options,
+            options: this.attrs.options || {},
         });
         const isOptionsEqual = _.isEqual(this.evaluatedOptions, newEvaluatedOptions);
         if (!isOptionsEqual) {
