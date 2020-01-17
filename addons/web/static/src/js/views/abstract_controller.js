@@ -29,10 +29,10 @@ var AbstractController = mvc.Controller.extend(ActionMixin, WidgetAdapterMixin, 
         navigation_move: '_onNavigationMove',
         open_record: '_onOpenRecord',
         switch_view: '_onSwitchView',
+        search: '_onSearch',
         search_panel_domain_updated: '_onSearchPanelDomainUpdated',
     }),
     events: {
-        search: '_onSearch',
         'click a[type="action"]': '_onActionClicked',
         switch_view: '_onSwitchView',
     },
@@ -49,7 +49,6 @@ var AbstractController = mvc.Controller.extend(ActionMixin, WidgetAdapterMixin, 
      */
     init: function (parent, model, renderer, params) {
         this._super.apply(this, arguments);
-
         this._title = params.displayName;
         this.modelName = params.modelName;
         this.activeActions = params.activeActions;
@@ -97,7 +96,6 @@ var AbstractController = mvc.Controller.extend(ActionMixin, WidgetAdapterMixin, 
      */
     start: async function () {
         const _super = this._super(...arguments);
-        debugger
         if (this.withSearchPanel) {
             this.$('.o_content')
                 .addClass('o_controller_with_searchpanel')
@@ -583,7 +581,7 @@ var AbstractController = mvc.Controller.extend(ActionMixin, WidgetAdapterMixin, 
      */
     _onSearch: function (ev) {
         ev.stopPropagation();
-        this.reload(_.extend({offset: 0}, ev.detail));
+        this.reload(_.extend({offset: 0}, ev.data));
     },
     /**
      * @private

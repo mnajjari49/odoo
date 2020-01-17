@@ -35,17 +35,6 @@ var ActionMixin = {
     contentTemplate: null,
 
     /**
-     * If an action wants to use a control panel, it will be created and
-     * registered in this _controlPanel key (the widget).  The way this control
-     * panel is created is up to the implementation (so, view controllers or
-     * client actions may have different needs).
-     *
-     * Note that most of the time, this key should be set by the framework, not
-     * by the code of the client action.
-     */
-    _controlPanel: null,
-
-    /**
      * String containing the title of the client action (which may be needed to
      * display in the breadcrumbs zone of the control panel).
      *
@@ -143,15 +132,7 @@ var ActionMixin = {
      */
     giveFocus: function () {
     },
-    /**
-     * Renders the buttons to append, in most cases, to the control panel (in
-     * the bottom left corner). When the action is rendered in a dialog, those
-     * buttons might be moved to the dialog's footer.
-     *
-     * @param {jQuery Node} $node
-     */
-    renderButtons: function ($node) {
-    },
+
     // TODO: add hooks methods:
     // - onRestoreHook (on_reverse_breadcrumbs)
 
