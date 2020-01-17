@@ -5,6 +5,7 @@ import re
 
 from odoo import api, fields, models, _
 from odoo.tools.misc import mod10r
+from odoo.exceptions import UserError
 
 import werkzeug.urls
 
@@ -98,92 +99,105 @@ class ResPartnerBank(models.Model):
                 return iban[-12:]
         return None
 
-    def find_number(self, s):
-        # this regex match numbers like 1bis 1a
+    @api.model
+    def build_qr_code_url(self, amount, comment, currency, partner):
+        if self._eligible_for_swiss_qr_code(debtor_partner):
+
+            currency = self.currency_id or self.company_id.currency_id
+            if currency.name == 'EUR':
+                isr_reference = self.l10n_ch_isr_subscription_eur
+            elif currency.name == 'CHF':
+                isr_reference = self.l10n_ch_isr_subscription_chf
+            else:
+                # Should never happen, thanks to _eligible_for_swiss_qr_code
+                raise UserError(_("Trying to generate a Swiss QR-code for an account not using EUR nor CHF."))
+
+            communication = ""
+            if comment:
+                communication = (comment[:137] + '...') if len(comment) > 140 else comment
+
+            t_street_comp = '%s %s' % (self.company_id.street or '', self.company_id.street2 or '')
+            t_street_deb = '%s %s' % (debtor_partner.street or '', debtor_partner.street2 or '')
+            number = self.find_number(t_street_comp)
+            number_deb = self.find_number(t_street_deb)
+
+            qr_code_string = 'SPC\n0100\n1\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s' % (
+                              self.acc_number,
+                              self.company_id.name,
+                              t_street_comp or False,
+                              number,
+                              self.company_id.zip,
+                              self.company_id.city,
+                              self.company_id.country_id.code,
+                              amount,
+                              currency.name,
+                              date_due,
+                              debitor.name,
+                              t_street_deb or False,
+                              number_deb,
+                              partner.zip,
+                              partner.city,
+                              partner.country_id.code,
+                              'QRR',
+                              isr_reference,
+                              communication)
+
+            return '/report/barcode/?type=%s&value=%s&width=%s&height=%s&humanreadable=1&mask=ch_cross' % ('QR', werkzeug.url_quote_plus(qr_code_string), 256, 256)
+
+        return super().build_qr_code_url(amount, comment, currency, partner)
+
+    def _eligible_for_swiss_qr_code(self, debtor_partner):
+        self.ensure_one()
+        currency = self.currency_id or self.company_id.currency_id
+
+        t_street_comp, number = self._get_street_and_number(self.partner_id)
+        t_street_deb, number_deb = self._get_street_and_number(debtor_partner)
+
+        if currency.name == 'EUR':
+            return (self.l10n_ch_isr_subscription_eur and
+                    self.company_id.zip and
+                    self.company_id.city and
+                    self.company_id.country_id.code and
+                    t_street_comp and
+                    t_street_deb and
+                    debtor_partner.zip and
+                    debtor_partner.city and
+                    debtor_partner.country_id.code and
+                    number != False and
+                    number_deb != False)
+
+        elif currency.name == 'CHF':
+            return  (self.l10n_ch_isr_subscription_chf and
+                    self.company_id.zip and
+                    self.company_id.city and
+                    self.company_id.country_id.code and
+                    t_street_comp and
+                    t_street_deb and
+                    debtor_partner.zip and
+                    debtor_partner.city and
+                    debtor_partner.country_id.code and
+                    number != False and
+                    number_deb != False)
+
+        else:
+            return False
+
+    def _get_street_and_number(self, partner):
+        street = '%s %s' % (partner.company_id.street or '', self.company_id.street2 or '')
+        number = self.find_number(street)
+        return street, number
+
+    def find_number(self, s): #TODO OCO utiliser base_address_extend ?
+        # This regex matches numbers like 1bis 1a
         lmo = re.findall('([0-9]+[^ ]*)',s)
-        # no number found
+        # No number found
         if len(lmo) == 0:
             return ''
         # Only one number or starts with a number return the first one
         if len(lmo) == 1 or re.match(r'^\s*([0-9]+[^ ]*)',s):
             return lmo[0]
-        # else return the last one
+        # Else return the last one
         if len(lmo) > 1:
             return lmo[-1]
         else:
             return ''
-
-    @api.model
-    def build_swiss_code_url(self, amount, currency, date_due, debitor, ref_type, reference, comment): #TODO OCO
-        communication = ""
-        if comment:
-            communication = (comment[:137] + '...') if len(comment) > 140 else comment
-
-        t_street_comp = '%s %s' % (self.company_id.street if (self.company_id.street != False) else '', self.company_id.street2 if (self.company_id.street2 != False) else '')
-        t_street_deb = '%s %s' % (debitor.street if (debitor.street != False) else '', debitor.street2 if (debitor.street2 != False) else '')
-        number = self.find_number(t_street_comp)
-        number_deb = self.find_number(t_street_deb)
-        if (t_street_comp == ' '):
-            t_street_comp = False
-        if (t_street_deb == ' '):
-            t_street_deb = False
-
-        qr_code_string = 'SPC\n0100\n1\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s' % (
-                          self.acc_number,
-                          self.company_id.name,
-                          t_street_comp,
-                          number,
-                          self.company_id.zip,
-                          self.company_id.city,
-                          self.company_id.country_id.code,
-                          amount,
-                          currency,
-                          date_due,
-                          debitor.name,
-                          t_street_deb,
-                          number_deb,
-                          debitor.zip,
-                          debitor.city,
-                          debitor.country_id.code,
-                          ref_type,
-                          reference,
-                          communication)
-        qr_code_url = '/report/barcode/?type=%s&value=%s&width=%s&height=%s&humanreadable=1' % ('QR', werkzeug.url_quote_plus(qr_code_string), 256, 256)
-        return qr_code_url
-
-    def validate_swiss_code_arguments(self, currency, debitor):
-        currency = currency or self.company_id.currency_id
-        t_street_comp = '%s %s' % (self.company_id.street if (self.company_id.street != False) else '', self.company_id.street2 if (self.company_id.street2 != False) else '')
-        t_street_deb = '%s %s' % (debitor.street if (debitor.street != False) else '', debitor.street2 if (debitor.street2 != False) else '')
-        number = self.find_number(t_street_comp)
-        number_deb = self.find_number(t_street_deb)
-        if (t_street_comp == ' '):
-            t_street_comp = False
-        if (t_street_deb == ' '):
-            t_street_deb = False
-
-        #TODO OCO HERE >>>> currency est tjrs vide ici => prendre celle de la company si currency est vide (probablement à faire en 12 aussi)
-        if(currency.name == 'EUR'):
-            return (self.l10n_ch_isr_subscription_eur and
-                    self.company_id.zip and
-                    self.company_id.city and
-                    self.company_id.country_id.code and
-                    (t_street_comp != False) and
-                    (t_street_deb != False) and
-                    debitor.zip and
-                    debitor.city and
-                    debitor.country_id.code and
-                    (number != False) and (number_deb != False))
-        elif(currency.name == 'CHF'):
-            return (self.l10n_ch_isr_subscription_chf and
-                    self.company_id.zip and
-                    self.company_id.city and
-                    self.company_id.country_id.code and
-                    (t_street_comp != False) and
-                    (t_street_deb != False) and
-                    debitor.zip and
-                    debitor.city and
-                    debitor.country_id.code and
-                    (number != False) and (number_deb != False))
-        else:
-            return False

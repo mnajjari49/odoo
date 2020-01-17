@@ -8,7 +8,7 @@ import werkzeug
 class ResPartnerBank(models.Model):
     _inherit = 'res.partner.bank'
 
-    def build_qr_code_url(self, amount, comment, currency): #TODO OCO currency
+    def build_qr_code_url(self, amount, comment, currency, partner): #TODO OCO currency
         if currency.name == 'EUR' and self._eligible_for_sepa_qr_code():
             communication = ''
             if comment:
@@ -17,7 +17,7 @@ class ResPartnerBank(models.Model):
             qr_code_url = '/report/barcode/?type=%s&value=%s&width=%s&height=%s&humanreadable=1' % ('QR', werkzeug.url_quote_plus(qr_code_string), 128, 128)
             return qr_code_url
 
-        return super(ResPartnerBank, self).build_qr_code_url(amount, comment, currency)
+        return super().build_qr_code_url(amount, comment, currency, partner)
 
     def _eligible_for_sepa_qr_code(self):
         self.ensure_one()
