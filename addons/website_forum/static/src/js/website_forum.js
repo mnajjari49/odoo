@@ -149,7 +149,19 @@ publicWidget.registry.websiteForum = publicWidget.Widget.extend({
             wysiwygLoader.load(self, $textarea[0], options).then(wysiwyg => {
                 // float-left class messes up the post layout OPW 769721
                 $form.find('.note-editable').find('img.float-left').removeClass('float-left');
-                $form.on('click', 'button .a-submit', () => {
+                $form.on('click', 'button[type="submit"]', (ev) => {
+                    if (wysiwyg.getValue() === '<p><br></p>') {
+                        ev.stopPropagation();
+                        ev.preventDefault();
+                        var hashtags = $(ev.currentTarget).data('hashtags')
+                        var message = hashtags === '#question' ? _t("Question should not be empty.") : _t("Reply should not be empty.");
+                        self.call('crash_manager', 'show_warning', {
+                            message: message,
+                            title: _t("Bad Request"),
+                        }, {
+                            sticky: false,
+                        });
+                    }
                     wysiwyg.save();
                 });
             });
@@ -238,7 +250,7 @@ publicWidget.registry.websiteForum = publicWidget.Widget.extend({
      * @private
      * @param {Event} ev
      */
-    _onFlagAlertClick: function (ev) {
+    _onFlagAlertClick: async function (ev) {
         var self = this;
         ev.preventDefault();
         var $link = $(ev.currentTarget);
@@ -263,12 +275,13 @@ publicWidget.registry.websiteForum = publicWidget.Widget.extend({
             } else if (data.success) {
                 var elem = $link;
                 if (data.success === 'post_flagged_moderator') {
-                    elem.data('href') && elem.html(' Flagged');
-                    var c = parseInt($('#count_flagged_posts').html(), 10);
+                    elem.html('Flagged').prepend('<i class="fas fa-flag text-muted mr-2"/>');
+                    elem.data('href');
+                    var c = parseInt($('span#count_flagged_posts').html(), 10);
                     c++;
-                    $('#count_flagged_posts').html(c);
+                    $('span#count_flagged_posts').html(c);
                 } else if (data.success === 'post_flagged_non_moderator') {
-                    elem.data('href') && elem.html(' Flagged');
+                    elem.data('href') && elem.html('Flagged');
                     var forumAnswer = elem.closest('.forum_answer');
                     forumAnswer.fadeIn(1000);
                     forumAnswer.slideUp(1000);

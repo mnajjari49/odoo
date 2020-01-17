@@ -194,7 +194,7 @@
                         </a>
                     </li>
                     <li t-if="forum.count_flagged_posts" class="nav-item ml-2">
-                        <a class="nav-link" t-attf-href="/forum/#{slug(forum)}/flagged_queue">
+                        <a id="count_flagged_posts" class="nav-link" t-attf-href="/forum/#{slug(forum)}/flagged_queue">
                             <i class="fa fa-flag fa-fw text-danger"/>
                             <b t-esc="forum.count_flagged_posts" class="text-800"/>
                         </a>
@@ -557,7 +557,7 @@
             </span>
             <a t-else="" class="nav-link rounded-pill text-reset" t-attf-href="/forum/#{slug(forum)}/flagged_queue">
                 <i class="fa fa-flag fa-fw"/> Flagged
-                <span t-attf-class="badge pull-right #{forum.count_flagged_posts > 0 and 'badge-danger' or 'badge-light'}" t-esc="forum.count_flagged_posts"/>
+                <span id="count_flagged_posts" t-attf-class="badge pull-right #{forum.count_flagged_posts > 0 and 'badge-danger' or 'badge-light'}" t-esc="forum.count_flagged_posts"/>
             </a>
         </t>
     </nav>
@@ -1184,12 +1184,29 @@
             </t>
             <t t-if="question.active" href="#" t-call="website_forum.link_button">
                 <t t-set="url" t-value="'/forum/' + slug(forum) +'/post/' + slug(question) + '/flag'"/>
-                <t t-set="label">Flag</t>
+                <!-- <t t-set="label">Flag</t> -->
+                <t t-set="label">
+                    <t t-if="question.state != 'flagged'">
+                        Flag
+                    </t>
+                    <t t-if="question.state == 'flagged'">
+                        Flagged
+                    </t>
+                </t>
                 <t t-set="inDropdown" t-value="True"/>
                 <t t-set="icon" t-value="not question.can_flag and 'fa-flag-o' or 'fa-flag'"/>
                 <t t-set="karma" t-value="not question.can_flag and question.forum_id.karma_flag or 0"/>
                 <t t-set="classes" t-value="'flag'"/>
             </t>
+            <t t-if="question.state == 'flagged'" >
+                <div style="text-align: center">
+               <a t-attf-href="/forum/#{slug(forum)}/post/#{slug(question)}/validate"
+                  title="Validate" aria-label="Validate" data-toggle="tooltip" class="btn border-success m-1 bg-white">
+                <i class="fa fa-check text-success"/>
+            </a>
+                <a t-attf-href="/forum/#{slug(forum)}/post/#{slug(question)}/refuse" data-toggle="tooltip" title="Mark as Offensive" aria-label="Mark as Offensive" class="btn border-danger m-1 bg-white"><i class="fa fa-times text-danger"/></a>
+            </div>
+        </t>
         </div>
     </div>
 </template>
@@ -1288,13 +1305,21 @@
                                 </t>
                                 <t t-if="answer.can_flag" t-call="website_forum.link_button">
                                     <t t-set="url" t-value="'/forum/' + slug(forum) + '/post/' + slug(answer) + '/flag'"/>
-                                    <t t-set="label" t-value="answer.state == 'flagged' and 'Flagged' or 'Flag'"/>
+                                    <t t-set="label">
+                                        <t t-if="answer.state != 'flagged'">
+                                            Flag
+                                        </t>
+                                        <t t-if="answer.state == 'flagged'">
+                                            Flagged
+                                        </t>
+                                    </t>
                                     <t t-set="form_method" t-value="'GET'"/>
                                     <t t-set="inDropdown" t-value="True"/>
                                     <t t-set="karma" t-value="not answer.can_flag and answer.forum_id.karma_flag or 0"/>
                                     <t t-set="icon" t-value="'fa-flag-o text-muted mr-2'"/>
                                     <t t-set="form_classes" t-value="'flag'"/>
                                 </t>
+
                                 <t t-call="website_forum.link_button">
                                     <t t-set="url" t-value="'/forum/' + slug(forum) + '/post/' + slug(answer) + '/convert_to_comment'"/>
                                     <t t-set="label">Convert as a comment</t>
