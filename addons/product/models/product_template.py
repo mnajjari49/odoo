@@ -133,7 +133,7 @@ class ProductTemplate(models.Model):
     valid_product_template_attribute_line_ids = fields.Many2many('product.template.attribute.line',
         compute="_compute_valid_product_template_attribute_line_ids", string='Valid Product Attribute Lines', help="Technical compute")
 
-    product_variant_ids = fields.One2many('product.product', 'product_tmpl_id', 'Products', required=True)
+    product_variant_ids = fields.One2many('product.product', 'product_tmpl_id', 'Products', required=True, context={'active_test': False})
     # performance: product_variant_id provides prefetching on the first product variant only
     product_variant_id = fields.Many2one('product.product', 'Product', compute='_compute_product_variant_id')
 
@@ -141,7 +141,7 @@ class ProductTemplate(models.Model):
         '# Product Variants', compute='_compute_product_variant_count')
 
     # related to display product product information if is_product_variant
-    barcode = fields.Char('Barcode', compute='_compute_barcode', inverse='_set_barcode', search='_search_barcode')
+    barcode = fields.Char('Barcode', related="product_variant_ids.barcode", readonly=False)
     default_code = fields.Char(
         'Internal Reference', compute='_compute_default_code',
         inverse='_set_default_code', store=True)
@@ -266,22 +266,6 @@ class ProductTemplate(models.Model):
     def _compute_is_product_variant(self):
         for template in self:
             template.is_product_variant = False
-
-    def _compute_barcode(self):
-        for template in self:
-            variant = template.with_context(active_test=False).product_variant_ids
-            if len(variant) == 1:
-                template.barcode = variant.barcode
-            else:
-                template.barcode = False
-
-    def _search_barcode(self, operator, value):
-        products = self.env['product.product'].with_context(active_test=False).search([('barcode', operator, value)])
-        return [('id', 'in', products.mapped('product_tmpl_id').ids)]
-
-    def _set_barcode(self):
-        if len(self.product_variant_ids) == 1:
-            self.product_variant_ids.barcode = self.barcode
 
     @api.model
     def _get_weight_uom_id_from_ir_config_parameter(self):
