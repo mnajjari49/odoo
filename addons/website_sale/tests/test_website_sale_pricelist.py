@@ -41,7 +41,7 @@ class TestWebsitePriceList(TransactionCase):
         self.website = self.env.ref('website.default_website')
         self.website.user_id = self.env.user
 
-        # VFE TODO replace by TestPricelistCommon data
+        # VFE TODO base on TestPricelistCommon data
         self.env['product.pricelist'].search([]).active = False
         self.public_pricelist = self.env['product.pricelist'].create({
             'name': 'Public Pricelist',

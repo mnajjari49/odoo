@@ -362,7 +362,6 @@ class SaleOrder(models.Model):
             'team_id': (partner_user.sale_team_id or self.team_id).id
             # VFE TODO backport fix of sale_team_id to 13.0 or earlier.
         }
-        # VFE TODO FIX in 13.0-- shouldn't it take SO company for the invoice terms ?
         if self.env['ir.config_parameter'].sudo().get_param('account.use_invoice_terms') and self.env.company.invoice_terms:
             values['note'] = self.env.company.invoice_terms
 

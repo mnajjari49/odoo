@@ -16,7 +16,7 @@ class Website(models.Model):
 
     pricelist_id = fields.Many2one('product.pricelist', compute='_compute_pricelist_id', string='Default Pricelist')
     currency_id = fields.Many2one('res.currency',
-        string='Default Currency', compute="_compute_currency_id") # Readonly=False ?
+        string='Default Currency', compute="_compute_currency_id")
     salesperson_id = fields.Many2one('res.users', string='Salesperson')
 
     def _get_default_website_team(self):
@@ -268,7 +268,7 @@ class Website(models.Model):
                 request.session['sale_order_id'] = None
             return self.env['sale.order']
 
-        if self.env['product.pricelist'].browse(force_pricelist).exists():
+        if force_pricelist and self.env['product.pricelist'].browse(force_pricelist).exists():
             pricelist_id = force_pricelist
             request.session['website_sale_current_pl'] = pricelist_id
             update_pricelist = True

@@ -72,7 +72,7 @@ class SaleOrder(models.Model):
 
     @api.onchange('sale_order_template_id')
     def onchange_sale_order_template_id(self):
-        # VFE TODO TESTS those onchanges weren't tested at attl
+        # VFE TODO TESTS those onchanges weren't tested at all
         if not self.sale_order_template_id:
             self.require_signature = self._get_default_require_signature()
             self.require_payment = self._get_default_require_payment()
@@ -160,7 +160,6 @@ class SaleOrderLine(models.Model):
     # Take the description on the order template if the product is present in it
     @api.onchange('product_id')
     def product_id_change(self):
-        # VFE TODO can't we remove this useless link?
         res = super(SaleOrderLine, self).product_id_change()
         if self.product_id and self.order_id.sale_order_template_id:
             for line in self.order_id.sale_order_template_id.sale_order_template_line_ids:

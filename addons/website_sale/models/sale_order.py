@@ -101,17 +101,9 @@ class SaleOrder(models.Model):
             ]
 
         custom_values = kwargs.get('product_custom_attribute_values') or []
-        custom_ptavs = product.env['product.template.attribute.value'].browse(
-            [int(ptav['custom_product_template_attribute_value_id']) for ptav in custom_values])
-
-        if any(not ptav.is_custom for ptav in custom_ptavs):
-            # VFE FIXME consistency check, may be removed before merge.
-            raise UserError(_("An attribute has been given as custom while being not custom."))
 
         # save is_custom attributes values
         if custom_values:
-            # VFE TODO add missing custom ptav, with empty value.
-            # VFE TODO make it returned as value[ptav_id] = value
             values['product_custom_attribute_value_ids'] = [(0, 0, {
                 'custom_product_template_attribute_value_id': custom_value['custom_product_template_attribute_value_id'],
                 'custom_value': custom_value.get('custom_value', ''),

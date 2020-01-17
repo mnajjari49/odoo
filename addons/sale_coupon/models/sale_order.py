@@ -424,7 +424,6 @@ class SaleOrderLine(models.Model):
 
     def _compute_price(self):
         self.ensure_one()
-        # VFE TODO make _compute_price work in multi ?
         if not self.is_reward_line:
             super(SaleOrderLine, self)._compute_price()
 
