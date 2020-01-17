@@ -306,7 +306,7 @@
             <field name="country_id" ref="base.se"/>
             <field name="sequence">7</field>
             <field name="parent_id" ref="tax_report_title_exempt_sales"/>
-        </record>
+        </record><!--todo what VAT, are we not in sales exempt from VAT ? Or does it mean we do no collect it ?-->
 
         <record id="tax_report_line_42" model="account.tax.report.line">
             <field name="name">42 - Other sales etc</field>
@@ -315,7 +315,7 @@
             <field name="country_id" ref="base.se"/>
             <field name="sequence">8</field>
             <field name="parent_id" ref="tax_report_title_exempt_sales"/>
-        </record>
+        </record><!--todo tag concerned accounts ?-->
 
         <!-- -->
         <!--F-->
@@ -334,7 +334,7 @@
             <field name="country_id" ref="base.se"/>
             <field name="sequence">1</field>
             <field name="parent_id" ref="tax_report_title_input_vat"/>
-        </record>
+        </record><!--todo where is that supposed to come from ?-->
 
         <!-- -->
         <!--G-->
@@ -349,11 +349,11 @@
         <record id="tax_report_line_49" model="account.tax.report.line">
             <field name="name">49 - VAT to pay or be refunded</field>
             <field name="code">g49</field>
-            <field name="formula">b+h-d-f</field>
+            <field name="formula">b+i-d-f</field>
             <field name="country_id" ref="base.se"/>
             <field name="sequence">1</field>
             <field name="parent_id" ref="tax_report_title_vat_debt_credit"/>
-        </record>
+        </record><!--todo legislation writes +d but d are purchases, I don't get it. Aren't purchase reverse liability VAT?-->
 
     </data>
 </odoo>
