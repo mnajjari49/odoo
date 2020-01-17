@@ -117,14 +117,21 @@
             flex: 5;
         }
 
+        .o_invalid {
+            color: theme-color('danger');
+        }
+
         .o_fieldname_cells {
             align-items: center;
             display: flex;
             flex-flow: row wrap;
 
+            > :not(:first-child) {
+                margin-left: 6px;
+            }
+
             .o_group_by_separator {
                 display: inline-block;
-                margin: 3px;
                 text-align: center;
             }
 
@@ -137,6 +144,14 @@
                 min-width: 100px;
                 padding: 2px 5px;
 
+                > select {
+                    flex: 2;
+                }
+
+                > select + select {
+                    flex: 1;
+                }
+
                 > * {
                     border: none;
                     display: inline-block;
@@ -147,7 +162,8 @@
                     }
                 }
 
-                .fa {
+                .fa,
+                .o_direction {
                     align-items: center;
                     display: flex;
                     flex: 0;

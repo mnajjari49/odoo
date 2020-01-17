@@ -600,9 +600,9 @@ var BasicController = AbstractController.extend(FieldManagerMixin, {
      *
      * @private
      */
-    _updateControlPanel: function () {
+    _updateControlPanel: function (newProps = {}) {
         this.model.get(this.handle, { env: true });
-        return this._updateActionProps({
+        return this._super(newProps, {
             sidebar: this._getSidebarProps(),
             pager: this._getPagerProps(),
         });

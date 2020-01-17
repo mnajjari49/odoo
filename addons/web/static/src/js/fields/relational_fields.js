@@ -26,7 +26,7 @@ var dom = require('web.dom');
 var KanbanRecord = require('web.KanbanRecord');
 var KanbanRenderer = require('web.KanbanRenderer');
 var ListRenderer = require('web.ListRenderer');
-var Pager = require('web.Pager');
+var { WidgetAdapterMixin } = require('web.OwlCompatibility');
 
 var _t = core._t;
 var _lt = core._lt;
@@ -1292,7 +1292,7 @@ var FieldX2Many = AbstractField.extend({
             return Promise.resolve();
         }
         this._renderButtons();
-        this._controlPanel = new ControlPanelX2Many(null, {
+        this._controlPanel = new ControlPanelX2Many(this, {
             buttons: () => this.$buttons ? [...this.$buttons] : [],
             pager: this._getPagerProps(),
         });
@@ -1905,7 +1905,7 @@ var FieldOne2Many = FieldX2Many.extend({
     },
 });
 
-var FieldMany2Many = FieldX2Many.extend({
+var FieldMany2Many = FieldX2Many.extend(WidgetAdapterMixin, {
     description: _lt("Many2many"),
     className: 'o_field_many2many',
     supportedFieldTypes: ['many2many'],

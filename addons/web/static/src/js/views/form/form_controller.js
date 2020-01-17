@@ -100,7 +100,7 @@ var FormController = BasicController.extend({
             viewType: 'form',
         });
         this.handle = handle;
-        this._updateActionProps({
+        this._updateControlPanel({
             pager: this._getPagerProps(),
             sidebar: this._getSidebarProps(),
         });
@@ -244,7 +244,7 @@ var FormController = BasicController.extend({
     saveRecord: async function () {
         const changedFields = await this._super(...arguments);
         // the title could have been changed
-        this._updateActionProps({
+        this._updateControlPanel({
             sidebar: this._getSidebarProps(),
             title: this.getTitle(),
         });
@@ -456,10 +456,7 @@ var FormController = BasicController.extend({
         await this._super(...arguments);
         const title = this.getTitle();
         this._updateButtons();
-        this._updateActionProps({
-            sidebar: this._getSidebarProps(),
-            title: title,
-        });
+        this._updateControlPanel({ title });
         this.autofocus();
     },
     /**
@@ -578,7 +575,7 @@ var FormController = BasicController.extend({
     _onDuplicateRecord: async function () {
         const handle = await this.model.duplicateRecord(this.handle);
         this.handle = handle;
-        this._updateActionProps({
+        this._updateControlPanel({
             sidebar: this._getSidebarProps(),
         });
         this._setMode('edit');

@@ -26,13 +26,12 @@ var AbstractController = mvc.Controller.extend(ActionMixin, WidgetAdapterMixin, 
     custom_events: _.extend({}, ActionMixin.custom_events, {
         navigation_move: '_onNavigationMove',
         open_record: '_onOpenRecord',
-        switch_view: '_onSwitchView',
         search: '_onSearch',
         search_panel_domain_updated: '_onSearchPanelDomainUpdated',
+        switch_view: '_onSwitchView',
     }),
     events: {
         'click a[type="action"]': '_onActionClicked',
-        switch_view: '_onSwitchView',
     },
 
     /**
@@ -94,7 +93,7 @@ var AbstractController = mvc.Controller.extend(ActionMixin, WidgetAdapterMixin, 
      * @returns {Promise}
      */
     start: async function () {
-        const _super = this._super(...arguments);
+        const parentPromise = this._super(...arguments);
         if (this.withSearchPanel) {
             this.$('.o_content')
                 .addClass('o_controller_with_searchpanel')
@@ -111,7 +110,7 @@ var AbstractController = mvc.Controller.extend(ActionMixin, WidgetAdapterMixin, 
 
         this.$el.addClass('o_view_controller');
 
-        await _super;
+        await parentPromise;
         await this._update(this.initialState);
     },
     /**
@@ -437,14 +436,14 @@ var AbstractController = mvc.Controller.extend(ActionMixin, WidgetAdapterMixin, 
             // here this.$buttons could still be undefined!
         }
         const newProps = {
-            cp_content: {
-                buttons: this.$buttons,
-            },
             pager: this._getPagerProps(),
             sidebar: this._getSidebarProps(),
             title: this.getTitle(),
         };
-        this._updateActionProps(newProps);
+        if (this.$buttons) {
+            newProps.buttons = this.$buttons;
+        }
+        this._updateControlPanel(newProps);
         this._pushState();
         return this._renderBanner();
     },
@@ -453,9 +452,13 @@ var AbstractController = mvc.Controller.extend(ActionMixin, WidgetAdapterMixin, 
      * @param {Object} newProps
      * @returns {Promise}
      */
-    _updatePagerProps(newProps) {
+    _updatePagerProps: function (newProps) {
         const pagerProps = Object.assign(this._getPagerProps(), newProps);
-        return this._updateActionProps({ pager: pagerProps });
+        return this._updateControlPanel({ pager: pagerProps });
+    },
+
+    _updateControlPanel: function (newProps = {}) {
+        this._controlPanelWrapper.update(newProps);
     },
 
     //--------------------------------------------------------------------------

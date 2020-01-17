@@ -83,7 +83,7 @@ var AbstractAction = Widget.extend(ActionMixin, WidgetAdapterMixin, {
                 actionContext: action.context,
                 env: owl.Component.env,
                 withSearchBar: this.withSearchBar,
-            }
+            };
 
             this.controlPanelProps = {
                 // TODO we should not pass action
@@ -139,6 +139,9 @@ var AbstractAction = Widget.extend(ActionMixin, WidgetAdapterMixin, {
             this._controlPanelStore.on('get_controller_query_params', this, this._onGetOwnedQueryParams);
         }
     },
+    _updateControlPanel(newProps) {
+        this._controlPanelWrapper.update(newProps);
+    }
 });
 
 return AbstractAction;

@@ -59,18 +59,6 @@ odoo.define('web.ControlPanel', function (require) {
             // >>>>>>>>>>>>>>>>>>>
         }
 
-        mounted() {
-            this._appendCPContent();
-        }
-
-        patched() {
-            this._appendCPContent();
-        }
-
-        async willUpdateProps(nextProps) {
-            console.log("CP: update", nextProps);
-        }
-
         //--------------------------------------------------------------------------
         // Getters
         //--------------------------------------------------------------------------
@@ -86,39 +74,8 @@ odoo.define('web.ControlPanel', function (require) {
         }
 
         //--------------------------------------------------------------------------
-        // Public
-        //--------------------------------------------------------------------------
-
-        async updateProps(newProps = {}) {
-            if (!Object.keys(newProps).length) {
-                return;
-            }
-            await this.willUpdateProps(newProps);
-            Object.assign(this.props, newProps);
-            if (this.__owl__.isMounted) {
-                this.render(true);
-            }
-        }
-
-        //--------------------------------------------------------------------------
         // Private
         //--------------------------------------------------------------------------
-
-        /**
-         * @todo this is a compatibility adapter and it must be removed as soon
-         * as renderers no longer instantiate manually their buttons, their searchView
-         * and their searchViewButtons.
-         * @private
-         */
-        _appendCPContent() {
-            for (const key in this.storeState.cp_content) {
-                const content = this.storeState.cp_content[key]();
-                if (this.contentRefs[key].el && content && content.length) {
-                    this.contentRefs[key].el.innerHTML = "";
-                    this.contentRefs[key].el.append(...content);
-                }
-            }
-        }
 
         /**
          * Overriden when no store is used (@see ControlPanelX2Many for example).
@@ -132,14 +89,6 @@ odoo.define('web.ControlPanel', function (require) {
             });
             this.dispatch = useDispatch(store);
             this.getters = useGetters(store);
-        }
-
-        //--------------------------------------------------------------------------
-        // Handlers
-        //--------------------------------------------------------------------------
-
-        _onUpdateQuery() {
-            console.log('Query updated', ...arguments);
         }
     }
 
@@ -156,7 +105,9 @@ odoo.define('web.ControlPanel', function (require) {
         controlPanelStore: ControlPanelStore,
         fields: Object,
         modelName: String,
+        pager: { validate: p => typeof p === 'object' || p === null, optional: 1 },
         searchMenuTypes: Array,
+        sidebar: { validate: s => typeof s === 'object' || s === null, optional: 1 },
         title: { type: String, optional: 1 },
         viewType: String,
         views: Array,

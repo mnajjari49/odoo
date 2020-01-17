@@ -1,18 +1,6 @@
 odoo.define('web.ControlPanelStore', function (require) {
     "use strict";
 
-    function areArraysEqual(a, b) {
-        if (a.length !== b.length) {
-            return false;
-        }
-        for (let i = 0; i < a.length; i ++) {
-            if (a[i] !== b[i]) {
-                return false;
-            }
-        }
-        return true;
-    }
-
     /**
      * DATA STRUCTURES
      *
@@ -265,63 +253,24 @@ odoo.define('web.ControlPanelStore', function (require) {
          */
         async editFavorite({ state }, filterId, values) {
             const favorite = state.filters[filterId];
-            const irFilterValues = {};
             let updateQuery = false;
 
-            if ('description' in values && favorite.description !== values.description) {
-                irFilterValues.name = values.description;
+            const irFilter = this._favoriteToIrFilter(values);
+            Object.assign(favorite, values);
+
+            if (!Object.keys(irFilter).length) {
+                return;
             }
-            if ('domain' in values && favorite.domain !== values.domain) {
+            if (Object.keys(irFilter).some(k => ['context', 'domain', 'sort'].includes(k))) {
                 updateQuery = true;
-                irFilterValues.domain = values.domain;
             }
-            if ('isDefault' in values && favorite.isDefault !== values.isDefault) {
-                irFilterValues.is_default = values.isDefault;
-            }
-            if ('orderedBy' in values && !areArraysEqual(favorite.orderedBy, values.orderedBy)) {
-                updateQuery = true;
-                const sort = values.orderedBy.map(
-                    ({ name, asc }) => [name, asc ? 'asc' : 'desc'].join(' ')
-                );
-                irFilterValues.sort = JSON.stringify(sort);
-            }
-            if ('userId' in values && favorite.userId !== values.userId) {
-                irFilterValues.user_id = values.userId;
-                favorite.groupNumber = values.userId ?
+            if ('userId' in values) {
+                favorite.groupNumber = irFilter.user_id ?
                     FAVORITE_PRIVATE_GROUP :
                     FAVORITE_SHARED_GROUP;
             }
 
-            // Context values
-            const context = {};
-            if ('groupBys' in values && !areArraysEqual(favorite.groupBys, values.groupBys)) {
-                context.group_by = values.groupBys;
-            }
-            if ('timeRanges' in values && favorite.timeRanges !== values.timeRanges) {
-                const { fieldName, rangeId, comparisonRangeId } = values.timeRanges;
-                context.time_ranges = {
-                    field: fieldName,
-                    range: rangeId,
-                    comparisonRange: comparisonRangeId,
-                };
-            }
-            if (Object.keys(context).length) {
-                updateQuery = true;
-                irFilterValues.context = context;
-            }
-
-            if (!Object.keys(irFilterValues).length) {
-                return;
-            }
-
-            const irFilter = {
-                action_id: this.actionId,
-                id: favorite.serverSideId,
-                model_id: this.modelName,
-            };
-
-            // Update filter and trigger a query change
-            Object.assign(favorite, values);
+            // Trigger a query change if needed
             if (updateQuery) {
                 const queryElement = state.query.find(e => e.filterId === filterId);
                 if (queryElement) {
@@ -329,7 +278,7 @@ odoo.define('web.ControlPanelStore', function (require) {
                 }
             }
 
-            await dataManager.edit_filter(irFilter, irFilterValues);
+            await dataManager.edit_filter(irFilter);
         }
 
         /**
@@ -598,58 +547,9 @@ odoo.define('web.ControlPanelStore', function (require) {
          * @private
          */
         _createGroupOfFavorites() {
-            this.favoriteFilters.forEach(favorite => {
-                const userId = favorite.user_id ? favorite.user_id[0] : false;
-                const groupNumber = userId ? FAVORITE_PRIVATE_GROUP : FAVORITE_SHARED_GROUP;
-                const context = pyUtils.eval('context', favorite.context, this.env.session.user_context);
-                let groupBys = [];
-                if (context.group_by) {
-                    groupBys = context.group_by;
-                    delete context.group_by;
-                }
-                let timeRanges;
-                if (context.time_ranges) {
-                    const { field, range, comparisonRange } = context.time_ranges;
-                    timeRanges = this._extractTimeRange({ fieldName: field, rangeId: range, comparisonRangeId: comparisonRange });
-                    delete context.time_ranges;
-                }
-                const sort = JSON.parse(favorite.sort);
-                const orderedBy = sort.map(order => {
-                    let fieldName;
-                    let asc;
-                    const sqlNotation = order.split(' ');
-                    if (sqlNotation.length > 1) {
-                        // regex: \fieldName (asc|desc)?\
-                        fieldName = sqlNotation[0];
-                        asc = sqlNotation[1] === 'asc';
-                    } else {
-                        // legacy notation -- regex: \-?fieldName\
-                        fieldName = order[0] === '-' ? order.slice(1) : order;
-                        asc = order[0] === '-' ? false : true;
-                    }
-                    return {
-                        asc: asc,
-                        name: fieldName,
-                    };
-                });
-                const filter = {
-                    context: favorite.context,
-                    description: favorite.name,
-                    domain: favorite.domain,
-                    groupBys,
-                    groupNumber,
-                    isDefault: favorite.is_default,
-                    removable: true,
-                    editable: true,
-                    orderedBy,
-                    serverSideId: favorite.id,
-                    userId,
-                    type: 'favorite',
-                };
-                if (timeRanges) {
-                    filter.timeRanges = timeRanges;
-                }
-                this._createGroupOfFilters([filter]);
+            this.favoriteFilters.forEach(irFilter => {
+                const favorite = this._irFilterToFavorite(irFilter);
+                this._createGroupOfFilters([favorite]);
             });
         }
 
@@ -910,9 +810,9 @@ odoo.define('web.ControlPanelStore', function (require) {
             const { fieldType,  fieldName, defaultAutocompleteValue } = filter;
             const { selection, context, relation } = this.fields[fieldName];
             if (fieldType === 'selection') {
-                defaultAutocompleteValue.label = selection.find(([val, _]) => {
-                    val === defaultAutocompleteValue.value;
-                })[1];
+                defaultAutocompleteValue.label = selection.find(
+                    ([val, _]) => val === defaultAutocompleteValue.value
+                )[1];
             } else if (fieldType === 'many2one') {
                 const promise = this.env.services.rpc({
                     args: [defaultAutocompleteValue.value],
@@ -983,7 +883,7 @@ odoo.define('web.ControlPanelStore', function (require) {
                     } else if (['char', 'text', 'many2many', 'one2many', 'html'].includes(filter.fieldType)) {
                         operator = 'ilike';
                     } else {
-                        operator = "="
+                        operator = "=";
                     }
                     domain = [[filter.fieldNname, operator, value]];
                 }
@@ -1330,6 +1230,121 @@ odoo.define('web.ControlPanelStore', function (require) {
             }
         }
 
+        /**
+         * @private
+         * @param {Object} irFilter
+         * @returns {Object}
+         */
+        _irFilterToFavorite(irFilter) {
+            const userId = irFilter.user_id ? irFilter.user_id[0] : false;
+            const groupNumber = userId ? FAVORITE_PRIVATE_GROUP : FAVORITE_SHARED_GROUP;
+            const context = pyUtils.eval('context', irFilter.context, this.env.session.user_context);
+            let groupBys = [];
+            if (context.group_by) {
+                groupBys = context.group_by;
+                delete context.group_by;
+            }
+            let timeRanges;
+            if (context.time_ranges) {
+                const { field, range, comparisonRange } = context.time_ranges;
+                timeRanges = this._extractTimeRange({ fieldName: field, rangeId: range, comparisonRangeId: comparisonRange });
+                delete context.time_ranges;
+            }
+            const sort = JSON.parse(irFilter.sort);
+            const orderedBy = sort.map(order => {
+                let fieldName;
+                let asc;
+                const sqlNotation = order.split(' ');
+                if (sqlNotation.length > 1) {
+                    // regex: \fieldName (asc|desc)?\
+                    fieldName = sqlNotation[0];
+                    asc = sqlNotation[1] === 'asc';
+                } else {
+                    // legacy notation -- regex: \-?fieldName\
+                    fieldName = order[0] === '-' ? order.slice(1) : order;
+                    asc = order[0] === '-' ? false : true;
+                }
+                return {
+                    asc: asc,
+                    name: fieldName,
+                };
+            });
+            const favorite = {
+                context,
+                description: irFilter.name,
+                domain: irFilter.domain,
+                editable: true,
+                groupBys,
+                groupNumber,
+                isDefault: irFilter.is_default,
+                orderedBy,
+                removable: true,
+                serverSideId: irFilter.id,
+                type: 'favorite',
+                userId,
+            };
+            if (timeRanges) {
+                favorite.timeRanges = timeRanges;
+            }
+            return favorite;
+        }
+
+        /**
+         * @private
+         * @param {Object} favorite
+         * @returns {Object}
+         */
+        _favoriteToIrFilter(favorite) {
+            const irFilter = {
+                action_id: this.actionId,
+                model_id: this.modelName,
+            };
+
+            // ir.filter fields
+            if ('description' in favorite) {
+                irFilter.name = favorite.description;
+            }
+            if ('domain' in favorite) {
+                irFilter.domain = favorite.domain;
+            }
+            if ('isDefault' in favorite) {
+                irFilter.is_default = favorite.isDefault;
+            }
+            if ('orderedBy' in favorite) {
+                const sort = favorite.orderedBy.map(
+                    ob => ob.name + (ob.asc === false ? " desc" : "")
+                );
+                irFilter.sort = JSON.stringify(sort);
+            }
+            if ('serverSideId' in favorite) {
+                irFilter.id = favorite.serverSideId;
+            }
+            if ('userId' in favorite) {
+                irFilter.user_id = favorite.userId;
+            }
+
+            // Context
+            const context = Object.assign({}, favorite.context);
+            if ('groupBys' in favorite) {
+                context.group_by = favorite.groupBys;
+            }
+            if ('timeRanges' in favorite) {
+                const { fieldName, rangeId, comparisonRangeId } = favorite.timeRanges;
+                context.time_ranges = {
+                    field: fieldName,
+                    range: rangeId,
+                    comparisonRange: comparisonRangeId,
+                };
+            }
+            if (Object.keys(context).length) {
+                irFilter.context = context;
+            }
+
+            console.log({ context: irFilter.context });
+
+            return irFilter;
+        }
+
         _mergeActivities(group) {
             const { activities, type } = group;
             let res = [];
@@ -1407,67 +1422,39 @@ odoo.define('web.ControlPanelStore', function (require) {
                 'contexts',
                 [userContext, controllerQueryParams.context, queryContext]
             );
-            Object.keys(userContext).forEach(key => {
+            for (const key in userContext) {
                 delete context[key];
-            });
+            }
 
             const requireEvaluation = false;
             const domain = this._getDomain(groups, requireEvaluation);
-
             const groupBys = this._getGroupBy(groups);
-            if (groupBys.length) {
-                context.group_by = groupBys;
-            }
-
             const timeRanges = this._getTimeRanges(requireEvaluation);
-            if (timeRanges) {
-                const { fieldName, rangeId, comparisonRangeId } = timeRanges;
-                context.time_ranges = {
-                    field: fieldName, range: rangeId, comparisonRange: comparisonRangeId
-                };
-            }
-
-            let orderedBy = this._getOrderedBy(groups) || [];
-            if (controllerQueryParams.orderedBy) {
-                orderedBy = controllerQueryParams.orderedBy;
-            }
-            const sort = orderedBy.map(function (order) {
-                return order.name + (order.asc === false ? " desc" : "");
-            });
+            const orderedBy = controllerQueryParams.orderedBy ?
+                controllerQueryParams.orderedBy :
+                (this._getOrderedBy(groups) || []);
 
             const userId = preFilter.isShared ? false : this.env.session.uid;
-
-            const irFilter = {
-                name: preFilter.description,
-                context: context,
-                domain: domain,
-                is_default: preFilter.isDefault,
-                user_id: userId,
-                model_id: this.modelName,
-                action_id: this.actionId,
-                sort: JSON.stringify(sort),
-            };
-
-            const serverSideId = await dataManager.create_filter(irFilter);
-
-            delete context.group_by;
-            delete context.time_ranges;
             delete preFilter.isShared;
 
             Object.assign(preFilter, {
-                serverSideId,
-                removable: true,
-                editable: true,
-                groupNumber: userId ? FAVORITE_PRIVATE_GROUP : FAVORITE_SHARED_GROUP,
                 context,
-                groupBys,
                 domain,
+                editable: true,
+                groupBys,
+                groupNumber: userId ? FAVORITE_PRIVATE_GROUP : FAVORITE_SHARED_GROUP,
                 orderedBy,
-                userId
+                removable: true,
+                userId,
             });
             if (timeRanges) {
                 preFilter.timeRanges = timeRanges;
             }
+            const irFilter = this._favoriteToIrFilter(preFilter);
+            const serverSideId = await dataManager.create_filter(irFilter);
+
+            preFilter.serverSideId = serverSideId;
+
             return preFilter;
         }
 

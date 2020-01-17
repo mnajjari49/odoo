@@ -38,7 +38,7 @@ var ActionMixin = {
      * String containing the title of the client action (which may be needed to
      * display in the breadcrumbs zone of the control panel).
      *
-     * @see _updateActionProps
+     * @see _updateControlPanel
      */
     _title: '',
 
@@ -157,10 +157,11 @@ var ActionMixin = {
      * @private
      * @param {Object} newProps
      */
-    _updateActionProps: function (newProps) {
+    _updateControlPanel: function (newProps = {}) {
         if ('title' in newProps) {
             this._title = newProps.title;
         }
+        this._controlPanelWrapper.update(newProps);
     },
 };
 

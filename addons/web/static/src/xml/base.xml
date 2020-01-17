@@ -64,14 +64,13 @@
                     <a t-if="bc.title" href="#" t-esc="bc.title"/>
                     <em t-else="" class="text-warning">Unnamed</em>
                 </li>
-                <li class="breadcrumb-item active" t-esc="storeState.title"/>
+                <li class="breadcrumb-item active" t-esc="props.title"/>
             </ol>
-            <div t-if="storeState.cp_content.searchView or props.withSearchBar"
-                class="o_cp_searchview"
+            <div class="o_cp_searchview"
                 role="search"
                 t-ref="searchView"
                 >
-                <div class="o_searchview" role="search" aria-autocomplete="list" >
+                <div t-if="props.withSearchBar" class="o_searchview" role="search" aria-autocomplete="list" >
                     <i t-attf-class="o_searchview_more fa fa-search-{{ state.displayDropdowns ? 'minus' : 'plus' }}"
                         title="Advanced Search..."
                         role="img"
@@ -87,38 +86,40 @@
                 <div class="o_cp_buttons" role="toolbar" aria-label="Control panel toolbar" t-ref="buttons">
                     <t t-slot="buttons"/>
                 </div>
-                <Sidebar t-if="storeState.sidebar and storeState.sidebar.items"
+                <Sidebar t-if="props.sidebar and props.sidebar.items"
                     modelName="props.modelName"
                     viewType="props.viewType"
+                    t-props="props.sidebar"
                 />
             </div>
             <div class="o_cp_right">
-                <div t-if="storeState.cp_content.searchViewButtons or (props.withSearchBar and state.displayDropdowns)"
-                    class="btn-group o_search_options position-static"
+                <div class="btn-group o_search_options position-static"
                     role="search"
                     t-ref="searchViewButtons"
                     t-on-update_query.stop="_onUpdateQuery"
                     >
-                    <FilterMenu t-if="props.searchMenuTypes.includes('filter')"
-                        class="o_filter_menu"
-                        fields="props.fields"
-                    />
-                    <GroupByMenu t-if="props.searchMenuTypes.includes('groupBy')"
-                        class="o_group_by_menu"
-                        fields="props.fields"
-                    />
-                    <TimeRangeMenu t-if="props.searchMenuTypes.includes('timeRange')"
-                        class="o_time_range_menu"
-                        fields="props.fields"
-                    />
-                    <FavoriteMenu t-if="props.searchMenuTypes.includes('favorite')"
-                        class="o_favorite_menu"
-                        action="props.action"
-                        fields="props.fields"
-                        viewType="props.viewType"
-                    />
+                    <t t-if="props.withSearchBar and state.displayDropdowns">
+                        <FilterMenu t-if="props.searchMenuTypes.includes('filter')"
+                            class="o_filter_menu"
+                            fields="props.fields"
+                        />
+                        <GroupByMenu t-if="props.searchMenuTypes.includes('groupBy')"
+                            class="o_group_by_menu"
+                            fields="props.fields"
+                        />
+                        <TimeRangeMenu t-if="props.searchMenuTypes.includes('timeRange')"
+                            class="o_time_range_menu"
+                            fields="props.fields"
+                        />
+                        <FavoriteMenu t-if="props.searchMenuTypes.includes('favorite')"
+                            class="o_favorite_menu"
+                            action="props.action"
+                            fields="props.fields"
+                            viewType="props.viewType"
+                        />
+                    </t>
                 </div>
-                <Pager class="o_cp_pager" role="'search'" t-props="storeState.pager"/>
+                <Pager class="o_cp_pager" role="'search'" t-props="props.pager"/>
                 <nav t-if="props.views.length &gt; 1" class="btn-group o_cp_switch_buttons" role="toolbar" aria-label="View switcher">
                     <t t-foreach="props.views" t-as="view" t-key="view.type">
                         <t t-call="ViewSwitcherButton"/>
@@ -148,15 +149,14 @@
                     accesskey="b"
                     t-on-click.prevent="trigger('breadcrumb_clicked', { controllerID: breadcrumb.controllerID })"
                 />
-                <li class="breadcrumb-item active" t-esc="storeState.title"/>
+                <li class="breadcrumb-item active" t-esc="props.title"/>
             </ol>
-            <div t-if="storeState.cp_content.searchView or props.withSearchBar"
-                class="o_cp_searchview"
+            <div class="o_cp_searchview"
                 t-att-class="{ o_searchview_quick: state.isSearching }"
                 role="search"
                 t-ref="searchView"
                 >
-                <div class="o_searchview" role="search" aria-autocomplete="list">
+                <div t-if="props.withSearchBar" class="o_searchview" role="search" aria-autocomplete="list">
                     <!-- Mobile search view open -->
                     <div t-if="state.isFiltering" class="o_mobile_search">
                         <div class="o_mobile_search_header">
@@ -228,7 +228,7 @@
                 </div>
             </div>
             <div class="o_cp_right">
-                <Pager class="o_cp_pager" role="'search'" t-props="storeState.pager"/>
+                <Pager class="o_cp_pager" role="'search'" t-props="props.pager"/>
                 <nav t-if="props.views and props.views.length &gt; 1"
                     class="btn-group o_cp_switch_buttons"
                     t-att-class="{ show: state.viewSwitcherOpen }"
@@ -412,7 +412,14 @@
         <div class="o_section">
             <label class="o_section_header">Domain</label>
             <div class="o_section_content">
-                <div class="o_domain_selector_container" t-ref="domain-selector"/>
+                <DomainSelectorAdapter Component="DomainSelector"
+                    widgetArgs="[props.action.res_model, props.filter.domain, { readonly: false }]"
+                    model="props.action.res_model"
+                    domain="props.filter.domain"
+                    options="{ readonly: false }"
+                    t-ref="domain-selector"
+                    t-on-domain-changed="_onDomainChange"
+                />
                 <button class="btn btn-secondary"
                     t-on-click="trigger('filter-change', { domain: '[]' })"
                     >
@@ -430,10 +437,10 @@
                         </div>
                         <div t-if="state.editedGroupBy === groupBy_index" class="o_fieldname_cell" tabindex="0">
                             <select t-on-change="_onGroupByChange(groupBy_index)">
-                                <option t-foreach="getters.getFiltersOfType('groupBy')" t-as="option" t-key="option.id"
-                                    t-att-value="option.hasOptions ? option.fieldName + ':' + option.defaultOptionId : option.fieldName"
-                                    t-att-selected="option.fieldName === groupBy.fieldName"
-                                    t-esc="option.description"
+                                <option t-foreach="getters.getFiltersOfType('groupBy')" t-as="filter" t-key="filter.id"
+                                    t-att-value="filter.hasOptions ? filter.fieldName + ':' + (filter.activeOptionId || filter.defaultOptionId) : filter.fieldName"
+                                    t-att-selected="filter.fieldName === groupBy.fieldName"
+                                    t-esc="filter.description"
                                 />
                             </select>
                             <select t-if="groupBy.hasOptions" t-on-change="_onGroupByChange(groupBy_index)">
@@ -444,10 +451,19 @@
                                 />
                             </select>
                         </div>
-                        <div t-else="" class="o_fieldname_cell" tabindex="0"
-                            t-esc="_getGroupByDescription(groupBy)"
+                        <div t-else="" class="o_fieldname_cell"
+                            tabindex="0"
                             t-on-click="_toggleEditedGroupBy(groupBy_index)"
-                        />
+                            t-on-keydown="_onGroupByKeydown(groupBy_index)"
+                            >
+                            <span t-esc="_getGroupByDescription(groupBy)"/>
+                            <i class="fa fa-sm fa-remove"
+                                role="img"
+                                aria-label="Remove"
+                                title="Remove"
+                                t-on-click.stop="_onRemoveGroupBy(groupBy_index)"
+                            />
+                        </div>
                     </t>
                     <button class="btn btn-secondary" t-on-click="_onAddGroupBy">
                         Add <i class="fa fa-plus-circle"/>
@@ -481,9 +497,19 @@
                                 </option>
                             </select>
                         </div>
-                        <div t-else="" class="o_fieldname_cell" tabindex="0" t-on-click="_toggleEditedOrderedBy(orderedBy_index)">
+                        <div t-else="" class="o_fieldname_cell"
+                            tabindex="0"
+                            t-on-click="_toggleEditedOrderedBy(orderedBy_index)"
+                            t-on-keydown="_onOrderedByKeydown(orderedBy_index)"
+                            >
                             <span t-esc="props.fields[orderedBy.name].string or orderedBy.name"/>
-                            <i t-attf-class="fa fa-chevron-{{ orderedBy.asc ? 'up' : 'down' }}"/>
+                            <span class="o_direction" t-esc="orderedBy.asc ? 'ASC' : 'DESC'"/>
+                            <i class="fa fa-sm fa-remove"
+                                role="img"
+                                aria-label="Remove"
+                                title="Remove"
+                                t-on-click.stop="_onRemoveOrderedBy(orderedBy_index)"
+                            />
                         </div>
 
                     </t>
@@ -494,9 +520,7 @@
             </div>
         </div>
         <div class="o_section">
-            <label class="o_section_header">
-                Time Ranges
-            </label>
+            <label class="o_section_header">Time Ranges</label>
             <div class="o_section_content">
                 <div class="custom-control custom-checkbox">
                     <input type="checkbox" class="custom-control-input" t-attf-id="o_toggle_time_range_{{ id }}"
@@ -511,6 +535,16 @@
                     fields="fields"
                     rangeId="state.timeRange.rangeId"
                     t-on-time-range-change="_onTimeRangeChange"
+                />
+            </div>
+        </div>
+        <div class="o_section">
+            <label class="o_section_header">Context</label>
+            <div class="o_section_content">
+                <input class="o_input"
+                    t-att-class="{ o_invalid: state.invalidContext }"
+                    t-att-value="stringContext"
+                    t-on-input="_onContextChange"
                 />
             </div>
         </div>

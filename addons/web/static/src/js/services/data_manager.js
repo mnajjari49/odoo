@@ -198,18 +198,21 @@ return core.Class.extend({
      * Calls 'write' on 'ir_filters'.
      *
      * @param {Object} filter
-     * @param {Object} [filter.action_id]
-     * @param {Object} filter.id
-     * @param {Object} filter.model_id
-     * @return {Promise}
+     * @param {string} [filter.action_id]
+     * @param {number} filter.id
+     * @param {string} filter.model_id
      */
-    edit_filter: async function ({ action_id, id, model_id }, values) {
+    edit_filter: async function (filter) {
+        const values = Object.assign({}, filter);
+        delete values.action_id;
+        delete values.id;
+        delete values.model_id;
         await rpc.query({
-            args: [[id], values],
+            args: [[filter.id], values],
             model: 'ir.filters',
             method: 'write',
         });
-        const key = `${model_id},${action_id || false}`;
+        const key = `${filter.model_id},${filter.action_id || false}`;
         this._invalidate(this._cache.filters, key); // invalidate cache
     },
 

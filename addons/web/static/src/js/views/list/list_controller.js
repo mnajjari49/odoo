@@ -497,10 +497,6 @@ var ListController = BasicController.extend({
      */
     _update: async function () {
         await this._super(...arguments);
-        this._updateActionProps({
-            pager: this._getPagerProps(),
-            sidebar: this._getSidebarProps(),
-        });
         this._toggleCreateButton();
         this._updateButtons('readonly');
     },
@@ -721,7 +717,7 @@ var ListController = BasicController.extend({
      */
     _onSelectionChanged: function (ev) {
         this.selectedRecords = ev.data.selection;
-        this._updateActionProps({
+        this._updateControlPanel({
             sidebar: this._getSidebarProps(),
         });
     },

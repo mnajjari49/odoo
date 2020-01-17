@@ -5,17 +5,9 @@ odoo.define('web.Sidebar', function (require) {
     const DropdownMenu = require('web.DropdownMenu');
     const pyUtils = require('web.py_utils');
 
-    const { Component, hooks } = owl;
-    const { useStore } = hooks;
+    const { Component } = owl;
 
     class Sidebar extends Component {
-        constructor() {
-            super(...arguments);
-
-            this.sidebarProps = useStore(state => state.sidebar, {
-                store: this.env.controlPanelStore,
-            });
-        }
 
         mounted() {
             this._addTooltips();
@@ -33,9 +25,9 @@ odoo.define('web.Sidebar', function (require) {
          * @returns {Object[]}
          */
         get actionItems() {
-            const actionActions = this.sidebarProps.items.action || [];
-            const relateActions = this.sidebarProps.items.relate || [];
-            const callbackActions = this.sidebarProps.items.other || [];
+            const actionActions = this.props.items.action || [];
+            const relateActions = this.props.items.relate || [];
+            const callbackActions = this.props.items.other || [];
 
             const formattedActions = [...actionActions, ...relateActions].map(action => {
                 return {
@@ -52,7 +44,7 @@ odoo.define('web.Sidebar', function (require) {
          * @returns {Object[]}
          */
         get printItems() {
-            const printActions = this.sidebarProps.items.print || [];
+            const printActions = this.props.items.print || [];
 
             const printItems = printActions.map(action => {
                 return {
@@ -90,15 +82,15 @@ odoo.define('web.Sidebar', function (require) {
          */
         async _executeAction(action) {
             const activeIdsContext = {
-                active_id: this.sidebarProps.activeIds[0],
-                active_ids: this.sidebarProps.activeIds,
+                active_id: this.props.activeIds[0],
+                active_ids: this.props.activeIds,
                 active_model: this.props.modelName,
             };
-            if (this.sidebarProps.domain) {
-                activeIdsContext.active_domain = this.sidebarProps.domain;
+            if (this.props.domain) {
+                activeIdsContext.active_domain = this.props.domain;
             }
 
-            const context = pyUtils.eval('context', new Context(this.sidebarProps.context, activeIdsContext));
+            const context = pyUtils.eval('context', new Context(this.props.context, activeIdsContext));
             const result = await this.rpc({
                 route: '/web/action/load',
                 params: {
@@ -132,6 +124,17 @@ odoo.define('web.Sidebar', function (require) {
 
     Sidebar.components = { DropdownMenu };
     Sidebar.props = {
+        activeIds: { type: Array, element: Number },
+        context: Object,
+        domain: { type: Array, optional: 1 },
+        items: {
+            type: Object,
+            shape: {
+                action: Array,
+                print: Array,
+                other: Array,
+            },
+        },
         modelName: String,
         viewType: String,
     };

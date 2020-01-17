@@ -23,12 +23,10 @@ var _t = core._t;
 var ActionManager = Widget.extend({
     className: 'o_action_manager',
     custom_events: {
+        breadcrumb_clicked: '_onBreadcrumbClicked',
         history_back: '_onHistoryBack',
         push_state: '_onPushState',
         redirect: '_onRedirect',
-    },
-    events: {
-        breadcrumb_clicked: '_onBreadcrumbClicked',
     },
 
     /**

@@ -1,6 +1,7 @@
 odoo.define('web.FilterEditor', function (require) {
     "use strict";
 
+    const { ComponentAdapter } = require('web.OwlCompatibility');
     const { DEFAULT_TIMERANGE } = require('web.controlPanelParameters');
     const Domain = require('web.Domain');
     const DomainSelector = require('web.DomainSelector');
@@ -12,17 +13,24 @@ odoo.define('web.FilterEditor', function (require) {
 
     let filterEditorId = 0;
 
+    class DomainSelectorAdapter extends ComponentAdapter {
+
+        /**
+         * @override
+         * @param {Object} nextProps
+         */
+        async update(nextProps) {
+            await this.widget.setDomain(nextProps.domain, true);
+        }
+    }
+
     class FilterEditor extends Component {
         constructor() {
             super(...arguments);
 
             this.id = filterEditorId ++;
             this.domainSelectorRef = useRef('domain-selector');
-            this.domainSelector = new DomainSelector(this,
-                this.props.action.res_model, // Model
-                this.props.filter.domain, // Domain
-                { readonly: false } // Options
-            );
+            this.DomainSelector = DomainSelector;
 
             this.fields = Object.keys(this.props.fields).reduce((acc, fieldName) => {
                 const { sortable, string, type } = this.props.fields[fieldName];
@@ -54,46 +62,19 @@ odoo.define('web.FilterEditor', function (require) {
                 activateTimeRange: Boolean(timeRanges),
                 editedGroupBy: -1,
                 editedOrderedBy: -1,
-                timeRange: timeRangeState
+                invalidContext: false,
+                timeRange: timeRangeState,
             });
 
             useExternalListener(window, 'click', this._onWindowClick, true);
         }
 
         async willStart() {
-            await this.domainSelector.appendTo(document.createDocumentFragment());
+            // await this.domainSelector.appendTo(document.createDocumentFragment());
         }
 
         async willUpdateProps() {
-            await this.domainSelector.setDomain(this.props.filter.domain, true);
-        }
-
-        mounted() {
-            this.domainSelectorRef.el.appendChild(this.domainSelector.el);
-        }
-
-        patched() {
-            this.domainSelectorRef.el.innerHTML = "";
-            this.domainSelectorRef.el.appendChild(this.domainSelector.el);
-        }
-
-        _trigger_up(ev) {
-            switch (ev.name) {
-                case 'get_session':
-                    ev.data.callback(this.env.session);
-                    break;
-                case 'call_service':
-                    this.env.bus.trigger('call_service', { data: ev.data });
-                    break;
-                case 'domain_changed':
-                    const domain = Domain.prototype.arrayToString(
-                        this.domainSelector.getDomain()
-                    );
-                    this.trigger('filter-change', { domain });
-                    break;
-                default:
-                    console.warn('Trigger up:', ev);
-            }
+            // await this.domainSelector.setDomain(this.props.filter.domain, true);
         }
 
         //--------------------------------------------------------------------------
@@ -109,6 +90,13 @@ odoo.define('web.FilterEditor', function (require) {
                     filters.find(f => f.fieldName === extractedValue.fieldName)
                 );
             });
+        }
+
+        get stringContext() {
+            const context = Object.assign({}, this.props.context);
+            delete context.group_by;
+            delete context.time_ranges;
+            return JSON.stringify(context);
         }
 
         //--------------------------------------------------------------------------
@@ -134,10 +122,32 @@ odoo.define('web.FilterEditor', function (require) {
         _getGroupByDescription(groupBy) {
             let description = groupBy.description;
             if (groupBy.hasOptions) {
-                const activeOption = groupBy.options.find(o => o.optionId === groupBy.activeOptionId)
+                const activeOption = groupBy.options.find(
+                    o => o.optionId === groupBy.activeOptionId || groupBy.defaultOptionId
+                );
                 description += ": " + activeOption.description;
             }
             return description;
+        }
+
+        /**
+         * @private
+         * @param {number} index
+         */
+        _removeGroupBy(index) {
+            const groupBys = Object.assign([], this.props.filter.groupBys);
+            groupBys.splice(index, 1);
+            this.trigger('filter-change', { groupBys });
+        }
+
+        /**
+         * @private
+         * @param {number} index
+         */
+        _removeOrderedBy(index) {
+            const orderedBy = Object.assign([], this.props.filter.orderedBy);
+            orderedBy.splice(index, 1);
+            this.trigger('filter-change', { orderedBy });
         }
 
         /**
@@ -207,6 +217,18 @@ odoo.define('web.FilterEditor', function (require) {
             this.trigger('filter-change', detail);
         }
 
+        _onContextChange(ev) {
+            try {
+                const parsedContext = JSON.parse(ev.target.value);
+                if (this.state.invalidContext) {
+                    this.state.invalidContext = false;
+                }
+                this.trigger('filter-change', { context: parsedContext });
+            } catch (err) {
+                this.state.invalidContext = true;
+            }
+        }
+
         /**
          * @private
          * @param {Event} ev
@@ -229,6 +251,17 @@ odoo.define('web.FilterEditor', function (require) {
 
         /**
          * @private
+         * @param {OwlEvent} ev
+         */
+        _onDomainChange(ev) {
+            const domain = Domain.prototype.arrayToString(
+                this.domainSelectorRef.comp.widget.getDomain()
+            );
+            this.trigger('filter-change', { domain });
+        }
+
+        /**
+         * @private
          * @param {string} index
          * @param {Event} ev
          */
@@ -236,6 +269,17 @@ odoo.define('web.FilterEditor', function (require) {
             const groupBys = Object.assign([], this.props.filter.groupBys);
             groupBys[index] = ev.target.value;
             this.trigger('filter-change', { groupBys });
+        }
+
+        /**
+         * @private
+         * @param {number} index
+         * @param {KeyboardEvent} ev
+         */
+        _onGroupByKeydown(index, ev) {
+            if (ev.key === 'Backspace') {
+                this._removeGroupBy(index);
+            }
         }
 
         /**
@@ -251,6 +295,17 @@ odoo.define('web.FilterEditor', function (require) {
                 name,
             };
             this.trigger('filter-change', { orderedBy });
+        }
+
+        /**
+         * @private
+         * @param {number} index
+         * @param {KeyboardEvent} ev
+         */
+        _onOrderedByKeydown(index, ev) {
+            if (ev.key === 'Backspace') {
+                this._removeOrderedBy(index);
+            }
         }
 
         /**
@@ -316,13 +371,15 @@ odoo.define('web.FilterEditor', function (require) {
     }
 
     FilterEditor.components = {
+        DomainSelector,
+        DomainSelectorAdapter,
         TimeRangeEditor,
-    }
+    };
     FilterEditor.props = {
         action: Object,
         fields: Object,
         filter: Object,
-    }
+    };
     FilterEditor.template = 'FilterEditor';
 
     return FilterEditor;
