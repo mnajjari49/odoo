@@ -30,7 +30,7 @@
                                         Taxes, fiscal positions, chart of accounts &amp; legal statements for your country
                                     </div>
                                     <div class="content-group">
-                                        <div class="row mt16">
+                                        <div class="row no-gutters mt16">
                                             <label for="chart_template_id" string="Package" class="col-lg-3 o_light_label"/>
                                             <field name="chart_template_id" widget="selection"/>
                                         </div>
@@ -54,11 +54,11 @@
                                         Default taxes applied to local transactions
                                     </div>
                                     <div class="content-group">
-                                        <div class="row mt16">
+                                        <div class="row no-gutters mt16">
                                             <label string="Sales Tax" for="sale_tax_id" class="col-lg-3 o_light_label"/>
                                             <field name="sale_tax_id" domain="[('type_tax_use', 'in', ('sale', 'all')), ('company_id', '=', company_id)]"/>
                                         </div>
-                                        <div class="row">
+                                        <div class="row no-gutters">
                                             <label string="Purchase Tax" for="purchase_tax_id" class="col-lg-3 o_light_label"/>
                                             <field name="purchase_tax_id" domain="[('type_tax_use', 'in', ('purchase', 'all')), ('company_id', '=', company_id)]"/>
                                         </div>
@@ -114,7 +114,7 @@
                                         Allow to configure taxes using cash basis
                                     </div>
                                     <div class="content-group" attrs="{'invisible': [('tax_exigibility', '=', False)]}">
-                                        <div class="row mt16">
+                                        <div class="row no-gutters mt16">
                                             <label for="tax_cash_basis_journal_id" class="col-lg-3 o_light_label"/>
                                             <field name="tax_cash_basis_journal_id"/>
                                         </div>
@@ -133,7 +133,7 @@
                                         Main currency of your company
                                     </div>
                                     <div class="content-group">
-                                        <div class="row mt16">
+                                        <div class="row no-gutters mt16">
                                             <label for="currency_id" class="col-lg-3 o_light_label"/>
                                             <field name="currency_id" options="{'no_create_edit': True, 'no_open': True}" context="{'active_test': False}"/>
                                         </div>
@@ -153,7 +153,7 @@
                                         <div class="mt8">
                                             <button name="%(base.action_currency_all_form)d" icon="fa-arrow-right" type="action" string="Activate Other Currencies" class="btn-link"/>
                                         </div>
-                                        <div class="row mt16">
+                                        <div class="row no-gutters mt16">
                                             <label for="currency_exchange_journal_id" class="col-lg-3 o_light_label"/>
                                             <field name="currency_exchange_journal_id"/>
                                         </div>

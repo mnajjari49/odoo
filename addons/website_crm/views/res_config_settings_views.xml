@@ -14,7 +14,7 @@
                             <div class="text-muted" id="msg_contact_form_install_setting">
                                 Add a contact form in the <a href="/contactus">Contact Us</a> page
                             </div>
-                            <div class="row">
+                            <div class="row no-gutters">
                                 <label class="col-lg-3 o_light_label" string="Sales Team" for="crm_default_team_id"/>
                                 <field name="crm_default_team_id" class="oe_inline"/>
                             </div>
@@ -24,7 +24,7 @@
                                 </div>
                             </div>
 
-                            <div class="row">
+                            <div class="row no-gutters">
                                 <label class="col-lg-3 o_light_label" string="Salesperson" for="crm_default_user_id"/>
                                 <field name="crm_default_user_id" class="oe_inline"/>
                             </div>

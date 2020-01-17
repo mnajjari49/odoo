@@ -14,11 +14,11 @@
                             Twitter API Credentials
                         </div>
                         <div class="content-group">
-                            <div class="row mt16">
+                            <div class="row no-gutters mt16">
                                 <label class="col-lg-3 o_light_label" string="API Key" for="twitter_api_key"/>
                                 <field name="twitter_api_key" class="oe_inline"/>
                             </div>
-                            <div class="row">
+                            <div class="row no-gutters">
                                 <label class="col-lg-3 o_light_label" string="API secret" for="twitter_api_secret"/>
                                 <field name="twitter_api_secret" class="oe_inline"/>
                             </div>
@@ -48,7 +48,7 @@
                                     </ol>
                                 </blockquote>
                             </div>
-                            <div class="row">
+                            <div class="row no-gutters">
                                 <label class="col-lg-3 o_light_label" string="Favorites From" for="twitter_screen_name"/>
                                 <field name="twitter_screen_name" class="oe_inline"/>
                             </div>

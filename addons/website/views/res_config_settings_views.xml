@@ -51,11 +51,11 @@
                                         Name and favicon of your website
                                     </div>
                                     <div class="content-group">
-                                        <div class="row mt16">
+                                        <div class="row no-gutters mt16">
                                             <label class="col-lg-3 o_light_label" string="Name" for="website_name"/>
                                             <field name="website_name" attrs="{'required': [('website_id', '!=', False)]}"/>
                                         </div>
-                                        <div class="row">
+                                        <div class="row no-gutters">
                                             <label class="col-lg-3 o_light_label" for="favicon" />
                                             <field name="favicon" widget="image" class="float-left oe_avatar"/>
                                         </div>
@@ -165,27 +165,27 @@
                                         Add links to social media on your website
                                     </div>
                                     <div class="content-group" attrs="{'invisible': [('has_social_network', '=', False)]}">
-                                        <div class="row">
+                                        <div class="row no-gutters">
                                             <label for="social_twitter" string="Twitter" class="col-md-3 o_light_label"/>
                                             <field name="social_twitter"/>
                                         </div>
-                                        <div class="row">
+                                        <div class="row no-gutters">
                                             <label for="social_facebook" string="Facebook" class="col-md-3 o_light_label"/>
                                             <field name="social_facebook"/>
                                         </div>
-                                        <div class="row">
+                                        <div class="row no-gutters">
                                             <label for="social_github" string="GitHub" class="col-md-3 o_light_label"/>
                                             <field name="social_github"/>
                                         </div>
-                                        <div class="row">
+                                        <div class="row no-gutters">
                                             <label for="social_linkedin" string="LinkedIn" class="col-md-3 o_light_label"/>
                                             <field name="social_linkedin"/>
                                         </div>
-                                        <div class="row">
+                                        <div class="row no-gutters">
                                             <label for="social_youtube" string="YouTube" class="col-md-3 o_light_label"/>
                                             <field name="social_youtube"/>
                                         </div>
-                                        <div class="row">
+                                        <div class="row no-gutters">
                                             <label for="social_instagram" string="Instagram" class="col-md-3 o_light_label"/>
                                             <field name="social_instagram"/>
                                         </div>
@@ -267,7 +267,7 @@
                                         Track visits in Google Analytics
                                     </div>
                                     <div class="content-group" attrs="{'invisible': [('has_google_analytics', '=', False)]}">
-                                        <div class="row mt16">
+                                        <div class="row no-gutters mt16">
                                             <label class="col-lg-3 o_light_label" string="Tracking ID" for="google_analytics_key"/>
                                             <field name="google_analytics_key" placeholder="UA-XXXXXXXX-Y"
                                                 attrs="{'required': [('has_google_analytics', '=', True)]}"/>
@@ -293,7 +293,7 @@
                                         Monitor Google Search results data
                                     </div>
                                     <div class="content-group" attrs="{'invisible': [('has_google_search_console', '=', False)]}">
-                                        <div class="row mt16">
+                                        <div class="row no-gutters mt16">
                                             <label class="col-lg-3 o_light_label" string="Code" for="google_search_console"/>
                                             <field name="google_search_console" placeholder="google1234567890123456.html"
                                                 attrs="{'required': [('has_google_search_console', '=', True)]}"/>

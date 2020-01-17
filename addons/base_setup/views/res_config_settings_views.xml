@@ -100,7 +100,7 @@
                                             Set the paper format of printed documents
                                         </div>
                                         <div class="content-group">
-                                            <div class="mt16 row">
+                                            <div class="mt16 row no-gutters">
                                                 <label for="paperformat_id" string="Format" class="col-3 col-lg-3 o_light_label"/>
                                                 <field name="paperformat_id" class="oe_inline" required="1"/>
                                             </div>

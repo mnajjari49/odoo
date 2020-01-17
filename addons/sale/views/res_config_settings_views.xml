@@ -204,7 +204,7 @@
                                 <div class="text-muted">
                                     Automatic email sent after the customer has signed or paid online
                                 </div>
-                                <div class="row mt16">
+                                <div class="row no-gutters mt16">
                                     <label for="confirmation_template_id" string="Email Template" class="col-lg-4 o_light_label"/>
                                     <field name="confirmation_template_id" class="oe_inline"/>
                                 </div>
