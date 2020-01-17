@@ -292,7 +292,7 @@ var Discuss = AbstractAction.extend({
         this._throttledUpdateThreads = _.throttle(
             this._updateThreads.bind(this), 100, { leading: false });
 
-        this.controlPanelParams.modelName = 'mail.message';
+        this.controlPanelProps.modelName = 'mail.message';
         this.call('mail_service', 'getMailBus').on('messaging_ready', this, this._onMessagingReady);
     },
     /**
@@ -332,6 +332,7 @@ var Discuss = AbstractAction.extend({
      * @override
      */
     on_attach_callback: function () {
+        this._super.apply(this);
         this.call('mail_service', 'getMailBus').trigger('discuss_open', true);
         if (this._thread) {
             this._threadWidget.scrollToPosition(this._threadsScrolltop[this._thread.getID()]);
@@ -342,6 +343,7 @@ var Discuss = AbstractAction.extend({
      * @override
      */
     on_detach_callback: function () {
+        this._super.apply(this);
         this.call('mail_service', 'getMailBus').trigger('discuss_open', false);
         this._threadsScrolltop[this._thread.getID()] = this._threadWidget.getScrolltop();
     },
