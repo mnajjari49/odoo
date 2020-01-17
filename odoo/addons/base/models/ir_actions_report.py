@@ -23,9 +23,7 @@ import json
 from lxml import etree
 from contextlib import closing
 from distutils.version import LooseVersion
-from reportlab.graphics.shapes  import Image as ReportLabImage
 from reportlab.graphics.barcode import createBarcodeDrawing
-from reportlab.graphics.testdrawings import *#TODO OCO teSt
 from PyPDF2 import PdfFileWriter, PdfFileReader
 from collections import OrderedDict
 from collections.abc import Iterable
@@ -493,7 +491,7 @@ class IrActionsReport(models.Model):
         return report_obj.with_context(context).search(conditions, limit=1)
 
     @api.model
-    def barcode(self, barcode_type, value, width=600, height=100, humanreadable=0, quiet=1):
+    def barcode(self, barcode_type, value, width=600, height=100, humanreadable=0, quiet=1, mask=None):
         if barcode_type == 'UPCA' and len(value) in (11, 12, 13):
             barcode_type = 'EAN13'
             if len(value) in (11, 12):
@@ -505,11 +503,11 @@ class IrActionsReport(models.Model):
                 humanReadable=humanreadable, quiet=quiet
             )
 
-            #TODO OCO TEST
-            cross_size_ratio = 0.1214
-            import pdb; pdb.set_trace()
-            qr_cross = ReportLabImage(10, 10, 69, 69, 'addons/l10n_ch/static/src/img/CH-Cross_7mm.png')
-            barcode.add(qr_cross)
+            if mask: #TODO OCO DOC
+                available_masks = self.get_available_barcode_masks()
+                mask_to_apply = available_masks.get(mask)
+                if mask_to_apply:
+                    mask_to_apply(width, height, barcode)
 
             return barcode.asString('png')
         except (ValueError, AttributeError):
@@ -518,6 +516,11 @@ class IrActionsReport(models.Model):
             else:
                 return self.barcode('Code128', value, width=width, height=height,
                     humanreadable=humanreadable, quiet=quiet)
+
+    @api.model
+    def get_available_barcode_masks(self):
+        #TODO OCO DOC : (code, mask function)
+        return {}
 
     def render_template(self, template, values=None):
         """Allow to render a QWeb template python-side. This function returns the 'ir.ui.view'
