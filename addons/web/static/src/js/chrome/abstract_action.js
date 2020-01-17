@@ -12,8 +12,10 @@ var ActionMixin = require('web.ActionMixin');
 var ControlPanel = require('web.ControlPanel');
 var ControlPanelStore = require('web.ControlPanelStore');
 var Widget = require('web.Widget');
+const { WidgetAdapterMixin } = require('web.OwlCompatibility');
+const ControlPanelWrapper = require('web.ControlPanelWrapper');
 
-var AbstractAction = Widget.extend(ActionMixin, {
+var AbstractAction = Widget.extend(ActionMixin, WidgetAdapterMixin, {
     config: {
         ControlPanel: ControlPanel,
     },
@@ -34,7 +36,7 @@ var AbstractAction = Widget.extend(ActionMixin, {
      * For example, the Discuss application adds the following line in its
      * constructor::
      *
-     *      this.controlPanelParams.modelName = 'mail.message';
+     *      this.controlPanelProps.modelName = 'mail.message';
      *
      * @type boolean
      */
@@ -75,24 +77,26 @@ var AbstractAction = Widget.extend(ActionMixin, {
         this._super(parent);
         this._title = action.display_name || action.name;
 
-        this.controlPanelStoreConfig = {
-            actionId: action.id,
-            actionContext: action.context,
-            env: owl.Component.env,
-            withSearchBar: this.withSearchBar,
+        if (this.hasControlPanel) {
+            this.controlPanelStoreConfig = {
+                actionId: action.id,
+                actionContext: action.context,
+                env: owl.Component.env,
+                withSearchBar: this.withSearchBar,
+            }
+
+            this.controlPanelProps = {
+                // TODO we should not pass action
+                action: action,
+
+                actionId: action.id,
+                context: action.context,
+                breadcrumbs: options && options.breadcrumbs,
+                viewId: action.search_view_id && action.search_view_id[0],
+                withSearchBar: this.withSearchBar,
+                searchMenuTypes: this.searchMenuTypes,
+            };
         }
-
-        this.controlPanelParams = {
-            // TODO we should not pass action
-            action: action,
-
-            actionId: action.id,
-            context: action.context,
-            breadcrumbs: options && options.breadcrumbs,
-            viewId: action.search_view_id && action.search_view_id[0],
-            withSearchBar: this.withSearchBar,
-            searchMenuTypes: this.searchMenuTypes,
-        };
     },
     /**
      * The willStart method is actually quite complicated if the client action
@@ -103,26 +107,17 @@ var AbstractAction = Widget.extend(ActionMixin, {
     willStart: async function () {
         const proms = [this._super(...arguments)];
         if (this.hasControlPanel) {
-            const params = this.controlPanelParams;
             if (this.loadControlPanel) {
-                const { context, modelName, viewId, searchMenuTypes } = params;
+                const { context, modelName, viewId, searchMenuTypes } = this.controlPanelProps;
                 const options = { load_filters: searchMenuTypes.includes('favorite') };
-                const loadFieldViewPromise = this.loadFieldView(modelName, context || {}, viewId, 'search', options)
-                    .then(fieldsView =>
-                        params.viewInfo = {
-                            arch: fieldsView.arch,
-                            fields: fieldsView.fields,
-                            favoriteFilters: fieldsView.favoriteFilters || [],
-                        });
+                const loadFieldViewPromise = this.loadFieldView(modelName, context || {}, viewId, 'search', options);
                 proms.push(loadFieldViewPromise);
+                const {arch, fields, favoriteFilters } = await loadFieldViewPromise;
+                this.controlPanelStoreConfig.viewInfo = {arch, fields, favoriteFilters };
             }
-            await Promise.all(proms);
-            this.controlPanelStoreConfig.viewInfo = params.viewInfo;
             this._controlPanelStore = new ControlPanelStore(this.controlPanelStoreConfig);
-            this.dispatch = owl.hooks.useDispatch(this._controlPanelStore);
-            params.controlPanelStore = this._controlPanelStore;
-            this._controlPanel = new this.config.ControlPanel(null, params);
-            await this._controlPanel.mount(document.createDocumentFragment());
+            this.controlPanelProps.controlPanelStore = this._controlPanelStore;
+            proms.push(this._controlPanelStore.isReady);
         }
         return Promise.all(proms);
     },
@@ -131,17 +126,15 @@ var AbstractAction = Widget.extend(ActionMixin, {
      */
     start: async function () {
         await this._super(...arguments);
-        if (this._controlPanel) {
-            await this._controlPanel.mount(this.el, { position: 'first-child' });
+        if (this.hasControlPanel) {
+            this._controlPanelWrapper = new ControlPanelWrapper(this, ControlPanel, props);
+            await this._controlPanelWrapper.mount(this.el, { position: 'first-child' });
         }
         if (this._controlPanelStore) {
             this._controlPanelStore.on('get_controller_query_params', this, this._onGetOwnedQueryParams);
         }
     },
     on_attach_callback: function () {
-        if (this._controlPanel) {
-            this._controlPanel.mount(this.el, { position: 'first-child' });
-        }
         if (this._controlPanelStore) {
             this._controlPanelStore.on('get_controller_query_params', this, this._onGetOwnedQueryParams);
         }
