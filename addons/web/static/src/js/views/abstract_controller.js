@@ -22,8 +22,6 @@ var session = require('web.session');
 const ControlPanelWrapper = require('web.ControlPanelWrapper');
 const ControlPanel = require('web.ControlPanel');
 
-var QWeb = core.qweb;
-
 var AbstractController = mvc.Controller.extend(ActionMixin, WidgetAdapterMixin, {
     custom_events: _.extend({}, ActionMixin.custom_events, {
         navigation_move: '_onNavigationMove',
