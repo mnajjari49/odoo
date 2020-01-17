@@ -34,6 +34,11 @@ class Forum(models.Model):
         ('discussions', 'Discussions')],
         string='Forum Mode', required=True, default='questions',
         help='Questions mode: only one answer allowed\n Discussions mode: multiple answers allowed')
+    privacy = fields.Selection([
+        ('public', 'Public'),
+        ('portal', 'Private: employees and portal users'),
+        ('private', 'Private: only employees')],
+        required=True, default='public')
     active = fields.Boolean(default=True)
     faq = fields.Html('Guidelines', default=_get_default_faq, translate=html_translate, sanitize=False)
     description = fields.Text('Description', translate=True)

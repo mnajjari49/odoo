@@ -43,12 +43,14 @@ var ForumCreateDialog = Dialog.extend({
             return;
         }
         var addMenu = ($dialog.find('input[type="checkbox"]').is(':checked'));
-        var forumMode = $dialog.find('input[type="radio"]:checked').val();
+        var forumMode = $dialog.find('input:radio[name=mode]:checked').val();
+        var forumPrivacy = $dialog.find('input:radio[name=privacy]:checked').val();
         return this._rpc({
             route: '/forum/new',
             params: {
                 forum_name: forumName,
                 forum_mode: forumMode,
+                forum_privacy: forumPrivacy,
                 add_menu: addMenu || "",
             },
         }).then(function (url) {

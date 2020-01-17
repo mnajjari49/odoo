@@ -47,8 +47,9 @@
                         </group>
                         <notebook>
                             <page name="options" string="Options">
-                              <group string="Order" name="group_order">
-                                <field name="default_order"/>
+                              <group name="group_order">
+                                <field name="default_order" string="Default Sort"/>
+                                <field name="privacy" widget="radio"/>
                                 <label for="relevancy_post_vote" string="Relevance Computation" groups="base.group_no_one" attrs="{'invisible':[('default_order','!=','relevancy desc')]}"/>
                                 <div groups="base.group_no_one" class="o_row" attrs="{'invisible':[('default_order','!=','relevancy desc')]}">
                                     (votes - 1) ** <field name="relevancy_post_vote"/> / (days + 2) ** <field name="relevancy_time_decay"/>
@@ -102,7 +103,7 @@
                             </page>
                         </notebook>
                         <group>
-                            <field name="description"/>
+                            <field name="description" nolabel="1" placeholder="Description visible on website"/>
                         </group>
                     </sheet>
                     <div class="oe_chatter">

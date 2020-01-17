@@ -48,8 +48,8 @@ class WebsiteForum(WebsiteProfile):
         return request.render("website_forum.forum_all", {'forums': forums})
 
     @http.route('/forum/new', type='json', auth="user", methods=['POST'], website=True)
-    def forum_create(self, forum_name="New Forum", forum_mode="questions", add_menu=False):
-        forum_id = request.env['forum.forum'].create({'name': forum_name, 'mode': forum_mode})
+    def forum_create(self, forum_name="New Forum", forum_mode="questions", forum_privacy="public", add_menu=False):
+        forum_id = request.env['forum.forum'].create({'name': forum_name, 'mode': forum_mode, 'privacy': forum_privacy})
         if add_menu:
             request.env['website.menu'].create({
                 'name': forum_name,
