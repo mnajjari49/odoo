@@ -56,12 +56,22 @@ class AccountDebitNote(models.TransientModel):
     def create_debit(self):
         self.ensure_one()
         new_moves = self.env['account.move']
+        to_reverse_moves = self.env['account.move']
+        to_reverse_default_list = []
         for move in self.move_ids:
             # Create default values.
             default_values = self._prepare_default_values(move)
             if not self.copy_lines:
-                default_values['invoice_line_ids'] = []
-            new_moves |= move.copy(default=default_values)
+                default_values['line_ids'] = [(5, 0, 0)]
+            if move.type in ('in_invoice', 'out_invoice'):
+                new_moves |= move.copy(default=default_values)
+            else:
+                to_reverse_moves |= move
+                to_reverse_default_list.append(default_values)
+
+        # If we make a debit note of a credit note, it needs to be reversed
+        if to_reverse_moves:
+            new_moves |= to_reverse_moves._reverse_moves(to_reverse_default_list)
 
         # Create action.
         action = {
