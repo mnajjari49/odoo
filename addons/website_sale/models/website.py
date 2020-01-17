@@ -112,8 +112,8 @@ class Website(models.Model):
             pricelists |= all_pl.filtered(lambda pl: _check_show_visible(pl))
 
         # if logged in, add partner pl (which is `property_product_pricelist`, might not be website compliant)
-        is_public = self.user_id.id == self.env.user.id
-        if not is_public:
+        # VFE why filtering on website compliance if we accept it may not be website compliant ?
+        if not (self.user_id.id == self.env.user.id) and partner_pl:
             # keep partner_pl only if website compliant
             partner_pl = pricelists.browse(partner_pl).filtered(lambda pl: pl._is_available_on_website(self) and _check_show_visible(pl))
             if country_code:
@@ -142,16 +142,17 @@ class Website(models.Model):
 
         isocountry = req and req.session.geoip and req.session.geoip.get('country_code') or False
         partner = self.env.user.partner_id
-        last_order_pl = partner.last_website_so_id.pricelist_id
-        partner_pl = partner.with_user(self.env.user).property_product_pricelist
-        pricelists = website._get_pl_partner_order(isocountry, show_visible,
-                                                    # VFE fixme Shouldn't it be taken with the website company ?
-                                                   website.user_id.sudo().partner_id.property_product_pricelist.id,
-                                                   req and req.session.get('website_sale_current_pl') or None,
-                                                   website.pricelist_ids,
-                                                   partner_pl=partner_pl and partner_pl.id or None,
-                                                   order_pl=last_order_pl and last_order_pl.id or None)
-        return self.env['product.pricelist'].browse(pricelists).filtered('active')
+        last_order_pl = partner.last_website_so_id.pricelist_id.filtered('active')
+        partner_pl = partner.property_product_pricelist
+        website_user_default_pl = website.user_id.sudo().partner_id.property_product_pricelist
+        pricelist_ids = website._get_pl_partner_order(
+            isocountry, show_visible,
+            website_pl=website_user_default_pl.id,
+            current_pl=req and req.session.get('website_sale_current_pl') or None,
+            all_pl=website.pricelist_ids,
+            partner_pl=partner_pl.id,
+            order_pl=last_order_pl.id)
+        return self.env['product.pricelist'].browse(pricelist_ids)
         # VFE dunno why, but in tests TestWebsitePriceListAvailableGeoIP.test_get_pricelist_available and 2 others,
         # the archived main pricelist is still given by _get_pricelist_available
 
@@ -185,25 +186,15 @@ class Website(models.Model):
             if pl not in available_pricelists:
                 pl = self.env['product.pricelist']
                 request.session.pop('website_sale_current_pl')
-        if not pl:
+        if not pl or not pl.active:
             # If the user has a saved cart, it take the pricelist of this last unconfirmed cart
             pl = partner.last_website_so_id.pricelist_id
-            if not pl:
+            if not pl or not pl.active:
                 # The pricelist of the user set on its partner form.
                 # If the user is not signed in, it's the public user pricelist
-                # VFE TODO use correct company to fetch property...
                 pl = partner.property_product_pricelist
-                # VFE TODO check if inactive, return an empty recordset...
-            if available_pricelists and pl not in available_pricelists:
-                # If there is at least one pricelist in the available pricelists
-                # and the chosen pricelist is not within them
-                # it then choose the first available pricelist.
-                # This can only happen when the pricelist is the public user pricelist and this pricelist is not in the available pricelist for this localization
-                # If the user is signed in, and has a special pricelist (different than the public user pricelist),
-                # then this special pricelist is amongs these available pricelists, and therefore it won't fall in this case.
-                pl = available_pricelists[0]
+            pl = pl if pl in available_pricelists else available_pricelists[:1]
 
-        # VFE TODO ensure empty recordset is returned.
         return pl
 
     def sale_product_domain(self):
@@ -275,7 +266,7 @@ class Website(models.Model):
             request.session['website_sale_current_pl'] = pricelist_id
             update_pricelist = True
         else:
-            pricelist_id = request.session.get('website_sale_current_pl') or self.get_current_pricelist().id
+            pricelist_id = self.get_current_pricelist().id
 
         if not self._context.get('pricelist'):
             self = self.with_context(pricelist=pricelist_id)

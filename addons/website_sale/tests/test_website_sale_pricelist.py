@@ -43,6 +43,7 @@ class TestWebsitePriceList(TransactionCase):
 
         # VFE TODO base on TestPricelistCommon data
         self.env['product.pricelist'].search([]).active = False
+        self.env['res.partner'].invalidate_cache(['property_product_pricelist'])
         self.public_pricelist = self.env['product.pricelist'].create({
             'name': 'Public Pricelist',
             "website_published": True,
@@ -236,6 +237,7 @@ class TestWebsitePriceListAvailable(TransactionCase):
         # Remove existing pricelists and create new ones
         existing_pricelists = Pricelist.search([])
         existing_pricelists.write({'active': False})
+        self.env['res.partner'].invalidate_cache(['property_product_pricelist'])
         self.backend_pl = Pricelist.create({
             'name': 'Backend Pricelist',
             'website_id': False,
