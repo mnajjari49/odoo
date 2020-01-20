@@ -396,9 +396,8 @@ class BaseCase(TreeCase, MetaCase('DummyCase', (object,), {})):
                         msg = "Query count more than expected for user %s: %d > %d in %s at %s:%s"
                         self.fail(msg % (login, count, expected, funcname, filename, linenum))
                     else:
-                        logger = logging.getLogger(type(self).__module__)
                         msg = "Query count less than expected for user %s: %d < %d in %s at %s:%s"
-                        logger.info(msg, login, count, expected, funcname, filename, linenum)
+                        self.fail(msg % (login, count, expected, funcname, filename, linenum))
         else:
             yield
             if flush:
