@@ -17,7 +17,8 @@ var AbstractField = require('web.AbstractField');
 var basicFields = require('web.basic_fields');
 var concurrency = require('web.concurrency');
 // var ControlPanelRenderer = require('web.ControlPanelRenderer');
-var ControlPanelX2Many = require('web.ControlPanelX2Many');
+const ControlPanelX2Many = require('web.ControlPanelX2Many');
+const ControlPanelWrapper = require('web.ControlPanelWrapper');
 var core = require('web.core');
 var data = require('web.data');
 var Dialog = require('web.Dialog');
@@ -26,7 +27,7 @@ var dom = require('web.dom');
 var KanbanRecord = require('web.KanbanRecord');
 var KanbanRenderer = require('web.KanbanRenderer');
 var ListRenderer = require('web.ListRenderer');
-var { WidgetAdapterMixin } = require('web.OwlCompatibility');
+const { WidgetAdapterMixin } = require('web.OwlCompatibility');
 
 var _t = core._t;
 var _lt = core._lt;
@@ -971,7 +972,7 @@ var KanbanFieldMany2One = AbstractField.extend({
 // X2Many widgets
 //------------------------------------------------------------------------------
 
-var FieldX2Many = AbstractField.extend({
+var FieldX2Many = AbstractField.extend(WidgetAdapterMixin, {
     tagName: 'div',
     custom_events: _.extend({}, AbstractField.prototype.custom_events, {
         add_record: '_onAddRecord',
@@ -988,8 +989,6 @@ var FieldX2Many = AbstractField.extend({
         navigation_move: '_onNavigationMove',
         save_optional_fields: '_onSaveOrLoadOptionalFields',
         load_optional_fields: '_onSaveOrLoadOptionalFields',
-    }),
-    events: _.extend({}, AbstractField.prototype.events, {
         pager_changed: '_onPagerChanged',
     }),
 
@@ -1030,34 +1029,41 @@ var FieldX2Many = AbstractField.extend({
         if (this.attrs.columnInvisibleFields) {
             this._processColumnInvisibleFields();
         }
+        this._controlPanelWrapper = new ControlPanelWrapper(this, ControlPanelX2Many, {
+            pager: this._getPagerProps(),
+        });
     },
     /**
      * @override
      */
-    start: function () {
-        return this._renderControlPanel().then(this._super.bind(this));
+    start: async function () {
+        const _super = this._super.bind(this);
+        if (this.view) {
+            const buttons = this._renderButtons();
+            await this._controlPanelWrapper.mount(this.el, { position: 'first-child' });
+            if (buttons) {
+                await this._controlPanelWrapper.update({ buttons: this.$buttons });
+            }
+        }
+        return _super(...arguments);
     },
     /**
      * For the list renderer to properly work, it must know if it is in the DOM,
      * and be notified when it is attached to the DOM.
      */
     on_attach_callback: function () {
+        WidgetAdapterMixin.on_attach_callback.call(this);
         this.isInDOM = true;
         if (this.renderer) {
             this.renderer.on_attach_callback();
-        }
-        if (this._controlPanel) {
-            this._controlPanel.mount(this.el, { position: 'first-child' });
         }
     },
     /**
      * For the list renderer to properly work, it must know if it is in the DOM.
      */
     on_detach_callback: function () {
+        WidgetAdapterMixin.on_detach_callback.call(this);
         this.isInDOM = false;
-        if (this._controlPanel) {
-            this._controlPanel.unmount();
-        }
     },
 
     //--------------------------------------------------------------------------
@@ -1176,9 +1182,9 @@ var FieldX2Many = AbstractField.extend({
              }).column_invisible;
         });
     },
-    _getPagerProps: function () {
+    _getPagerProps: function (newProps) {
         const { offset, limit, count } = this.value;
-        return {
+        return Object.assign({
             currentMinimum: offset + 1,
             limit: limit,
             hiddenInSinglePage: true,
@@ -1190,7 +1196,7 @@ var FieldX2Many = AbstractField.extend({
                     Promise.resolve();
             },
             withAccessKey: false,
-        };
+        }, newProps);
     },
     /**
      * Computes the default renderer to use depending on the view type.
@@ -1226,7 +1232,7 @@ var FieldX2Many = AbstractField.extend({
                 columnInvisibleFields: this.currentColInvisibleFields,
                 keepWidths: true,
             }).then(() => {
-                this._controlPanel.updateProps({
+                this._controlPanelWrapper.update({
                     pager: this._getPagerProps(),
                 });
             });
@@ -1281,24 +1287,6 @@ var FieldX2Many = AbstractField.extend({
         }
     },
     /**
-     * Instanciates a control panel with the appropriate buttons and a pager.
-     * Prepends the control panel's $el to this widget's $el.
-     *
-     * @private
-     * @returns {Promise}
-     */
-    _renderControlPanel: function () {
-        if (!this.view) {
-            return Promise.resolve();
-        }
-        this._renderButtons();
-        this._controlPanel = new ControlPanelX2Many(this, {
-            buttons: () => this.$buttons ? [...this.$buttons] : [],
-            pager: this._getPagerProps(),
-        });
-        return this._controlPanel.mount(document.createDocumentFragment());
-    },
-    /**
      * Renders the buttons and sets this.$buttons.
      *
      * @private
@@ -1311,6 +1299,7 @@ var FieldX2Many = AbstractField.extend({
             }));
             this.$buttons.on('click', 'button.o-kanban-button-new', this._onAddRecord.bind(this));
         }
+        return this.$buttons;
     },
     /**
      * Saves the line associated to the given recordID. If the line is valid,
@@ -1327,29 +1316,28 @@ var FieldX2Many = AbstractField.extend({
      *                     rejected if the line could not be saved and the user
      *                     did not agree to discard.
      */
-    _saveLine: async function (recordID) {
-        return new Promise((resolve, reject) => {
-            var fieldNames = this.renderer.canBeSaved(recordID);
+    _saveLine: function (recordID) {
+        var self = this;
+        return new Promise(function (resolve, reject) {
+            var fieldNames = self.renderer.canBeSaved(recordID);
             if (fieldNames.length) {
-                this.trigger_up('discard_changes', {
+                self.trigger_up('discard_changes', {
                     recordID: recordID,
                     onSuccess: resolve,
                     onFailure: reject,
                 });
             } else {
-                this.renderer.setRowMode(recordID, 'readonly').then(resolve);
+                self.renderer.setRowMode(recordID, 'readonly').then(resolve);
             }
-        }).then(() => {
-            this._controlPanel.updateProps({
-                pager: {
-                    size: this.value.count
-                },
+        }).then(async function () {
+            await self._controlPanelWrapper.update({
+                pager: _getPagerProps({ size: self.value.count }),
             });
-            var newEval = this._evalColumnInvisibleFields();
-            if (!_.isEqual(this.currentColInvisibleFields, newEval)) {
-                this.currentColInvisibleFields = newEval;
-                this.renderer.updateState(this.value, {
-                    columnInvisibleFields: this.currentColInvisibleFields,
+            var newEval = self._evalColumnInvisibleFields();
+            if (!_.isEqual(self.currentColInvisibleFields, newEval)) {
+                self.currentColInvisibleFields = newEval;
+                self.renderer.updateState(self.value, {
+                    columnInvisibleFields: self.currentColInvisibleFields,
                 });
             }
         });
@@ -1509,14 +1497,14 @@ var FieldX2Many = AbstractField.extend({
     },
     /**
      * @private
-     * @param {OwlEvent} ev
+     * @param {OdooEvent} ev
      */
     _onPagerChanged: function (ev) {
         ev.stopPropagation();
         this.trigger_up('load', {
             id: this.value.id,
-            limit: ev.detail.limit,
-            offset: ev.detail.currentMinimum - 1,
+            limit: ev.data.limit,
+            offset: ev.data.currentMinimum - 1,
             on_success: value => {
                 this.value = value;
                 this._render();
@@ -1739,8 +1727,8 @@ var FieldOne2Many = FieldX2Many.extend({
                         // have 3 records, and we click on add, we will see the
                         // 4 records on the same page, but we do not want a
                         // pager.
-                        this._controlPanel.updateProps({
-                            pager: { size: self.value.count - 1},
+                        self._controlPanelWrapper.update({
+                            pager: self._getPagerProps({ size: self.value.count - 1 }),
                         });
                     }
                     var newID = self.value.data[index].id;
@@ -1772,7 +1760,7 @@ var FieldOne2Many = FieldX2Many.extend({
      */
     _renderButtons: function () {
         if (this.activeActions.create) {
-            this._super.apply(this, arguments);
+            return this._super(...arguments);
         }
     },
     /**
@@ -1905,7 +1893,7 @@ var FieldOne2Many = FieldX2Many.extend({
     },
 });
 
-var FieldMany2Many = FieldX2Many.extend(WidgetAdapterMixin, {
+var FieldMany2Many = FieldX2Many.extend({
     description: _lt("Many2many"),
     className: 'o_field_many2many',
     supportedFieldTypes: ['many2many'],

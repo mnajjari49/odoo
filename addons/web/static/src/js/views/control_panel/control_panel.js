@@ -24,6 +24,7 @@ odoo.define('web.ControlPanel', function (require) {
             super(...arguments);
 
             useSubEnv({
+                action: this.props.action,
                 controlPanelStore: this.props.controlPanelStore,
             });
 
@@ -57,6 +58,12 @@ odoo.define('web.ControlPanel', function (require) {
             }
 
             // >>>>>>>>>>>>>>>>>>>
+        }
+
+        async willUpdateProps(nextProps) {
+            if ('action' in nextProps) {
+                this.env.action = nextProps.action;
+            }
         }
 
         //--------------------------------------------------------------------------

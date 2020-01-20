@@ -84,7 +84,7 @@ odoo.define('web.Sidebar', function (require) {
             const activeIdsContext = {
                 active_id: this.props.activeIds[0],
                 active_ids: this.props.activeIds,
-                active_model: this.props.modelName,
+                active_model: this.env.action.res_model,
             };
             if (this.props.domain) {
                 activeIdsContext.active_domain = this.props.domain;
@@ -135,7 +135,6 @@ odoo.define('web.Sidebar', function (require) {
                 other: Array,
             },
         },
-        modelName: String,
         viewType: String,
     };
     Sidebar.template = 'Sidebar';

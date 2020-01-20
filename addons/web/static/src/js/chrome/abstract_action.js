@@ -148,7 +148,9 @@ var AbstractAction = Widget.extend(ActionMixin, WidgetAdapterMixin, {
         if ('title' in newProps) {
             this._setTitle(newProps.title);
         }
-        return this._controlPanelWrapper.update(newProps);
+        if (this._controlPanelWrapper) {
+            return this._controlPanelWrapper.update(newProps);
+        }
     },
 });
 

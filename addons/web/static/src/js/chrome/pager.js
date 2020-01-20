@@ -63,23 +63,6 @@ odoo.define('web.Pager', function (require) {
         }
 
         //--------------------------------------------------------------------------
-        // Public
-        //--------------------------------------------------------------------------
-
-        async updateProps(newProps = {}) {
-            if (!Object.keys(newProps).length) {
-                return;
-            }
-            await this.willUpdateProps(newProps);
-            Object.assign(this.props, newProps);
-            // deepCopy(this.props, newProps);
-            // Object.assign(this.props, newProps);
-            if (this.__owl__.isMounted) {
-                this.render(true);
-            }
-        }
-
-        //--------------------------------------------------------------------------
         // Private
         //--------------------------------------------------------------------------
 
@@ -110,10 +93,10 @@ odoo.define('web.Pager', function (require) {
             }
 
             // The re-rendering of the pager must be done before the trigger of
-            // event 'pager_changed' as the rendering may enable the pager
+            // event 'pager-changed' as the rendering may enable the pager
             // (and a common use is to disable the pager when this event is
             // triggered, and to re-enable it when the data have been reloaded)
-            this.trigger('pager_changed', { limit, currentMinimum });
+            this.trigger('pager-changed', { limit, currentMinimum });
         }
 
         /**
@@ -139,7 +122,7 @@ odoo.define('web.Pager', function (require) {
                 return false;
             }
             const limit = Math.max(maximum - currentMinimum) + 1;
-            this.trigger('pager_changed', { limit, currentMinimum });
+            this.trigger('pager-changed', { limit, currentMinimum });
             return true;
         }
 

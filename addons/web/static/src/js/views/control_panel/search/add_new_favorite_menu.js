@@ -12,7 +12,6 @@ odoo.define('web.AddNewFavoriteMenu', function (require) {
 
         /**
          * @param {Object} props
-         * @param {Object} [props.actionName]
          * @param {Object} props.favorites
          */
         constructor() {
@@ -23,7 +22,7 @@ odoo.define('web.AddNewFavoriteMenu', function (require) {
             this.favId = favoriteId++;
             this.interactive = true;
             this.state = useState({
-                description: this.props.actionName || "",
+                description: this.env.action.name || "",
                 isDefault: false,
                 isShared: false,
                 open: false,
@@ -157,7 +156,6 @@ odoo.define('web.AddNewFavoriteMenu', function (require) {
     }
 
     AddNewFavoriteMenu.props = {
-        actionName: String,
         favorites: Array,
     };
     AddNewFavoriteMenu.template = 'AddNewFavoriteMenu';

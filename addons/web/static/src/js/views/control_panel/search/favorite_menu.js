@@ -210,7 +210,6 @@ odoo.define('web.FavoriteMenu', function (require) {
         viewType: "",
     });
     FavoriteMenu.props = Object.assign({}, DropdownMenu.props, {
-        action: Object,
         fields: Object,
         viewType: String,
     });

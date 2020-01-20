@@ -381,8 +381,8 @@ odoo.define('web.OwlCompatibility', function () {
          */
         destroy() {
             if (this.parentWidget) {
-                const index = children[this.parentWidget].indexOf(this);
-                children[this.parentWidget].splice(index, 1);
+                const index = children.get(this.parentWidget).indexOf(this);
+                children.get(this.parentWidget).splice(index, 1);
             }
             super.destroy();
         }

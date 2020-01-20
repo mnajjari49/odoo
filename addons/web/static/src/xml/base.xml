@@ -17,7 +17,7 @@
                 <input type="text"
                     class="o_input"
                     autofocus=""
-                    t-att-value="props.actionName"
+                    t-att-value="env.action.name"
                     t-on-input="_onInput"
                     t-ref="description"
                     t-on-keydown="_onInputKeydown"
@@ -87,7 +87,6 @@
                     <t t-slot="buttons"/>
                 </div>
                 <Sidebar t-if="props.sidebar and props.sidebar.items"
-                    modelName="props.modelName"
                     viewType="props.viewType"
                     t-props="props.sidebar"
                 />
@@ -113,7 +112,6 @@
                         />
                         <FavoriteMenu t-if="props.searchMenuTypes.includes('favorite')"
                             class="o_favorite_menu"
-                            action="props.action"
                             fields="props.fields"
                             viewType="props.viewType"
                         />
@@ -193,7 +191,6 @@
                             />
                             <FavoriteMenu t-if="props.searchMenuTypes.includes('favorite')"
                                 class="o_favorite_menu"
-                                action="props.action"
                                 fields="props.fields"
                                 viewType="props.viewType"
                             />
@@ -413,8 +410,7 @@
             <label class="o_section_header">Domain</label>
             <div class="o_section_content">
                 <DomainSelectorAdapter Component="DomainSelector"
-                    widgetArgs="[props.action.res_model, props.filter.domain, { readonly: false }]"
-                    model="props.action.res_model"
+                    widgetArgs="[env.action.res_model, props.filter.domain, { readonly: false }]"
                     domain="props.filter.domain"
                     options="{ readonly: false }"
                     t-ref="domain-selector"
@@ -553,7 +549,7 @@
 
 <t t-name="FavoriteMenu" t-inherit="DropdownMenu" t-inherit-mode="primary" owl="1">
     <xpath expr="//ul[@role='menu']" position="inside">
-        <AddNewFavoriteMenu actionName="props.action.name" favorites="items"/>
+        <AddNewFavoriteMenu favorites="items"/>
     </xpath>
     <xpath expr="//DropdownMenuItem" position="attributes">
         <attribute name="t-on-drag">_onDrag</attribute>
@@ -564,10 +560,9 @@
         <Dialog t-if="state.editDialog"
             title="'Edit favorite'"
             stopClicks="true"
-            t-on-dialog_closed="_closeEditDialog"
+            t-on-dialog-closed="_closeEditDialog"
             >
             <FilterEditor
-                action="props.action"
                 fields="props.fields"
                 filter="state.editDialog.favorite"
                 t-on-filter-change="_onFilterChange"
@@ -590,7 +585,7 @@
         <Dialog t-if="state.deleteDialog"
             title="'Warning'"
             size="'medium'"
-            t-on-dialog_closed="state.deleteDialog = false"
+            t-on-dialog-closed="state.deleteDialog = false"
             >
             <t t-if="state.deleteDialog.favorite.userId">
                 Are you sure that you want to remove this filter?

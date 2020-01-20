@@ -374,7 +374,6 @@ odoo.define('web.FilterEditor', function (require) {
         TimeRangeEditor,
     };
     FilterEditor.props = {
-        action: Object,
         fields: Object,
         filter: Object,
     };

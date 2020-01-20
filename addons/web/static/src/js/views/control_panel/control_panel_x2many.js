@@ -21,7 +21,6 @@ odoo.define('web.ControlPanelX2Many', function (require) {
 
     ControlPanelX2Many.defaultProps = {};
     ControlPanelX2Many.props = {
-        buttons: Function,
         pager: Object,
     };
     ControlPanelX2Many.template = 'ControlPanelX2Many';

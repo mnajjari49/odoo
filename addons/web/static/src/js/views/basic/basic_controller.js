@@ -649,10 +649,10 @@ var BasicController = AbstractController.extend(FieldManagerMixin, {
     },
     /**
      * @private
-     * @param {OwlEvent} ev
+     * @param {OdooEvent} ev
      */
     _onPagerChanged: async function (ev) {
-        const { currentMinimum, limit } = ev.detail;
+        const { currentMinimum, limit } = ev.data;
         const state = this.model.get(this.handle, { raw: true });
         await this._updatePagerProps(state, { disabled: true });
         const reloadParams = state.groupedBy && state.groupedBy.length ?
