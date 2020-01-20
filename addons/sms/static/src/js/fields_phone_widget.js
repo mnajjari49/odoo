@@ -54,7 +54,7 @@ Phone.include({
      */
     _renderReadonly: function () {
         var def = this._super.apply(this, arguments);
-        if (this.nodeOptions.enable_sms) {
+        if (this.nodeOptions.enable_sms && this.value) {
             var $composerButton = $('<a>', {
                 title: _t('Send SMS Text Message'),
                 href: '',
