@@ -755,7 +755,9 @@ QUnit.module('fields', {}, function () {
 
             await testUtils.dom.click($('.modal .modal-footer .o_form_button_cancel'));
             await testUtils.fields.editSelect(form.$('select[name="color"]'), '"black"');
-            assert.containsNone(form, '.o_list_record_remove', "should have the 'Add an item' link");
+            // remove icon should still be there as it does not delete record, it's just removing link
+            assert.containsN(form, '.o_list_record_remove', 2,
+                "should still have remove icon even after color field changed");
             assert.containsOnce(form, '.o_field_x2many_list_row_add',
                 '"Add a line" button should still be available even after color field changed');
 
@@ -1360,8 +1362,11 @@ QUnit.module('fields', {}, function () {
         });
 
         QUnit.test('many2many_tags widget: create/delete disabled on parent field based condition', async function (assert) {
-            assert.expect(7);
+            assert.expect(9);
             this.data.turtle.records[0].partner_ids = [2];
+            for (var i = 1; i <= 10; i++) {
+                this.data.partner.records.push({ id: 100 + i, display_name: "Partner" + i });
+            }
 
             const form = await createView({
                 View: FormView,
@@ -1374,6 +1379,12 @@ QUnit.module('fields', {}, function () {
                     <field name="partner_ids" options="{'create': [('turtle_bar', '=', True)], 'delete': [('turtle_bar', '=', True)]}" widget="many2many_tags"/>
                     </sheet>
                     </form>`,
+                archs: {
+                    'partner,false,list': '<tree><field name="name"/></tree>',
+                    'partner,false,search': '<search>' +
+                        '<field name="display_name" string="Name"/>' +
+                        '</search>',
+                },
                 res_id: 1,
             });
 
@@ -1386,24 +1397,43 @@ QUnit.module('fields', {}, function () {
 
             await testUtils.fields.many2one.clickOpenDropdown('partner_ids');
             const $dropdown1 = form.$('.o_field_many2one input').autocomplete('widget');
-            assert.containsOnce($dropdown1, 'li.o_m2o_dropdown_option',
+            assert.containsOnce($dropdown1, 'li.o_m2o_dropdown_option:contains(Create and Edit...)',
                 'autocomplete should contain Create and Edit...');
 
-            await testUtils.fields.editInput(form.$('.o_field_many2one input'), "Something that does not exist");
+            await testUtils.fields.many2one.clickItem('partner_ids', 'Search More');
+            // Select, Create and Cancel button should be available
+            assert.containsN($(document), '.modal .modal-footer button', 3,
+                'there should be 3 buttons available in the modal footer');
+
+            await testUtils.dom.click($('.modal .modal-footer .o_form_button_cancel'));
+            await testUtils.fields.editAndTrigger(form.$('.o_field_many2one input'),
+                'Something that does not exist', 'keydown');
+            await testUtils.nextTick();
             assert.containsN($dropdown1, 'li.o_m2o_dropdown_option', 2,
                 'autocomplete should contain Create and Create and Edit... options');
 
             await testUtils.dom.click(form.$('.o_field_widget[name="turtle_bar"] input').first());
-            assert.containsNone(form, '.o_field_many2manytags.o_field_widget .badge .o_delete',
-                'X icon on badge should not be there after turtle_bar is not checked');
+            // remove icon should still be there as it does not delete record, it's just removing link
+            assert.containsN(form, '.o_field_many2manytags.o_field_widget .badge .o_delete', 1,
+                'X icon on badge should still be there even after turtle_bar is not checked');
 
             await testUtils.fields.many2one.clickOpenDropdown('partner_ids');
             const $dropdown2 = form.$('.o_field_many2one input').autocomplete('widget');
-            assert.containsNone($dropdown2, 'li.o_m2o_dropdown_option',
+            // only Search More option should be available
+            assert.containsOnce($dropdown2, 'li.o_m2o_dropdown_option',
                 'autocomplete should not contain Create and Edit... options');
 
-            await testUtils.fields.editInput(form.$('.o_field_many2one input'), "Something that does not exist");
-            assert.containsNone($dropdown2, 'li.o_m2o_dropdown_option',
+            await testUtils.fields.many2one.clickItem('partner_ids', 'Search More');
+            // Select and Cancel button should be available
+            assert.containsN($(document), '.modal .modal-footer button', 2,
+                'there should be 2 buttons available in the modal footer');
+
+            await testUtils.dom.click($('.modal .modal-footer .o_form_button_cancel'));
+            await testUtils.fields.editAndTrigger(form.$('.o_field_many2one input'),
+                'Something that does not exist', 'keyup');
+            await testUtils.nextTick();
+            // only Search More options should be available
+            assert.containsOnce($dropdown2, 'li.o_m2o_dropdown_option',
                 'autocomplete should not contain Create and Create and Edit... options');
 
             form.destroy();

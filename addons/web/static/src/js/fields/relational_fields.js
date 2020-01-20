@@ -424,7 +424,7 @@ var FieldMany2One = AbstractField.extend({
             initial_ids: ids,
             initial_view: view,
             disable_multiple_selection: true,
-            no_create: !self.can_create,
+            no_create: !self.can_create || self.noCreate,
             kanban_view_ref: this.attrs.kanban_view_ref,
             on_selected: function (records) {
                 self.reinitialize(records[0]);
@@ -1267,9 +1267,10 @@ var FieldX2Many = AbstractField.extend({
         if (this.renderer) {
             this.currentColInvisibleFields = this._evalColumnInvisibleFields();
             return this.renderer.updateState(this.value, {
-                addCreateLine: !this.isReadonly && this.activeActions.create
-                    && (!this.isMany2Many && 'create' in this.evaluatedOptions ? this.evaluatedOptions.create : true),
-                addTrashIcon: !this.isReadonly && this.activeActions.delete && ('delete' in this.evaluatedOptions ? this.evaluatedOptions.delete : true),
+                addCreateLine: !this.isReadonly && this.activeActions.create &&
+                    (!this.isMany2Many && 'create' in this.evaluatedOptions ? this.evaluatedOptions.create : true),
+                addTrashIcon: !this.isReadonly && this.activeActions.delete &&
+                    (!this.isMany2Many && 'delete' in this.evaluatedOptions ? this.evaluatedOptions.delete : true),
                 columnInvisibleFields: this.currentColInvisibleFields,
                 keepWidths: true,
             }).then(function () {
@@ -1287,9 +1288,10 @@ var FieldX2Many = AbstractField.extend({
             this.currentColInvisibleFields = this._evalColumnInvisibleFields();
             _.extend(rendererParams, {
                 editable: this.mode === 'edit' && arch.attrs.editable,
-                addCreateLine: !this.isReadonly && this.activeActions.create
-                    && (!this.isMany2Many && 'create' in this.evaluatedOptions ? this.evaluatedOptions.create : true),
-                addTrashIcon: !this.isReadonly && this.activeActions.delete && ('delete' in this.evaluatedOptions ? this.evaluatedOptions.delete : true),
+                addCreateLine: !this.isReadonly && this.activeActions.create &&
+                    (!this.isMany2Many && 'create' in this.evaluatedOptions ? this.evaluatedOptions.create : true),
+                addTrashIcon: !this.isReadonly && this.activeActions.delete &&
+                    (!this.isMany2Many && 'delete' in this.evaluatedOptions ? this.evaluatedOptions.delete : true),
                 isMany2Many: this.isMany2Many,
                 columnInvisibleFields: this.currentColInvisibleFields,
             });
@@ -2369,7 +2371,7 @@ var FieldMany2ManyTags = AbstractField.extend({
             colorField: this.colorField,
             elements: elements,
             hasDropdown: this.hasDropdown,
-            readonly: this.mode === "readonly" || ('delete' in this.evaluatedOptions ? !this.evaluatedOptions.delete : false),
+            readonly: this.mode === "readonly",
         };
     },
     /**
