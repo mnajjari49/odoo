@@ -94,7 +94,7 @@
                 <input type="text"
                     class="o_input"
                     autofocus=""
-                    t-att-value="props.action.name"
+                    t-att-value="env.action.name"
                     t-on-keydown="_onInputKeydown"
                     t-on-input="_onInput"
                 />
@@ -108,8 +108,8 @@
 
 <t t-name="board.FavoriteMenu" t-inherit="web.FavoriteMenu" t-inherit-mode="extension" owl="1">
     <xpath expr="//ul[@role='menu']" position="inside">
-        <t t-if="props.action.type === 'ir.actions.act_window'">
-            <AddToBoardMenu action="props.action" viewType="props.viewType"/>
+        <t t-if="env.action.type === 'ir.actions.act_window'">
+            <AddToBoardMenu action="env.action" viewType="props.viewType"/>
         </t>
     </xpath>
 </t>

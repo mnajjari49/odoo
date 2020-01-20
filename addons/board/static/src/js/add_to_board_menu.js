@@ -12,10 +12,6 @@ odoo.define('board.AddToBoardMenu', function (require) {
     const { useState, useStore } = owl.hooks;
 
     class AddToBoardMenu extends DropdownMenuItem {
-        /**
-         * @param {Object} props
-         * @param {Object} props.action an ir.actions description
-         */
         constructor() {
             super(...arguments);
 
@@ -23,7 +19,7 @@ odoo.define('board.AddToBoardMenu', function (require) {
             this.query = useStore(state => state.query, { store: this.env.controlPanelStore });
             this.state = useState({
                 open: false,
-                name: this.props.action.name || "",
+                name: this.env.action.name || "",
             });
 
             this.focusOnUpdate = useFocusOnUpdate();
@@ -44,7 +40,7 @@ odoo.define('board.AddToBoardMenu', function (require) {
          */
         async _addToBoard() {
             const searchQuery = this.env.controlPanelStore.getQuery();
-            const context = new Context(this.props.action.context);
+            const context = new Context(this.env.action.context);
             context.add(searchQuery.context);
             context.add({
                 group_by: searchQuery.groupBy,
@@ -60,7 +56,7 @@ odoo.define('board.AddToBoardMenu', function (require) {
                 }
             });
 
-            const domainArray = new Domain(this.props.action.domain || []);
+            const domainArray = new Domain(this.env.action.domain || []);
             const domain = Domain.prototype.normalizeArray(domainArray.toArray().concat(searchQuery.domain));
 
             const evalutatedContext = pyUtils.eval('context', context);
@@ -76,7 +72,7 @@ odoo.define('board.AddToBoardMenu', function (require) {
             const result = await this.rpc({
                 route: '/board/add_to_dashboard',
                 params: {
-                    action_id: this.props.action.id || false,
+                    action_id: this.env.action.id || false,
                     context_to_save: evalutatedContext,
                     domain: domain,
                     // TODO: include viewType in props or transmit it another way
@@ -160,7 +156,6 @@ odoo.define('board.AddToBoardMenu', function (require) {
     }
 
     AddToBoardMenu.props = {
-        action: Object,
         viewType: String,
     };
     AddToBoardMenu.template = 'AddToBoardMenu';

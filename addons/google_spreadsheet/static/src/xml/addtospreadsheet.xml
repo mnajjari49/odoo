@@ -7,8 +7,8 @@
 
     <t t-name="google_spreadsheet.FavoriteMenu" t-inherit="web.FavoriteMenu" t-inherit-mode="extension" owl="1">
         <xpath expr="//ul[@role='menu']" position="inside">
-            <t t-if="props.action.type === 'ir.actions.act_window'">
-                <AddToGoogleSpreadsheetMenu action="props.action"/>
+            <t t-if="env.action.type === 'ir.actions.act_window'">
+                <AddToGoogleSpreadsheetMenu/>
             </t>
         </xpath>
     </t>

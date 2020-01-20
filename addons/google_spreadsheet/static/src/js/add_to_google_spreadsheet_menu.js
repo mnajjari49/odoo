@@ -19,9 +19,9 @@ odoo.define('board.AddToGoogleSpreadsheetMenu', function (require) {
          */
         async _onAddToSpreadsheet() {
             const searchQuery = this.env.controlPanelStore.getQuery();
-            const listView = this.props.action.views.find(view => view.type === 'list');
+            const listView = this.env.action.views.find(view => view.type === 'list');
 
-            const modelName = this.props.action.res_model;
+            const modelName = this.env.action.res_model;
             const domain = Domain.prototype.arrayToString(searchQuery.domain);
             const groupBys = pyUtils.eval('groupbys', searchQuery.groupBys).join(" ");
             const listViewId = listView ? listView.viewID : false;
@@ -37,9 +37,7 @@ odoo.define('board.AddToGoogleSpreadsheetMenu', function (require) {
         }
     }
 
-    AddToGoogleSpreadsheetMenu.props = {
-        action: Object,
-    };
+    AddToGoogleSpreadsheetMenu.props = {};
     AddToGoogleSpreadsheetMenu.template = 'AddToGoogleSpreadsheetMenu';
 
     // Add to the FavoriteMenu components object.
