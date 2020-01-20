@@ -74,7 +74,6 @@ PaymentForm.include({
                 }
             }).guardedCatch(function (error) {
                 // if the rpc fails, pretty obvious
-                error.event.preventDefault();
                 acquirerForm.removeClass('d-none');
                 self.enableButton(button);
                 self.displayError(
