@@ -15,9 +15,7 @@ class FileUploader extends Component {
         super(...args);
         this.storeDispatch = useDispatch();
         this._fileInputRef = useRef('fileInput');
-        this._fileUploadId = this.props.fileUploadId
-            ? this.props.fileUploadId
-            : _.uniqueId('o_FileUploader_fileupload');
+        this._fileUploadId = _.uniqueId('o_FileUploader_fileupload');
         this._onAttachmentUploaded = this._onAttachmentUploaded.bind(this);
     }
 
@@ -187,10 +185,6 @@ FileUploader.props = {
     attachmentLocalIds: {
         type: Array,
         element: String,
-    },
-    fileUploadId: {
-        type: String,
-        optional: true,
     },
     newAttachmentExtraData: {
         type: Object,
