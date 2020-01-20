@@ -37,7 +37,8 @@ class EventSaleTest(common.TransactionCase):
         self.sale_order = self.env['sale.order'].create({
             'partner_id': self.env['res.partner'].create({'name': 'My Attendee'}).id,
             'note': 'Invoice after delivery',
-            'payment_term_id': self.env.ref('account.account_payment_term_end_following_month').id
+            'payment_term_id': self.env.ref('account.account_payment_term_end_following_month').id,
+            'pricelist_id': self.env.ref('product.list0').id,
         })
 
         # In the sales order I add some sales order lines. i choose event product
