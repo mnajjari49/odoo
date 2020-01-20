@@ -1203,16 +1203,6 @@
     </div>
 </template>
 
-<template id="flagged_options">
-     <div style="text-align: center">
-               <a t-attf-href="/forum/#{slug(forum)}/post/#{slug(question)}/validate"
-                  title="Validate" aria-label="Validate" data-toggle="tooltip" class="btn border-success m-1 bg-white">
-                <i class="fa fa-check text-success"/>
-            </a>
-                <a t-attf-href="/forum/#{slug(forum)}/post/#{slug(question)}/refuse" data-toggle="tooltip" title="Mark as Offensive" aria-label="Mark as Offensive" class="btn border-danger m-1 bg-white"><i class="fa fa-times text-danger"/></a>
-            </div>
-</template>
-
 <template id="post_answers">
     <a t-attf-id="answer-#{str(answer.id)}"/>
     <div t-attf-class="forum_answer pt-4 border-top border-light #{answer.is_correct and 'o_wforum_answer_correct'}" t-attf-id="answer_#{answer.id}" >
