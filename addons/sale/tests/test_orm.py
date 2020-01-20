@@ -11,11 +11,6 @@ class TestORM(TransactionCase):
 
     def test_orm_compute_on_create(self):
 
-        # temp_order = self.env['sale.order'].new({
-        #     'partner_id': self.env.user.partner_id.id,
-        #     'order_line': [(0, 0, dict(product_id=self.env['product.product'].search([('sale_ok', '=', True)], limit=1)))]
-        # })
-
         # Verify Sales Order and Sales Order Line can be created with minimal information.
         order = self.env['sale.order'].create({
             'partner_id': self.env.user.partner_id.id,
