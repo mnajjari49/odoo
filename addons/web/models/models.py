@@ -228,13 +228,18 @@ class Base(models.AbstractModel):
                             'supported_types': supported_types, 'field_type': field.type}))
 
         Comodel = self.env[field.comodel_name]
-        fields = ['display_name']
+        fields = ['display_name', field_name + '_count']
         parent_name = Comodel._parent_name if Comodel._parent_name in Comodel._fields else False
         if parent_name:
             fields.append(parent_name)
+
+        values = Comodel.with_context(hierarchical_naming=False).search_read([], fields)
+        for value in values:
+            value['count'] = value[field_name + '_count']
+
         return {
             'parent_field': parent_name,
-            'values': Comodel.with_context(hierarchical_naming=False).search_read([], fields),
+            'values': values,
         }
 
     @api.model

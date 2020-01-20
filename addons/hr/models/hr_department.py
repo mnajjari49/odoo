@@ -20,6 +20,7 @@ class Department(models.Model):
     child_ids = fields.One2many('hr.department', 'parent_id', string='Child Departments')
     manager_id = fields.Many2one('hr.employee', string='Manager', tracking=True, domain="['|', ('company_id', '=', False), ('company_id', '=', company_id)]")
     member_ids = fields.One2many('hr.employee', 'department_id', string='Members', readonly=True)
+    department_id_count = fields.Integer('Number of Employee', compute='_compute_department_id_count', store=True)
     jobs_ids = fields.One2many('hr.job', 'department_id', string='Jobs')
     note = fields.Text('Note')
     color = fields.Integer('Color Index')
@@ -36,6 +37,11 @@ class Department(models.Model):
                 department.complete_name = '%s / %s' % (department.parent_id.complete_name, department.name)
             else:
                 department.complete_name = department.name
+
+    @api.depends('member_ids')
+    def _compute_department_id_count(self):
+        for department in self:
+            department.department_id_count = len(department.member_ids)
 
     @api.constrains('parent_id')
     def _check_parent_id(self):
