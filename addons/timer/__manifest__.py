@@ -13,10 +13,11 @@ This module implements a timer.
 
 It adds a timer to a view for time recording purpose
     """,
-    'depends': ['base', 'web'],
+    'depends': ['base', 'web', 'mail'],
     'data': [
-        'views/assets.xml',
+        'security/timer_security.xml',
         'security/ir.model.access.csv',
+        'views/assets.xml',
     ],
     'demo': [],
     'installable': True,

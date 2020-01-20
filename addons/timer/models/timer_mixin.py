@@ -8,11 +8,11 @@ class TimerMixin(models.AbstractModel):
     _name = 'timer.mixin'
     _description = 'Timer Mixin'
 
-    timer_start = fields.Datetime(compute='_compute_is_timer_running')
-    timer_pause = fields.Datetime(compute='_compute_is_timer_running')
-    is_timer_running = fields.Boolean(compute='_compute_is_timer_running')
+    timer_start = fields.Datetime(compute='_compute_timer')
+    timer_pause = fields.Datetime(compute='_compute_timer')
+    is_timer_running = fields.Boolean(compute='_compute_timer')
 
-    def _compute_is_timer_running(self):
+    def _compute_timer(self):
         for record in self:
             record_timer = record._get_record_timer()
             record.is_timer_running = record_timer.is_timer_running
@@ -26,15 +26,11 @@ class TimerMixin(models.AbstractModel):
             :res_model is the current model
             limit=1 by security but the search should never have more than one record
         """
-        self.ensure_one()
         return self.env['timer.timer'].search([
             ('user_id', '=', self.env.user.id),
             ('res_id', '=', self.id),
             ('res_model', '=', self._name)
         ], limit=1)
-
-    def _is_timer_user_running(self):
-        return self._get_record_timer().is_timer_running
 
     @api.model
     def _get_user_timers(self):
@@ -48,7 +44,6 @@ class TimerMixin(models.AbstractModel):
         If there isn't a timer for the current record, create one then start it
         Otherwise, resume or start it
         """
-        self.ensure_one()
         self.stop_timer_in_progress()
         timer = self._get_record_timer()
         if not timer:
@@ -67,6 +62,7 @@ class TimerMixin(models.AbstractModel):
                 timer.action_timer_resume()
             else:
                 timer.action_timer_start()
+        self._compute_timer()
         
 
     def action_timer_stop(self):
@@ -75,12 +71,12 @@ class TimerMixin(models.AbstractModel):
         A new timer can be create if needed
         Return the amount of minutes spent
         """
-        self.ensure_one()
         timer = self._get_record_timer()
         minutes_spent = timer.action_timer_stop()
         self.env['timer.timer'].search([
                     ('id', '=', timer.id)
                 ]).unlink()
+        self._compute_timer()
         return minutes_spent
         
 
@@ -88,12 +84,14 @@ class TimerMixin(models.AbstractModel):
         self.ensure_one()
         timer = self._get_record_timer()
         timer.action_timer_pause()
+        self._compute_timer()
 
     def action_timer_resume(self):
         self.ensure_one()
         self.stop_timer_in_progress()
         timer = self._get_record_timer()
         timer.action_timer_resume()
+        self._compute_timer()
     
     def interruption(self):
         # Interruption is the action called when the timer is stoped by the start of another one

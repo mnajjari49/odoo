@@ -14,12 +14,13 @@ class TimerTimer(models.Model):
     res_id = fields.Char()
     user_id = fields.Many2one('res.users')
 
-    @api.depends('timer_start')
+    @api.depends('timer_start', 'timer_pause')
     def _compute_timer(self):
         for record in self:
             record.is_timer_running = bool(record.timer_start) and not bool(record.timer_pause)
 
     def action_timer_start(self):
+        self.ensure_one()
         if not self.timer_start:
             self.write({'timer_start': fields.Datetime.now()})
 
@@ -28,6 +29,7 @@ class TimerTimer(models.Model):
             :return minutes_spent if the timer is started,
                     otherwise return False
         """
+        self.ensure_one()
         if not self.timer_start:
             return False
         minutes_spent = self._get_minutes_spent()
@@ -43,9 +45,11 @@ class TimerTimer(models.Model):
         return (stop_time - start_time).total_seconds() / 60
 
     def action_timer_pause(self):
+        self.ensure_one()
         self.write({'timer_pause': fields.Datetime.now()})
 
     def action_timer_resume(self):
+        self.ensure_one()
         new_start = self.timer_start + (fields.Datetime.now() - self.timer_pause)
         self.write({'timer_start': new_start, 'timer_pause': False})
 
