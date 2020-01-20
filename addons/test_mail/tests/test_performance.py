@@ -3,12 +3,12 @@
 import base64
 
 from odoo.addons.base.tests.common import TransactionCaseWithUserDemo
-from odoo.tests.common import TransactionCase, users, warmup
+from odoo.tests.common import users, warmup
 from odoo.tests import tagged
 from odoo.tools import mute_logger, formataddr
 
 
-@tagged('mail_performance')
+@tagged('mail_performance', 'post_install', '-at_install')
 class BaseMailPerformance(TransactionCaseWithUserDemo):
 
     def setUp(self):
@@ -37,7 +37,8 @@ class BaseMailPerformance(TransactionCaseWithUserDemo):
             module = self.env['ir.module.module'].search([('name', '=', module_name)])
             self.offset[module_name] = 1 if module.state == 'installed' else 0
 
-@tagged('mail_performance')
+
+@tagged('mail_performance', 'post_install', '-at_install')
 class TestMailPerformance(BaseMailPerformance):
 
     def setUp(self):
@@ -172,7 +173,7 @@ class TestMailPerformance(BaseMailPerformance):
             })
 
 
-@tagged('mail_performance')
+@tagged('mail_performance', 'post_install', '-at_install')
 class TestMailAPIPerformance(BaseMailPerformance):
 
     def setUp(self):
@@ -404,7 +405,7 @@ class TestMailAPIPerformance(BaseMailPerformance):
             record.message_subscribe(partner_ids=self.user_test.partner_id.ids, subtype_ids=subtype_ids)
 
 
-@tagged('mail_performance')
+@tagged('mail_performance', 'post_install', '-at_install')
 class TestMailComplexPerformance(BaseMailPerformance):
 
     def setUp(self):
@@ -708,7 +709,7 @@ class TestMailComplexPerformance(BaseMailPerformance):
         self.assertEqual(len(rec1.message_ids), 3)
 
 
-@tagged('mail_performance')
+@tagged('mail_performance', 'post_install', '-at_install')
 class TestMailHeavyPerformancePost(BaseMailPerformance):
 
     def setUp(self):
@@ -852,7 +853,7 @@ class TestMailHeavyPerformancePost(BaseMailPerformance):
         # self.assertEqual(record.message_ids[0].notified_partner_ids, [])
 
 
-@tagged('mail_performance')
+@tagged('mail_performance', 'post_install', '-at_install')
 class TestTrackingPerformance(BaseMailPerformance):
 
     @users('__system__', 'demo')
