@@ -353,7 +353,7 @@ class PurchaseOrderLine(models.Model):
             qty += move.product_uom._compute_quantity(move.product_uom_qty, self.product_uom, rounding_method='HALF-UP')
         move_vals = self._prepare_stock_move_vals(picking, price_unit)
         if self.move_dest_ids:
-            move_dests_initial_demand = sum(self.move_dest_ids.mapped('product_qty'))
+            move_dests_initial_demand = sum(self.move_dest_ids.filtered(lambda m: m.state != 'cancel').mapped('product_qty'))
             move_dests_initial_demand = self.product_id.uom_id._compute_quantity(
                 move_dests_initial_demand, self.product_uom, rounding_method='HALF-UP')
             diff_quantity = move_dests_initial_demand - qty
