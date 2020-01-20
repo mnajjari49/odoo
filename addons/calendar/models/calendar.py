@@ -755,13 +755,9 @@ class Meeting(models.Model):
         if self.env.context.get('active_model') == 'res.partner':
             partner_id = self.env.context.get('active_id')
             for event in self:
-                if event.partner_ids.filtered(lambda s: s.id == partner_id):
-                    event.is_highlighted = True
-                else:
-                    event.is_highlighted = False
+                event.is_highlighted = (partner_id in event.partner_ids.ids)
         else:
-            for event in self:
-                event.is_highlighted = False
+            self.is_highlighted = False
 
     name = fields.Char('Meeting Subject', required=True, states={'done': [('readonly', True)]})
     state = fields.Selection([('draft', 'Unconfirmed'), ('open', 'Confirmed')], string='Status', readonly=True, tracking=True, default='draft')

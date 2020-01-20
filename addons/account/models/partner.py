@@ -36,11 +36,6 @@ class AccountFiscalPosition(models.Model):
     zip_from = fields.Char(string='Zip Range From')
     zip_to = fields.Char(string='Zip Range To')
     # To be used in hiding the 'Federal States' field('attrs' in view side) when selected 'Country' has 0 states.
-    states_count = fields.Integer(compute='_compute_states_count')
-
-    def _compute_states_count(self):
-        for position in self:
-            position.states_count = len(position.country_id.state_ids)
 
     @api.constrains('zip_from', 'zip_to')
     def _check_zip(self):
@@ -79,7 +74,6 @@ class AccountFiscalPosition(models.Model):
         if self.country_id:
             self.zip_from = self.zip_to = self.country_group_id = False
             self.state_ids = [(5,)]
-            self.states_count = len(self.country_id.state_ids)
 
     @api.onchange('country_group_id')
     def _onchange_country_group_id(self):
@@ -328,11 +322,6 @@ class ResPartner(models.Model):
         for partner, child_ids in all_partners_and_children.items():
             partner.total_invoiced = sum(price['total'] for price in price_totals if price['partner_id'] in child_ids)
 
-    def _compute_journal_item_count(self):
-        AccountMoveLine = self.env['account.move.line']
-        for partner in self:
-            partner.journal_item_count = AccountMoveLine.search_count([('partner_id', '=', partner.id)])
-
     def _compute_has_unreconciled_entries(self):
         for partner in self:
             # Avoid useless work if has_unreconciled_entries is not relevant for this partner
@@ -390,7 +379,6 @@ class ResPartner(models.Model):
         groups='account.group_account_invoice')
     currency_id = fields.Many2one('res.currency', compute='_get_company_currency', readonly=True,
         string="Currency", help='Utility field to express amount currency')
-    journal_item_count = fields.Integer(compute='_compute_journal_item_count', string="Journal Items", type="integer")
     property_account_payable_id = fields.Many2one('account.account', company_dependent=True,
         string="Account Payable",
         domain="[('internal_type', '=', 'payable'), ('deprecated', '=', False)]",

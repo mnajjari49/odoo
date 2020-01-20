@@ -49,7 +49,7 @@ class AccountingTestTemplConsistency(TransactionCase):
         '''
         #main
         self.check_fields_consistency('account.fiscal.position.template', 'account.fiscal.position', exceptions=['chart_template_id'])
-        self.check_fields_consistency('account.fiscal.position', 'account.fiscal.position.template', exceptions=['active', 'company_id', 'states_count'])
+        self.check_fields_consistency('account.fiscal.position', 'account.fiscal.position.template', exceptions=['active', 'company_id'])
         #taxes
         self.check_fields_consistency('account.fiscal.position.tax.template', 'account.fiscal.position.tax')
         self.check_fields_consistency('account.fiscal.position.tax', 'account.fiscal.position.tax.template')

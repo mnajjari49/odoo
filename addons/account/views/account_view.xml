@@ -598,9 +598,7 @@ action = model.setting_init_bank_account_action()
                     <div class="oe_button_box" name="button_box">
                         <button class="oe_stat_button" name="button_journal_entries"
                                 string="Journal Entries" type="object"
-                                attrs="{'invisible':[('move_line_count','=', 0)]}" icon="fa-bars" />
-                        <field name="move_line_count" invisible="1"/>
-
+                                attrs="{'invisible':[('move_line_ids', '=', False)]}" icon="fa-bars" />
                     </div>
                     <div class="oe_title oe_inline">
                         <label for="name" class="oe_edit_only"/>
