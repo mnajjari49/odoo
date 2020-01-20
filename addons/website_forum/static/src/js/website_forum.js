@@ -153,8 +153,7 @@ publicWidget.registry.websiteForum = publicWidget.Widget.extend({
                     if (wysiwyg.getValue() === '<p><br></p>') {
                         ev.stopPropagation();
                         ev.preventDefault();
-                        var hashtags = $(ev.currentTarget).data('hashtags')
-                        var message = hashtags === '#question' ? _t("Question should not be empty.") : _t("Reply should not be empty.");
+                        var message = $(ev.currentTarget).data('hashtags') === '#question' ? _t("Question should not be empty.") : _t("Reply should not be empty.");
                         self.call('crash_manager', 'show_warning', {
                             message: message,
                             title: _t("Bad Request"),
@@ -250,7 +249,7 @@ publicWidget.registry.websiteForum = publicWidget.Widget.extend({
      * @private
      * @param {Event} ev
      */
-    _onFlagAlertClick: async function (ev) {
+    _onFlagAlertClick: function (ev) {
         var self = this;
         ev.preventDefault();
         var $link = $(ev.currentTarget);
@@ -275,13 +274,19 @@ publicWidget.registry.websiteForum = publicWidget.Widget.extend({
             } else if (data.success) {
                 var elem = $link;
                 if (data.success === 'post_flagged_moderator') {
-                    elem.html('Flagged').prepend('<i class="fas fa-flag text-muted mr-2"/>');
-                    elem.data('href');
+                    var $child = elem.children();
+                    elem.html('Flagged').prepend($child);
                     var c = parseInt($('span#count_flagged_posts').html(), 10);
                     c++;
-                    $('span#count_flagged_posts').html(c);
+                    $('span#count_flagged_posts')
+                    .removeClass("badge-light")
+                    .addClass("badge-danger")
+                    .html(c);
+                    debugger;
+                    elem.parent().find('div#flag_validator').removeClass('d-none');
                 } else if (data.success === 'post_flagged_non_moderator') {
-                    elem.data('href') && elem.html('Flagged');
+                    var $child = elem.children();
+                    elem.html('Flagged').prepend($child);
                     var forumAnswer = elem.closest('.forum_answer');
                     forumAnswer.fadeIn(1000);
                     forumAnswer.slideUp(1000);
@@ -345,6 +350,7 @@ publicWidget.registry.websiteForum = publicWidget.Widget.extend({
      */
     _onValidationQueueClick: function (ev) {
         ev.preventDefault();
+        ev.stopPropagation();
         var $link = $(ev.currentTarget);
         $link.parents('.post_to_validate').hide();
         $.get($link.attr('href')).then(() => {

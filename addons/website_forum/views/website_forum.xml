@@ -34,6 +34,15 @@
             <i t-if="icon and label" t-attf-class="fa fa-fw text-muted #{icon} #{inDropdown and 'mr-1'}"/>
             <t t-esc="label"/>
         </button>
+
+        <div t-if="flag_validator" id="flag_validator" t-attf-class="ml16 #{'' if question.state == 'flagged' else 'd-none'}">
+            <a t-attf-href="/forum/#{slug(forum)}/post/#{slug(question)}/validate" title="Validate" aria-label="Validate" data-toggle="tooltip" class="btn border-success m-1 bg-white">
+                    <i class="fa fa-check text-success"/>
+            </a>
+            <a t-attf-href="/forum/#{slug(forum)}/post/#{slug(question)}/refuse" data-toggle="tooltip" title="Mark as Offensive" aria-label="Mark as Offensive" class="btn border-danger m-1 bg-white">
+                <i class="fa fa-times text-danger"/>
+            </a>
+        </div>
     </form>
 </template>
 
@@ -1133,7 +1142,6 @@
     </t>
 </template>
 
-
 <template id="website_forum.question_dropdown">
     <div class="dropdown">
         <a class="btn py-0" href="#" role="button" id="dropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -1197,18 +1205,20 @@
                 <t t-set="icon" t-value="not question.can_flag and 'fa-flag-o' or 'fa-flag'"/>
                 <t t-set="karma" t-value="not question.can_flag and question.forum_id.karma_flag or 0"/>
                 <t t-set="classes" t-value="'flag'"/>
+                <t t-set="flag_validator" t-value="True"/>
             </t>
-            <t t-if="question.state == 'flagged'" >
-                <div style="text-align: center">
+        </div>
+    </div>
+</template>
+
+<template id="flagged_options">
+     <div style="text-align: center">
                <a t-attf-href="/forum/#{slug(forum)}/post/#{slug(question)}/validate"
                   title="Validate" aria-label="Validate" data-toggle="tooltip" class="btn border-success m-1 bg-white">
                 <i class="fa fa-check text-success"/>
             </a>
                 <a t-attf-href="/forum/#{slug(forum)}/post/#{slug(question)}/refuse" data-toggle="tooltip" title="Mark as Offensive" aria-label="Mark as Offensive" class="btn border-danger m-1 bg-white"><i class="fa fa-times text-danger"/></a>
             </div>
-        </t>
-        </div>
-    </div>
 </template>
 
 <template id="post_answers">
@@ -1316,8 +1326,9 @@
                                     <t t-set="form_method" t-value="'GET'"/>
                                     <t t-set="inDropdown" t-value="True"/>
                                     <t t-set="karma" t-value="not answer.can_flag and answer.forum_id.karma_flag or 0"/>
-                                    <t t-set="icon" t-value="'fa-flag-o text-muted mr-2'"/>
-                                    <t t-set="form_classes" t-value="'flag'"/>
+                                    <t t-set="icon" t-value="'far fa-flag text-muted mr-2'"/>
+                                    <t t-set="classes" t-value="'flag'"/>
+                                    <t t-set="flag_validator" t-value="True"/>
                                 </t>
 
                                 <t t-call="website_forum.link_button">
