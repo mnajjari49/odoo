@@ -172,7 +172,7 @@ var PortalComposer = publicWidget.Widget.extend({
                 self._rpc({
                     route: route,
                     params: _.object(_.pluck(data, 'name'), _.pluck(data, 'value')),
-                }).then(function (url) {
+                }).then(function () {
                     var $parent = self.getParent();
                     if (self.options.is_portal_chatter) {
                         $parent._chatterInit().then(function (result) {
