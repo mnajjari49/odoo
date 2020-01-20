@@ -277,7 +277,7 @@ class EventEvent(models.Model):
 
             self.is_online = self.event_type_id.is_online
 
-            if self.event_type_id.event_type_mail_ids:
+            if self.event_type_id.use_mail_schedule:
                 self.event_mail_ids = [(5, 0, 0)] + [
                     (0, 0, {
                         attribute_name: line[attribute_name] if not isinstance(line[attribute_name], models.BaseModel) else line[attribute_name].id
