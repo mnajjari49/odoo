@@ -170,8 +170,12 @@ class StockRule(models.Model):
         else:
             new_move_vals = self._push_prepare_move_copy_values(move, new_date)
             new_move = move.sudo().copy(new_move_vals)
-            move.write({'move_dest_ids': [(4, new_move.id)]})
-            new_move._action_confirm()
+            if not new_move.location_id.should_bypass_reservation():
+                move.write({'move_dest_ids': [(4, new_move.id)]})
+                new_move._action_confirm()
+            else:
+                new_move._action_confirm()
+                move._action_assign()
 
     def _push_prepare_move_copy_values(self, move_to_copy, new_date):
         company_id = self.company_id.id
