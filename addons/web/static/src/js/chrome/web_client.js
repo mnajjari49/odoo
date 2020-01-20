@@ -2,6 +2,7 @@ odoo.define('web.WebClient', function (require) {
 "use strict";
 
 const ActionManager = require('web.ActionManager');
+const Action = require('web.Action');
 const Menu = require('web.Menu');
 
 const { Component, hooks } = owl;
@@ -10,14 +11,25 @@ const useRef = hooks.useRef;
 class WebClient extends Component {
     constructor() {
         super();
-        this.actionManager = useRef('actionManager');
+        this.currentController = null;
+        this.actionManager = new ActionManager(this.env);
+        this.actionManager.on('cancel', this, () => {
+            if (this.__owl__.currentFiber) {
+                this.__owl__.currentFiber.cancel();
+            }
+        });
+        this.actionManager.on('update', this, (ev) => {
+            this.currentController = ev.detail.controller;
+            this.render().then(ev.detail.onSuccess);
+        });
         this.menu = useRef('menu');
     }
 
     async willStart() {
         this.menus = await this._loadMenus();
-        this.initialMenuID = this.menus.root.children[0];
-        this.initialAction = this.menus[this.initialMenuID].actionID;
+        this.currentMenuID = this.menus.root.children[0];
+        const initialAction = this.menus[this.currentMenuID].actionID;
+        return this.actionManager.doAction(initialAction);
     }
 
     //--------------------------------------------------------------------------
@@ -25,8 +37,8 @@ class WebClient extends Component {
     //--------------------------------------------------------------------------
 
     /**
-     * FIXME: consider moving this to menu.js
-     * Loads and sanitizes the menu data
+     * FIXME: consider moving this to menu.j
+sa     * Loads and sanitizes the menu data
      *
      * @private
      * @returns {Promise<Object>}
@@ -96,7 +108,8 @@ class WebClient extends Component {
      * @param {function} [ev.payload.on_fail]
      */
     _onDoAction(ev) {
-        this.actionManager.comp.doAction(ev.detail.action, ev.detail.options);
+        //trigger on bus
+        this.actionManager.doAction(ev.detail.action, ev.detail.options);
         // TODO: honnor on_fail for legacy components ?
         // callback: ev.detail.on_success,
         // .guardedCatch(ev.detail.on_fail || (() => {}));
@@ -106,14 +119,14 @@ class WebClient extends Component {
      */
     _onOpenMenu(ev) {
         const action = this.menus[ev.detail.menuID].actionID;
-        this.actionManager.comp.doAction(action, {
+        this.actionManager.doAction(action, {
             clear_breadcrumbs: true,
             callback: () => this.menu.comp.setCurrentMenuID(ev.detail.menuID),
         });
     }
 
 }
-WebClient.components = { ActionManager, Menu };
+WebClient.components = { Action, Menu };
 WebClient.template = 'web.WebClient';
 
 return WebClient;

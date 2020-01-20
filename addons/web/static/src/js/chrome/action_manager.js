@@ -9,23 +9,17 @@ const { redirect } = require('web.framework');
 var pyUtils = require('web.py_utils');
 const Widget = require('web.Widget');
 
-const { Component, tags, useState } = owl;
+const { Component, tags, useState , core } = owl;
 const xml = tags.xml;
-
-// Fake loading action that never resolves. Will be replaced by a real Action as
-// soon as its description will be loaded.
-class LoadingAction extends Component {
-    willStart() {
-        return new Promise(() => {});
-    }
-}
-LoadingAction.template = xml`<div/>`;
 
 let nextID = 1;
 
-class ActionManager extends Component {
-    constructor() {
-        super(...arguments);
+class ActionManager extends core.EventBus {
+    constructor(env) {
+        super();
+        this.env = env;
+        this.env.bus.on('do-action', this, this.doAction);
+        //this.env.bus.on('switch-view', this, this.switchView);
 
         // handled by the ActionManager (either stacked in the current window,
         // or opened in dialogs)
@@ -40,24 +34,7 @@ class ActionManager extends Component {
         // 'controllerStack' is the stack of ids of the controllers currently
         // displayed in the current window
         this.currentStack = [];
-        this.state = useState({
-            pendingStack: null,
-        });
     }
-    willStart() {
-        if (this.props.initialAction) {
-            this.doAction(this.props.initialAction);
-        }
-        // this.actionRequest = this._generateActionRequest(this.props.actionRequest);
-        // return this.doAction(this.actionRequest);
-    }
-    patched() {
-        this._postProcessAction();
-    }
-    mounted() {
-        this._postProcessAction();
-    }
-
     //--------------------------------------------------------------------------
     // Public
     //--------------------------------------------------------------------------
@@ -90,7 +67,7 @@ class ActionManager extends Component {
      */
     async doAction(action, options) {
         // cancel potential current rendering
-        this._pushController({jsID: this._nextID('controller'), loading: true});
+        this.trigger('cancel');
 
         const defaultOptions = {
             additional_context: {},
@@ -425,41 +402,14 @@ class ActionManager extends Component {
      * controllerStack. Also removes the potential actions/controllers that are
      * replaced by the current action.
      *
-     * @private
-     */
-    _postProcessAction() {
-        if (this.state.pendingStack === null) {
-            return;
-        }
-        this.currentStack = this.state.pendingStack.slice();
-        const controllerID = this.currentStack[this.currentStack.length - 1];
-        const controller = this.controllers[controllerID];
-        // Triggers the final rendering
-        this.state.pendingStack = null;
-        this._cleanActions();
-
-
-        // store the action into the sessionStorage so that it can be fully restored on F5
-        const action = this.actions[controller.actionID];
-        this.env.services.session_storage.setItem('current_action', action._originalAction);
-
-        if (controller.options && controller.options.callback) {
-            controller.options.callback();
-            delete controller.options.callback;
-        }
-
-        console.warn(this.currentStack);
-        console.warn(this.controllers);
-        console.warn(this.actions);
-    }
-    /**
-     * Preprocesses the action before it is handled by the ActionManager
-     * (assigns a JS id, evaluates its context and domains...).
-     *
-     * @param {Object} action
-     * @param {Object} options
-     * @returns {Object} shallow copy of action with some new/updated values
-     */
+-    /**
+-     * Preprocesses the action before it is handled by the ActionManager
+-     * (assigns a JS id, evaluates its context and domains...).
+-     *
+-     * @param {Object} action
+-     * @param {Object} options
+-     * @returns {Object} shallow copy of action with some new/updated values
+-     */
     _preprocessAction(action, options) {
         action = Object.assign({}, action);
 
@@ -485,10 +435,20 @@ class ActionManager extends Component {
      * @param {Object} controller
      */
     _pushController(controller) {
-        this.controllers[controller.jsID] = controller;
-        this.state.pendingStack = this.currentStack.slice();
-        this.state.pendingStack.splice(controller.index);
-        this.state.pendingStack.push(controller.jsID);
+        const action = this.actions[controller.actionID];
+        const onSuccess = () => {
+            this.currentStack.splice(controller.index);
+            this.currentStack.push(controller.jsID);
+            this._cleanActions();
+
+            // store the action into the sessionStorage so that it can be fully restored on F5
+            this.env.services.session_storage.setItem('current_action', action._originalAction);
+            console.warn(this.currentStack);
+            console.warn(this.controllers);
+            console.warn(this.actions);
+        }
+        controller = Object.assign({}, controller, {action})
+        this.trigger('update', {controller, onSuccess});
     }
     /**
      * Restores a controller from the controllerStack and removes all
@@ -543,8 +503,6 @@ class ActionManager extends Component {
         this._restoreController(ev.detail.controllerID);
     }
 }
-ActionManager.components = { Action, LoadingAction };
-ActionManager.template = 'web.ActionManager';
 
 return ActionManager;
 

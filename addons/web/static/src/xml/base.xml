@@ -5,8 +5,17 @@
 
 <t t-name="web.WebClient" owl="1">
     <body class="o_web_client" t-on-do-action.stop="_onDoAction">
-        <Menu t-ref="menu" menus="menus" initialMenuID="initialMenuID" t-on-open-menu="_onOpenMenu"/>
-        <ActionManager t-ref="actionManager" initialAction="initialAction"/>
+        <Menu t-ref="menu" menus="menus" menuID="currentMenuID" t-on-open-menu="_onOpenMenu"/>
+        <div class="o_action_manager"
+            t-on-breadcrumb-clicked.stop="_onBreadcrumbClicked"
+            t-on-switch-view.stop="_onSwitchView"
+            t-on-execute-action.stop="_onExecuteAction"
+            t-on-reloading-legacy.stop="_onReloadingLegacy">
+            <Action class="o_action" t-key="currentController.jsID"
+                    Component="currentController.Component"
+                    action="currentController.action"
+                    options="currentController.options"/>
+        </div>
     </body>
 </t>
 <t t-name="web.ActionManager" owl="1">
@@ -19,11 +28,7 @@
         <t t-if="controllerID">
             <t t-set="controller" t-value="controllers[controllerID]"/>
             <LoadingAction t-if="controller.loading"/>
-            <Action t-else="" class="o_action" t-key="controller.jsID"
-                    Component="controller.Component"
-                    action="actions[controller.actionID]"
-                    options="controller.options"
-                    shouldUpdateWidget="state.pendingStack !== null"/>
+            
         </t>
     </div>
 </t>

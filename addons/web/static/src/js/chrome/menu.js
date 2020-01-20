@@ -9,7 +9,7 @@ class Menu extends Component {
     constructor() {
         super(...arguments);
         this.state = useState({
-            currentMenuID: this.props.initialMenuID,
+            currentMenuID: this.props.menuID,
         });
         this.menus = this.props.menus;
     }
