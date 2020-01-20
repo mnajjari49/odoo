@@ -121,83 +121,53 @@ class ResPartnerBank(models.Model):
             number = self.find_number(t_street_comp)
             number_deb = self.find_number(t_street_deb)
 
-            #TODO OCO: je retire la date; pas dans la spec du tout ... (ni dans les exemples)
-            qr_code_string = 'SPC\n0100\n1\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s' % (
-                              self.acc_number,
-                              self.company_id.name,
-                              t_street_comp or False,
-                              number,
-                              self.company_id.zip,
-                              self.company_id.city,
-                              self.company_id.country_id.code,
-                              amount,
-                              currency.name,
-                              debtor_partner.name,
-                              t_street_deb,
-                              number_deb,
-                              debtor_partner.zip,
-                              debtor_partner.city,
-                              debtor_partner.country_id.code,
-                              'QRR',
-                              isr_reference,
-                              communication)
+            creditor_addr_1, credior_addr_2 = self._get_partner_address_lines(self.partner_id)
+            debtor_addr_1, debtor_addr_2 = self._get_partner_address_lines(debtor_partner)
 
-            return '/report/barcode/?type=%s&value=%s&width=%s&height=%s&humanreadable=1&mask=ch_cross' % ('QR', werkzeug.url_quote_plus(qr_code_string), 256, 256)
+
+            qr_code_vals = [
+                'SPC',                                          # QR Type
+                '0200',                                         # Version
+                '1',                                            # Coding Type
+                self.acc_number,                                # IBAN (TODO OCO check ! + QR-IBAN)
+                'K',                                            # Creditor Address Type
+                self.cut_string_to(self.partner_id.name 70),    # Creditor Name
+                creditor_addr_1,                                # Creditor Address Line 1
+                creditor_addr_2,                                # Creditor Address Line 2
+                self.partner_id.country_id.code,                # Creditor Country
+                amount,                                         # Amount
+                currency.name,                                  # Currency
+                'K',                                            # Debtor Address Type
+                self.cut_string_to(debtor_partner.name, 70),    # Debtor Name
+                debtor_addr_1,                                  # Debtor Address Line 1
+                debtor_addr_2,                                  # Debtor Address Line 2
+                'QRR',                                          # Reference Type (TODO OCO et SCOR ?)
+                isr_reference,                                  # Reference
+                communication,                                  # Unstructured Message
+            ]
+
+            return '/report/barcode/?type=%s&value=%s&width=%s&height=%s&humanreadable=1&mask=ch_cross' % ('QR', werkzeug.url_quote_plus(qr_code_vals.join('\n')), 256, 256)
 
         return super().build_qr_code_url(amount, comment, currency, debtor_partner)
 
+    def _get_partner_address_lines(self, partner): #TODO OCO DOC
+        line_1 = (partner.street or '') + ' ' + (partner.street2 or '')
+        line_2 = partner.zip + ' ' + partner.city
+        self._cut_string_to(line1, 70), self._cut_string_to(line2, 70)
+
+    def _cut_string_to(self, string, length): #TODO OCO DOC
+        return string if len(string) <= length else (string[:length-3] + '...')
+
     def _eligible_for_swiss_qr_code(self, debtor_partner):
+        def _partner_fields_set(partner):
+            return partner.zip and \
+                   partner.city and \
+                   partner.country_id.code and \
+                   (self.partner_id.street1 or self.partner_id.street2)
+
         self.ensure_one()
         currency = self.currency_id or self.company_id.currency_id
 
-        t_street_comp, number = self._get_street_and_number(self.partner_id)
-        t_street_deb, number_deb = self._get_street_and_number(debtor_partner)
-
-        if currency.name == 'EUR':
-            return (self.l10n_ch_isr_subscription_eur and
-                    self.company_id.zip and
-                    self.company_id.city and
-                    self.company_id.country_id.code and
-                    t_street_comp and
-                    t_street_deb and
-                    debtor_partner.zip and
-                    debtor_partner.city and
-                    debtor_partner.country_id.code and
-                    number != False and
-                    number_deb != False)
-
-        elif currency.name == 'CHF':
-            return  (self.l10n_ch_isr_subscription_chf and
-                    self.company_id.zip and
-                    self.company_id.city and
-                    self.company_id.country_id.code and
-                    t_street_comp and
-                    t_street_deb and
-                    debtor_partner.zip and
-                    debtor_partner.city and
-                    debtor_partner.country_id.code and
-                    number != False and
-                    number_deb != False)
-
-        else:
-            return False
-
-    def _get_street_and_number(self, partner):
-        street = '%s %s' % (partner.company_id.street or '', self.company_id.street2 or '')
-        number = self.find_number(street)
-        return street, number
-
-    def find_number(self, s): #TODO OCO utiliser base_address_extend ?
-        # This regex matches numbers like 1bis 1a
-        lmo = re.findall('([0-9]+[^ ]*)',s)
-        # No number found
-        if len(lmo) == 0:
-            return ''
-        # Only one number or starts with a number return the first one
-        if len(lmo) == 1 or re.match(r'^\s*([0-9]+[^ ]*)',s):
-            return lmo[0]
-        # Else return the last one
-        if len(lmo) > 1:
-            return lmo[-1]
-        else:
-            return ''
+        return (currency.name == 'EUR' and self.l10n_ch_isr_subscription_eur) or (currency.name == 'CHF' and self.l10n_ch_isr_subscription_chf) and \
+               _partner_fields_set(self.partner_id) and \
+               (not debtor_partner or _partner_fields_set(debtor_partner))
