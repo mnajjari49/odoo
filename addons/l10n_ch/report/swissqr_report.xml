@@ -5,7 +5,7 @@
             <xpath expr="//div[@id='qrcode']" position="after"> <!--TODO OCO on mettrait bien inside, non ?-->
                 <link type="text/css" rel="stylesheet" href="/l10n_ch/static/src/scss/report_swissqr.css"/>
                 <div class="swissqr_content" t-if="o.display_swiss_qr_code()">
-                    <div class="swissqr_body" t-if="o.invoice_partner_bank_id.validate_swiss_code_arguments(o.invoice_partner_bank_id.currency_id, o.partner_id) and ((o.currency_id.name == 'EUR') or (o.currency_id.name == 'CHF'))">
+                    <div class="swissqr_body" t-if="o.invoice_partner_bank_id._eligible_for_swiss_qr_code(o.partner_id)">
                         <div id="title_zone" class="swissqr_column_left title_zone">
                             <span class="swissqr_text title title_zone">QR-bill payment part</span><br/>
                         </div>
@@ -15,7 +15,8 @@
                             <span class="swissqr_text content">Credit transfer</span>
                         </div>
 
-                        <img class="swissqr" t-att-src="o.invoice_partner_bank_id.build_qr_code_url(o.amount_residual, o.currency_id;
+                        <img class="swissqr" t-att-src="o.invoice_partner_bank_id.build_qr_code_url(o.amount_residual, o.ref or o.name, o.currency_id, o.partner_id)"/>
+
                         <!--img class="swissqr" t-att-src="o.invoice_partner_bank_id.build_swiss_code_url(o.amount_residual, o.currency_id.name, o.invoice_date_due, o.partner_id, 'QRR',
                         (o.invoice_partner_bank_id.l10n_ch_isr_subscription_chf) if (o.invoice_partner_bank_id.currency_id.name == 'CHF') else o.invoice_partner_bank_id.l10n_ch_isr_subscription_chf,
                         (o.ref) if (o.ref) else o.name)"/-->
@@ -69,8 +70,10 @@
                             <span class="swissqr_text content" t-esc="formated_amount"/>
                         </div>
                     </div>
-                    <div class="swissqr_body" t-if="(o.invoice_partner_bank_id.validate_swiss_code_arguments(o.invoice_partner_bank_id.currency_id, o.partner_id) == False) and ((o.currency_id.name == 'EUR') or (o.currency_id.name == 'CHF'))"> <!--TODO OCO -->
-                        <div class="swissqr_column_left procedure_zone"> <!--TODO OCO-->
+
+                    <!--TODO OCO-->
+                    <!--div class="swissqr_body" t-if="(o.invoice_partner_bank_id.validate_swiss_code_arguments(o.invoice_partner_bank_id.currency_id, o.partner_id) == False) and ((o.currency_id.name == 'EUR') or (o.currency_id.name == 'CHF'))">
+                        <div class="swissqr_column_left procedure_zone">
                             <span>Some pieces of this information are not set correctly to display the Swiss QR Code.<br/>
                             -Bank > CHF ISR subscription<br/>
                             -Bank > EUR ISR subscription<br/>
@@ -84,7 +87,7 @@
                             -Debtor > Country
                             </span>
                         </div>
-                    </div>
+                    </div-->
                 </div>
             </xpath>
         </template>

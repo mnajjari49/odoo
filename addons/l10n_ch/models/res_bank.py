@@ -40,7 +40,7 @@ class ResPartnerBank(models.Model):
     def _compute_l10n_ch_show_subscription(self):
         for bank in self:
             if bank.partner_id:
-                bank.l10n_ch_show_subscription = bool(bank.partner_id.ref_company_ids)
+                bank.l10n_ch_show_subscription = bool(bank.partner_id.ref_company_ids) #TODO OCO tout ça m'a l'air bien faux
             elif bank.company_id:
                 bank.l10n_ch_show_subscription = bank.company_id.country_id.code == 'CH'
             else:
@@ -100,7 +100,7 @@ class ResPartnerBank(models.Model):
         return None
 
     @api.model
-    def build_qr_code_url(self, amount, comment, currency, partner):
+    def build_qr_code_url(self, amount, comment, currency, debtor_partner):
         if self._eligible_for_swiss_qr_code(debtor_partner):
 
             currency = self.currency_id or self.company_id.currency_id
@@ -121,7 +121,8 @@ class ResPartnerBank(models.Model):
             number = self.find_number(t_street_comp)
             number_deb = self.find_number(t_street_deb)
 
-            qr_code_string = 'SPC\n0100\n1\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s' % (
+            #TODO OCO: je retire la date; pas dans la spec du tout ... (ni dans les exemples)
+            qr_code_string = 'SPC\n0100\n1\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s' % (
                               self.acc_number,
                               self.company_id.name,
                               t_street_comp or False,
@@ -131,20 +132,19 @@ class ResPartnerBank(models.Model):
                               self.company_id.country_id.code,
                               amount,
                               currency.name,
-                              date_due,
-                              debitor.name,
-                              t_street_deb or False,
+                              debtor_partner.name,
+                              t_street_deb,
                               number_deb,
-                              partner.zip,
-                              partner.city,
-                              partner.country_id.code,
+                              debtor_partner.zip,
+                              debtor_partner.city,
+                              debtor_partner.country_id.code,
                               'QRR',
                               isr_reference,
                               communication)
 
             return '/report/barcode/?type=%s&value=%s&width=%s&height=%s&humanreadable=1&mask=ch_cross' % ('QR', werkzeug.url_quote_plus(qr_code_string), 256, 256)
 
-        return super().build_qr_code_url(amount, comment, currency, partner)
+        return super().build_qr_code_url(amount, comment, currency, debtor_partner)
 
     def _eligible_for_swiss_qr_code(self, debtor_partner):
         self.ensure_one()
