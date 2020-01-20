@@ -329,9 +329,9 @@ exports.PosModel = Backbone.Model.extend({
             if (self.config.use_pricelist) {
                 return [['id', 'in', self.config.available_pricelist_ids]];
             } else {
-                // VFE TODO if not use_pricelist do not load any pricelist ?
-                // because in this case, the config shouldn't have a pricelist.
-                return [['id', '=', self.config.pricelist_id[0]]];
+                // Do not load any pricelist when the config doesn't use pricelists.
+                // VFE TODO is there any way to avoid the read rpc call ?
+                return [['id', '=', false]];
             }
         },
         loaded: function(self, pricelists){
@@ -1395,7 +1395,7 @@ exports.Product = Backbone.Model.extend({
                 if (!rule.base_pricelist) {
                     alert(_t(
                         'An error occurred when loading product prices. ' +
-                        'Make sure all pricelists are available in the POS.'
+                        'Make sure all pricelists are available in the POS, including any pricelist used as a base for another pricelist.'
                     ));
                 }
                 price = self.get_price(rule.base_pricelist, quantity);

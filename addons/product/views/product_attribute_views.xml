@@ -85,7 +85,7 @@
                 <field name="attribute_id"/>
                 <field name="name"/>
                 <field name="ptav_active" optional="hide"/>
-                <field name="price_extra"/>
+                <field name="price_extra" widget="monetary"/>
                 <field name="currency_id" invisible="1"/>
             </tree>
         </field>

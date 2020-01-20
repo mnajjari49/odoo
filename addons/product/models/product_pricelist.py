@@ -131,7 +131,7 @@ class Pricelist(models.Model):
         self = self.with_company(self.company_id)
         company = self.env.company  # pricelist company or current company
         if not date:
-            date = fields.Date.today()
+            date = fields.Date.context_today(self)
         else:
             date = fields.Date.to_date(date)  # boundary conditions differ if we have a datetime
 

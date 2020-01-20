@@ -429,20 +429,10 @@ class SaleOrder(models.Model):
 
     def update_prices(self):
         self.ensure_one()
-        lines_to_update = []
         for line in self.order_line.filtered(lambda line: not line.display_type):
-            product = line.product_id.with_context(
-                partner=self.partner_id,
-                quantity=line.product_uom_qty,
-                date=self.date_order,
-                pricelist=self.pricelist_id.id,
-                uom=line.product_uom.id
-            )
-            price_unit = self.env['account.tax']._fix_tax_included_price_company(
-                line._get_display_price(product), line.product_id.taxes_id, line.tax_id, line.company_id)
-            lines_to_update.append((1, line.id, {'price_unit': price_unit}))
-        self.update({'order_line': lines_to_update})
+            line._compute_price()
         self.show_update_pricelist = False
+        # VFE TODO message_post only if order was already sent ?
         self.message_post(body=_("Product prices have been recomputed according to pricelist <b>%s<b> ") % self.pricelist_id.display_name)
 
     @api.model
@@ -1464,7 +1454,8 @@ class SaleOrderLine(models.Model):
         # the type of the attribute has been changed after creation.
         # VFE INVESTIGATE IS IT STILL POSSIBLE ???
         if self.product_no_variant_attribute_value_ids:
-            self = self.with_context(p_id=self.product_id.id, ptav_ids=tuple(self.product_no_variant_attribute_value_ids.ids))
+            # VFE maybe need to add prefetch_fields = False in context ?
+            self = self.with_context(ptav_ids=tuple(self.product_no_variant_attribute_value_ids.ids))
         product = self.product_id
         price = price_without_discount = 0.0
         pricelist_kwargs = dict(

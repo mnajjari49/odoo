@@ -215,9 +215,9 @@ class ProductTemplate(models.Model):
         # the type of the attribute has been changed after creation.
         # depends on context ptav_ids, pricelist_id, uom_id, quantity
         if product:
-            product = product.with_context(p_id=product.id, ptav_ids=tuple(combination.ids))
+            product = product.with_context(ptav_ids=tuple(combination.ids))
         else:
-            self = self.with_context(p_id=self.id, ptav_ids=tuple(combination.ids))
+            self = self.with_context(ptav_ids=tuple(combination.ids))
         price = price_without_discount = 0.0
         pricelist_kwargs = dict(
             product=product or self,

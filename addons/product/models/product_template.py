@@ -14,6 +14,8 @@ def compute_price(self, price_type, currency=None, uom=None, company=None, date=
     """
     :param self: products whose price will be returned
     :type self: product.product or product.template
+    :param str price_type: name of Float/Monetary field containing the price on product_product/product_template records.
+        `list_price` is converted to `lst_price` to ensure the extra prices from attributes are included.
     :param currency: res.currency
     :param uom: uom.uom
     :param company: res.company
@@ -38,33 +40,30 @@ def compute_price(self, price_type, currency=None, uom=None, company=None, date=
             If self is a product template record, can also be used to see the prices
             for a future product (if not created) with the given combination.
             NOTE that no check is done to see if the combination given is valid !
-
-        * ``p_id``: product_product id to specify with ``ptav_ids`` whose returned price
-            will contain the sum of ptav_ids ptavs price_extra's.
+            (the attributes exclusions are not verified).
     """
     if not self:
         return {}
 
     self = self.with_company(company)
 
-    fixed_price, fixed_price_currency = False, None
-    if price_type == 'list_price' and self.env.context.get('fixed_sales_price') and self.env.context.get('fixed_sales_currency_id'):
+    fixed_price, fixed_price_currency = False, self.env['res.currency']
+    if price_type in ['list_price', 'lst_price'] and 'fixed_sales_price' in self.env.context and 'fixed_sales_currency_id' in self.env.context:
+        # if requested price is the sales price and fixed sales price info in the context.
         self.ensure_one()
-        assert self.is_product_variant, _("A fixed price cannot be given for a template.")
-        # Fixed prices should only be given for a fixed product
         fixed_price = self.env.context.get('fixed_sales_price')
         fixed_price_currency = self.env['res.currency'].browse(self.env.context.get('fixed_sales_currency_id'))
+        fixed_price_currency.ensure_one()
 
     ptavs = self.env['product.template.attribute.value'].browse(self.env.context.get('ptav_ids', []))
-    targeted_product_id = self.env.context.get('p_id', None)
-    if targeted_product_id:
-        self.ensure_one()
-    if ptavs and targeted_product_id:
-        if self[0].is_product_variant:
+    if ptavs:
+        if self.is_product_variant:
+            assert len(self.product_tmpl_id) == 1, _("Given product template attribute value are not compatible with given products.")
             # If we are computing the price on variants,
             # We shouldn't add extras from ptavs which are already on the variant.
-            targeted_product = self.filtered(lambda p: p.id == targeted_product_id)
-            ptavs = ptavs - targeted_product.product_template_attribute_value_ids
+            ptavs = ptavs - self.product_template_attribute_value_ids
+        else:
+            assert ptavs.product_tmpl_id == self, _("Given product template attribute value are not valid for given template !")
     ptav_extras = sum(ptavs.mapped('price_extra'))
 
     if price_type == 'standard_price':
@@ -74,35 +73,34 @@ def compute_price(self, price_type, currency=None, uom=None, company=None, date=
         self = self.sudo()
 
     if price_type == 'list_price':
-        # = list_price on template, list_price + product extra on product.
+        # = list_price on templates, list_price + product extra on products.
         price_type = 'lst_price'
 
     if date:
         date = fields.Date.to_date(date)
     else:
-        date = fields.Date.today()
+        date = fields.Date.context_today(self)
 
-    prices = dict.fromkeys(self.ids, 0.0)
-    for template in self:
-        # template = product.product or product.template
+    prices = dict.fromkeys(self.ids)
+    for product in self:
+        # product = product.product or product.template
         if not fixed_price:
-            # We should take lst_price if list_price :D
-            price = template[price_type] or 0.0
-            if ptav_extras and targeted_product_id and template.id == targeted_product_id:
+            price = product[price_type] or 0.0
+            if ptav_extras:
                 # yes, there can be attribute values for product template if it's not a variant YET
                 # (see field product.attribute create_variant)
                 price += ptav_extras
         else:
             price = fixed_price
 
-        if uom and template.uom_id != uom:
+        if uom and product.uom_id != uom:
             # Conversion to given uom
-            price = template.uom_id._compute_price(price, uom)
+            price = product.uom_id._compute_price(price, uom)
 
         # Convert from current user company currency to asked one
         # This is right cause a field cannot be in more than one currency
         if currency:
-            product_currency = template.cost_currency_id if price_type == 'standard_price' else template.currency_id
+            product_currency = product.cost_currency_id if price_type == 'standard_price' else product.currency_id
             if fixed_price:
                 product_currency = fixed_price_currency
             # Conversion from product currency to given currency
@@ -113,7 +111,7 @@ def compute_price(self, price_type, currency=None, uom=None, company=None, date=
                     company=self.env.company,
                     date=date)
 
-        prices[template.id] = price
+        prices[product.id] = price
 
     return prices
 
@@ -308,7 +306,7 @@ class ProductTemplate(models.Model):
             pricelist,
             self.env.context.get('quantity', 1.0),
             self.env['uom.uom'].browse(uom_id),
-            self.env.context.get('date', fields.Date.today()),
+            self.env.context.get('date', fields.Date.context_today(self)),
             target_currency,
         )
 

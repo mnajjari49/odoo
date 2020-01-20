@@ -229,3 +229,4 @@ class TestNoPricelistCommon(TestProductCommon):
         super(TestPricelistCommon, cls).setUpClass()
 
         cls.public_pricelist.active = False
+        cls.env['product.pricelist'].search([]).active = False

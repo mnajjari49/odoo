@@ -72,9 +72,9 @@
                                         <tree string="Tickets" editable="bottom">
                                             <field name="name"/>
                                             <field name="product_id"/>
-                                            <field name="price"/>
+                                            <field name="price" widget="monetary"/>
                                             <field name="currency_id" invisible="1"/>
-                                            <field name="company_id" invisible="1"/>
+                                            <field name="company_id" invisible="1" groups="base.group_multi_company"/>
                                         </tree>
                                     </field>
                                 </div>
@@ -98,9 +98,9 @@
                                 <field name="product_id" context="{'default_event_ok':1}"/>
                                 <field name="start_sale_date"/>
                                 <field name="end_sale_date"/>
-                                <field name="price"/>
+                                <field name="price" widget="monetary"/>
                                 <field name="currency_id" invisible="1"/>
-                                <field name="company_id" invisible="1"/>
+                                <field name="company_id" invisible="1" groups="base.group_multi_company"/>
                                 <field name="seats_max"/>
                                 <field name="seats_reserved" readonly="1"/>
                                 <field name="seats_unconfirmed" readonly="1"/>
@@ -135,7 +135,9 @@
                                         <field name="name"/>
                                         <field name="product_id" context="{'default_event_ok':1}"/>
                                         <field name="end_sale_date"/>
-                                        <field name="price"/>
+                                        <field name="price" widget="monetary"/>
+                                        <field name="currency_id" invisible="1"/>
+                                        <field name="company_id" invisible="1" groups="base.group_multi_company"/>
                                     </group><group>
                                         <field name="seats_max"/>
                                         <field name="seats_reserved" readonly="1"/>

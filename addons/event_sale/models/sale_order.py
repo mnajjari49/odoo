@@ -35,16 +35,16 @@ class SaleOrderLine(models.Model):
 
     @api.onchange('product_uom', 'product_uom_qty')
     def quantity_change(self):
-        # removing attendees
+        self.ensure_one()
+        # removing / adding attendees
         if not (self.event_id and self.event_ticket_id):
             return super(SaleOrderLine, self).quantity_change()
         registrations = self.env['event.registration'].search([
                 ('state', '!=', 'cancel'),
-                ('sale_order_id', '=', self.id),  # To avoid break on multi record set
+                ('sale_order_id', '=', self._origin.id),
                 ('event_ticket_id', '=', self.event_ticket_id.id),
             ], order='create_date asc')
         missing_qty = self.product_uom_qty - len(registrations)
-        # VFE TODO readonly when event soline
         if missing_qty > 0:
             self._update_registrations()
         elif missing_qty < 0:
@@ -119,14 +119,3 @@ class SaleOrderLine(models.Model):
             return ticket._get_ticket_multiline_description_sale() + self._get_sale_order_line_multiline_description_variants()
         else:
             return super(SaleOrderLine, self).get_sale_order_line_multiline_description_sale(product)
-
-    def _get_display_price(self, product):
-        if self.event_ticket_id and self.event_id:
-            company = self.event_id.company_id or self.env.company.id
-            currency = company.currency_id
-            return currency._convert(
-                self.event_ticket_id.price, self.order_id.currency_id,
-                self.order_id.company_id or self.env.company.id,
-                self.order_id.date_order or fields.Date.today())
-        else:
-            return super()._get_display_price(product)
