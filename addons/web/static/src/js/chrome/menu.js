@@ -8,24 +8,14 @@ const { Component, useState } = owl;
 class Menu extends Component {
     constructor() {
         super(...arguments);
-        this.state = useState({
-            currentMenuID: this.props.menuID,
-        });
         this.menus = this.props.menus;
     }
     get apps() {
         return this.menus.root.children.map(childID => this.menus[childID]);
     }
     get currentApp() {
-        const currentAppID = this.menus[this.state.currentMenuID].appID;
+        const currentAppID = this.menus[this.props.menuID].appID;
         return this.menus[currentAppID];
-    }
-
-    /**
-     * @param {integer} menuID
-     */
-    setCurrentMenuID(menuID) {
-        this.state.currentMenuID = menuID;
     }
 
     //--------------------------------------------------------------------------

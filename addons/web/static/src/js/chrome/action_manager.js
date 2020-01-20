@@ -18,7 +18,9 @@ class ActionManager extends core.EventBus {
     constructor(env) {
         super();
         this.env = env;
-        this.env.bus.on('do-action', this, this.doAction);
+        this.env.bus.on('do-action', this, payload => {
+            this.doAction(payload.action, payload.options);
+        });
         //this.env.bus.on('switch-view', this, this.switchView);
 
         // handled by the ActionManager (either stacked in the current window,
@@ -34,6 +36,8 @@ class ActionManager extends core.EventBus {
         // 'controllerStack' is the stack of ids of the controllers currently
         // displayed in the current window
         this.currentStack = [];
+
+        this.currentRequestID = 0;
     }
     //--------------------------------------------------------------------------
     // Public
@@ -68,6 +72,7 @@ class ActionManager extends core.EventBus {
     async doAction(action, options) {
         // cancel potential current rendering
         this.trigger('cancel');
+        this.currentRequestID++;
 
         const defaultOptions = {
             additional_context: {},
@@ -103,17 +108,6 @@ class ActionManager extends core.EventBus {
     }
 
     //--------------------------------------------------------------------------
-    // Getters
-    //--------------------------------------------------------------------------
-
-    get pendingControllerID() {
-        if (this.state.pendingStack) {
-            return this.state.pendingStack[this.state.pendingStack.length - 1];
-        }
-        return null;
-    }
-
-    //--------------------------------------------------------------------------
     // Private
     //--------------------------------------------------------------------------
 
@@ -131,15 +125,15 @@ class ActionManager extends core.EventBus {
      * @returns {Promise}
      */
     _resolveLast(promise) {
-        const pendingControllerID = this.pendingControllerID;
+        const currentRequestID = this.currentRequestID;
         return new Promise((resolve, reject) => {
             promise.then(result => {
-                if (pendingControllerID === this.pendingControllerID) {
+                if (currentRequestID === this.currentRequestID) {
                     resolve(result);
                 }
             });
             promise.guardedCatch(reason => {
-                if (pendingControllerID === this.pendingControllerID) {
+                if (currentRequestID === this.currentRequestID) {
                     reject(reason);
                 }
             });
@@ -320,18 +314,11 @@ class ActionManager extends core.EventBus {
      * @returns {Object[]}
      */
     _getBreadcrumbs(controllerStack) {
-        const owlChildren = Object.values(this.__owl__.children);
         return controllerStack.map(controllerID => {
-            const controller = this.controllers[controllerID];
-            const component = owlChildren.find(comp => comp.boundController.jsID === controllerID);
-            if (component) {
-                controller.title = component.title;
-            } else if (!controller.title) {
-                controller.title = this.actions[controllerID].name;
-            }
+            const component = this.controllers[controllerID].component;
             return {
                 controllerID: controllerID,
-                title: controller.title,
+                title: component.title,
             };
         });
     }
@@ -435,20 +422,27 @@ class ActionManager extends core.EventBus {
      * @param {Object} controller
      */
     _pushController(controller) {
+        this.controllers[controller.jsID] = controller;
         const action = this.actions[controller.actionID];
-        const onSuccess = () => {
+        const onSuccess = (component) => {
+            controller.component = component;
             this.currentStack.splice(controller.index);
             this.currentStack.push(controller.jsID);
             this._cleanActions();
 
             // store the action into the sessionStorage so that it can be fully restored on F5
             this.env.services.session_storage.setItem('current_action', action._originalAction);
+
             console.warn(this.currentStack);
             console.warn(this.controllers);
             console.warn(this.actions);
-        }
-        controller = Object.assign({}, controller, {action})
-        this.trigger('update', {controller, onSuccess});
+        };
+        this.trigger('update', {
+            action,
+            controller,
+            menuID: controller.options.menuID,
+            onSuccess,
+        });
     }
     /**
      * Restores a controller from the controllerStack and removes all

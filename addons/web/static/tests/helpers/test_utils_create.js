@@ -10,13 +10,17 @@ odoo.define('web.test_utils_create', function (require) {
  * testUtils file.
  */
 
+var AbstractAction = require('web.AbstractAction');
 var ActionManager = require('web.ActionManager');
 var ControlPanelView = require('web.ControlPanelView');
 var concurrency = require('web.concurrency');
+const core = require('web.core');
 var DebugManager = require('web.DebugManager.Backend');
 var dom = require('web.dom');
 const makeTestEnvironment = require('web.test_env');
 const MockServer = require('web.MockServer');
+const SystrayMenu = require('web.SystrayMenu');
+var testUtilsAsync = require('web.test_utils_async');
 var testUtilsMock = require('web.test_utils_mock');
 var Widget = require('web.Widget');
 var WebClient = require('web.WebClient');
@@ -27,76 +31,6 @@ const RamStorage = require('web.RamStorage');
 
 const { Component, hooks, tags } = owl;
 
-/**
- * Returns a mocked environment to be used by OWL components in tests.
- *
- * @param {Object} params
- * @param {Object} [params.actions] the actions given to the mock server
- * @param {Object} [params.archs] this archs given to the mock server
- * @param {Object} [params.data] the business data given to the mock server
- * @param {boolean} [params.debug]
- * @param {function} [params.mockRPC]
- * @returns {Object}
- */
-function getMockedOwlEnv(params) {
-    let Server = MockServer;
-    if (params.mockRPC) {
-        Server = MockServer.extend({ _performRpc: params.mockRPC });
-    }
-    const server = new Server(params.data, {
-        actions: params.actions,
-        archs: params.archs,
-        debug: params.debug,
-    });
-    const RamStorageService = AbstractStorageService.extend({
-        storage: new RamStorage(),
-    });
-    const env = {
-        dataManager: {
-            load_action: (actionID, context) => {
-                return server.performRpc('/web/action/load', {
-                    kwargs: {
-                        action_id: actionID,
-                        additional_context: context,
-                    },
-                });
-            },
-            load_views: (params, options) => {
-                return server.performRpc('/web/dataset/call_kw/' + params.model, {
-                    args: [],
-                    kwargs: {
-                        context: params.context,
-                        options: options,
-                        views: params.views_descr,
-                    },
-                    method: 'load_views',
-                    model: params.model,
-                }).then(function (views) {
-                    return _.mapObject(views, viewParams => {
-                        return testUtilsMock.fieldsViewGet(server, viewParams);
-                    });
-                });
-            },
-            load_filters: params => {
-                if (params.debug) {
-                    console.log('[mock] load_filters', params);
-                }
-                return Promise.resolve([]);
-            },
-        },
-        services: {
-            ajax: {
-                rpc: server.performRpc.bind(server), // for legacy sub widgets
-            },
-            local_storage: new RamStorageService(),
-            session_storage: new RamStorageService(),
-        },
-    };
-    if (params.dataManager) {
-        Object.assign(env.dataManager, params.dataManager);
-    }
-    return makeTestEnvironment(env, server.performRpc.bind(server));
-}
 
 /**
  * Create and return an instance of WebClient with a mocked environment. For
@@ -107,6 +41,8 @@ function getMockedOwlEnv(params) {
  * @param {Object} [params.actions] the actions given to the mock server
  * @param {Object} [params.archs] this archs given to the mock server
  * @param {Object} [params.data] the business data given to the mock server
+ * @param {Object} [params.menus] TODO
+ * @param {Object} [params.SystrayItems] TODO
  * @param {boolean} [params.debug]
  * @param {function} [params.mockRPC]
  * @returns {WebClient}
@@ -114,9 +50,44 @@ function getMockedOwlEnv(params) {
 async function createWebClient(params) {
     params = params || {};
     const target = prepareTarget(params.debug);
-    Component.env = getMockedOwlEnv(params);
+    Component.env = testUtilsMock.getMockedOwlEnv(params);
+
+    const SystrayItems = SystrayMenu.Items;
+    SystrayMenu.Items = [] || params.SystrayItems;
 
     const webClient = new WebClient();
+
+    let menus = params.menus;
+    if (!menus) {
+        menus = {
+            all_menu_ids: [1],
+            children: [{
+                id: 1,
+                action: 'ir.actions.client,InitialClientAction',
+                name: "Initial Action",
+                children: [],
+            }],
+        };
+        const ClientAction = AbstractAction.extend({
+            start: function () {
+                this.$el.text('Hello World');
+            },
+        });
+        core.action_registry.add('InitialClientAction', ClientAction);
+
+        const destroy = webClient.destroy;
+        webClient.destroy = function () {
+            destroy.call(webClient);
+            delete core.action_registry.map.InitialClientAction;
+            SystrayMenu.Items = SystrayItems;
+        };
+    }
+
+    odoo.loadMenusPromise = new Promise(async resolve => {
+        await testUtilsAsync.nextTick();
+        resolve(menus);
+    });
+
     await webClient.mount(target);
     return webClient;
 }
@@ -130,76 +101,77 @@ async function createWebClient(params) {
  * @param {Object} [params.actions] the actions given to the mock server
  * @param {Object} [params.archs] this archs given to the mock server
  * @param {Object} [params.data] the business data given to the mock server
+ * @param {Object} [params.menus] the business data given to the mock server
  * @param {boolean} [params.debug]
  * @param {function} [params.mockRPC]
  * @returns {ActionManager}
  */
-async function createActionManager(params) {
-    params = params || {};
-    const target = prepareTarget(params.debug);
-    Component.env = getMockedOwlEnv(params);
+// async function createActionManager(params) {
+//     params = params || {};
+//     const target = prepareTarget(params.debug);
+//     Component.env = testUtilsMock.getMockedOwlEnv(params);
 
-    // define Parent component, embedding an ActionManager
-    class Parent extends Component {
-        constructor() {
-            super(...arguments);
-            this.actionManager = hooks.useRef('actionManager');
-        }
-    }
-    Parent.components = { ActionManager };
-    Parent.template = tags.xml`
-        <div class="o_web_client">
-            <ActionManager t-ref="actionManager"/>
-        </div>`;
-    // FIXME: seeems wrong
-    // if (config.device.isMobile) {
-    //     parent.el.classList.add('o_touch_device');
-    // }
+//     // define Parent component, embedding an ActionManager
+//     class Parent extends Component {
+//         constructor() {
+//             super(...arguments);
+//             this.actionManager = hooks.useRef('actionManager');
+//         }
+//     }
+//     Parent.components = { ActionManager };
+//     Parent.template = tags.xml`
+//         <div class="o_web_client">
+//             <ActionManager t-ref="actionManager"/>
+//         </div>`;
+//     // FIXME: seeems wrong
+//     // if (config.device.isMobile) {
+//     //     parent.el.classList.add('o_touch_device');
+//     // }
 
-    // instantiation
-    const parent = new Parent();
-    await parent.mount(target);
-    const actionManager = parent.actionManager.comp;
+//     // instantiation
+//     const parent = new Parent();
+//     await parent.mount(target);
+//     const actionManager = parent.actionManager.comp;
 
-    // patch actionManager's destroy to properly destroy parent
-    const originalDestroy = actionManager.destroy;
-    actionManager.destroy = function () {
-        actionManager.destroy = originalDestroy;
-        parent.destroy();
-    };
+//     // patch actionManager's destroy to properly destroy parent
+//     const originalDestroy = actionManager.destroy;
+//     actionManager.destroy = function () {
+//         actionManager.destroy = originalDestroy;
+//         parent.destroy();
+//     };
 
-    return actionManager;
+//     return actionManager;
 
-    // when 'document' addon is installed, the sidebar does a 'search_read' on
-    // model 'ir_attachment' each time a record is open, so we monkey-patch
-    // 'mockRPC' to mute those RPCs, so that the tests can be written uniformly,
-    // whether or not 'document' is installed
-    // var mockRPC = params.mockRPC;
-    // _.extend(params, {
-    //     mockRPC: function (route, args) {
-    //         if (args.model === 'ir.attachment') {
-    //             return Promise.resolve([]);
-    //         }
-    //         if (mockRPC) {
-    //             return mockRPC.apply(this, arguments);
-    //         }
-    //         return this._super.apply(this, arguments);
-    //     },
-    // });
-    // testUtilsMock.addMockEnvironment(widget, _.defaults(params, { debounce: false }));
+//     // when 'document' addon is installed, the sidebar does a 'search_read' on
+//     // model 'ir_attachment' each time a record is open, so we monkey-patch
+//     // 'mockRPC' to mute those RPCs, so that the tests can be written uniformly,
+//     // whether or not 'document' is installed
+//     // var mockRPC = params.mockRPC;
+//     // _.extend(params, {
+//     //     mockRPC: function (route, args) {
+//     //         if (args.model === 'ir.attachment') {
+//     //             return Promise.resolve([]);
+//     //         }
+//     //         if (mockRPC) {
+//     //             return mockRPC.apply(this, arguments);
+//     //         }
+//     //         return this._super.apply(this, arguments);
+//     //     },
+//     // });
+//     // testUtilsMock.addMockEnvironment(widget, _.defaults(params, { debounce: false }));
 
-    // var userContext = params.context && params.context.user_context || {};
-    // var actionManager = new ActionManager(widget, userContext);
+//     // var userContext = params.context && params.context.user_context || {};
+//     // var actionManager = new ActionManager(widget, userContext);
 
-    // var fragment = document.createDocumentFragment();
-    // return actionManager.appendTo(fragment).then(function () {
-    //     dom.append(widget.$el, fragment, {
-    //         callbacks: [{ widget: actionManager }],
-    //         in_DOM: true,
-    //     });
-    //     return actionManager;
-    // });
-}
+//     // var fragment = document.createDocumentFragment();
+//     // return actionManager.appendTo(fragment).then(function () {
+//     //     dom.append(widget.$el, fragment, {
+//     //         callbacks: [{ widget: actionManager }],
+//     //         in_DOM: true,
+//     //     });
+//     //     return actionManager;
+//     // });
+// }
 
 /**
  * create a view from various parameters.  Here, a view means a javascript
@@ -523,7 +495,6 @@ function prepareTarget(debug=false) {
 }
 
 return {
-    createActionManager: createActionManager,
     createCalendarView: createCalendarView,
     createControlPanel: createControlPanel,
     createDebugManager: createDebugManager,

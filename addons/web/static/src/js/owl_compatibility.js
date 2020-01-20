@@ -250,6 +250,8 @@ odoo.define('web.OwlCompatibility', function () {
                 return this.env.dataManager
                     .load_filters(payload)
                     .then(payload.on_success);
+            } else if (evType === 'do_action') {
+                return this.env.bus.trigger('do-action', payload);
             } else {
                 payload.__targetWidget = ev.target;
                 this.trigger(evType.replace(/_/g, '-'), payload);

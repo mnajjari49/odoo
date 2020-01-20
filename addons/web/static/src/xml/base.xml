@@ -4,33 +4,19 @@
 <!-- Owl Templates -->
 
 <t t-name="web.WebClient" owl="1">
-    <body class="o_web_client" t-on-do-action.stop="_onDoAction">
-        <Menu t-ref="menu" menus="menus" menuID="currentMenuID" t-on-open-menu="_onOpenMenu"/>
+    <body class="o_web_client">
+        <Menu t-ref="menu" menus="menus" menuID="currentRenderingInfo.menuID" t-on-open-menu="_onOpenMenu"/>
         <div class="o_action_manager"
             t-on-breadcrumb-clicked.stop="_onBreadcrumbClicked"
             t-on-switch-view.stop="_onSwitchView"
             t-on-execute-action.stop="_onExecuteAction"
             t-on-reloading-legacy.stop="_onReloadingLegacy">
-            <Action class="o_action" t-key="currentController.jsID"
-                    Component="currentController.Component"
-                    action="currentController.action"
-                    options="currentController.options"/>
+            <Action t-debug="1" class="o_action" t-ref="currentControllerComponent" t-key="currentRenderingInfo.controller.jsID"
+                    Component="currentRenderingInfo.controller.Component"
+                    action="currentRenderingInfo.action"
+                    options="currentRenderingInfo.controller.options"/>
         </div>
     </body>
-</t>
-<t t-name="web.ActionManager" owl="1">
-    <div class="o_action_manager"
-        t-on-breadcrumb-clicked.stop="_onBreadcrumbClicked"
-        t-on-switch-view.stop="_onSwitchView"
-        t-on-execute-action.stop="_onExecuteAction"
-        t-on-reloading-legacy.stop="_onReloadingLegacy">
-        <t t-set="controllerID" t-value="state.pendingStack ? state.pendingStack[state.pendingStack.length - 1] : currentStack[currentStack.length - 1]"/>
-        <t t-if="controllerID">
-            <t t-set="controller" t-value="controllers[controllerID]"/>
-            <LoadingAction t-if="controller.loading"/>
-            
-        </t>
-    </div>
 </t>
 
 <t t-name="CustomFileInput" owl="1">

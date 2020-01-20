@@ -1,12 +1,9 @@
 odoo.define('web.web_client_tests', function (require) {
 "use strict";
 
-const SystrayMenu = require('web.SystrayMenu');
 const testUtils = require('web.test_utils');
 
-const { createWebClient, nextTick } = testUtils;
-
-let SystrayItems;
+const { createWebClient } = testUtils;
 
 QUnit.module('WebClient', {
     beforeEach: function () {
@@ -108,18 +105,7 @@ QUnit.module('WebClient', {
                 children: [],
             }],
         };
-
-        odoo.loadMenusPromise = new Promise(async resolve => {
-            await nextTick();
-            resolve(this.menus);
-        });
-
-        SystrayItems = SystrayMenu.Items;
-        SystrayMenu.Items = [];
     },
-    afterEach: function () {
-        SystrayMenu.Items = SystrayItems;
-    }
 }, function () {
     QUnit.test('initial rendering (should open first menu)', async function (assert) {
         assert.expect(10);
@@ -128,6 +114,7 @@ QUnit.module('WebClient', {
             data: this.data,
             actions: this.actions,
             archs: this.archs,
+            menus: this.menus,
         });
 
         assert.containsOnce(webClient, 'header .o_main_navbar');
@@ -153,6 +140,7 @@ QUnit.module('WebClient', {
             data: this.data,
             actions: this.actions,
             archs: this.archs,
+            menus: this.menus,
         });
 
         assert.containsOnce(webClient, '.o_list_view');
@@ -174,6 +162,7 @@ QUnit.module('WebClient', {
             data: this.data,
             actions: this.actions,
             archs: this.archs,
+            menus: this.menus,
         });
 
         assert.containsOnce(webClient, '.o_list_view');

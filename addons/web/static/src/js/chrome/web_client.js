@@ -11,25 +11,36 @@ const useRef = hooks.useRef;
 class WebClient extends Component {
     constructor() {
         super();
-        this.currentController = null;
+        this.currentRenderingInfo = null;
+        this.currentControllerComponent = useRef('currentControllerComponent');
         this.actionManager = new ActionManager(this.env);
         this.actionManager.on('cancel', this, () => {
-            if (this.__owl__.currentFiber) {
+            if (this.currentRenderingInfo) {
                 this.__owl__.currentFiber.cancel();
             }
         });
-        this.actionManager.on('update', this, (ev) => {
-            this.currentController = ev.detail.controller;
-            this.render().then(ev.detail.onSuccess);
+        this.actionManager.on('update', this, payload => {
+            this.currentRenderingInfo = payload;
+            this.render().then(() => {
+                payload.onSuccess(this.currentControllerComponent.comp);
+                this.currentRenderingInfo = null;
+            });
         });
         this.menu = useRef('menu');
     }
 
     async willStart() {
         this.menus = await this._loadMenus();
-        this.currentMenuID = this.menus.root.children[0];
-        const initialAction = this.menus[this.currentMenuID].actionID;
-        return this.actionManager.doAction(initialAction);
+        const menuID = this.menus.root.children[0];
+        const initialAction = this.menus[menuID].actionID;
+        return this.actionManager.doAction(initialAction, { menuID }).then(() => {
+            console.log('action loaded');
+        });
+    }
+
+    __render() {
+        console.log('__render WC');
+        return super.__render(...arguments);
     }
 
     //--------------------------------------------------------------------------
@@ -37,8 +48,8 @@ class WebClient extends Component {
     //--------------------------------------------------------------------------
 
     /**
-     * FIXME: consider moving this to menu.j
-sa     * Loads and sanitizes the menu data
+     * FIXME: consider moving this to menu.js
+     * Loads and sanitizes the menu data
      *
      * @private
      * @returns {Promise<Object>}
@@ -101,27 +112,12 @@ sa     * Loads and sanitizes the menu data
 
     /**
      * @private
-     * @param {OdooEvent} ev
-     * @param {string|integer|Object} ev.payload.action
-     * @param {Object} [ev.payload.options]
-     * @param {function} [ev.payload.on_success]
-     * @param {function} [ev.payload.on_fail]
-     */
-    _onDoAction(ev) {
-        //trigger on bus
-        this.actionManager.doAction(ev.detail.action, ev.detail.options);
-        // TODO: honnor on_fail for legacy components ?
-        // callback: ev.detail.on_success,
-        // .guardedCatch(ev.detail.on_fail || (() => {}));
-    }
-    /**
-     * @private
      */
     _onOpenMenu(ev) {
         const action = this.menus[ev.detail.menuID].actionID;
         this.actionManager.doAction(action, {
             clear_breadcrumbs: true,
-            callback: () => this.menu.comp.setCurrentMenuID(ev.detail.menuID),
+            menuID: ev.detail.menuID,
         });
     }
 

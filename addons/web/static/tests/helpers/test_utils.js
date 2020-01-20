@@ -14,6 +14,7 @@ var ajax = require('web.ajax');
 var core = require('web.core');
 var relationalFields = require('web.relational_fields');
 var session = require('web.session');
+var testUtilsAsync = require('web.test_utils_async');
 var testUtilsCreate = require('web.test_utils_create');
 var testUtilsDom = require('web.test_utils_dom');
 var testUtilsFields = require('web.test_utils_fields');
@@ -31,69 +32,6 @@ function deprecated(fn, type) {
     var msg = `Helper 'testUtils.${fn.name}' is deprecated. ` +
         `Please use 'testUtils.${type}.${fn.name}' instead.`;
     return tools.deprecated(fn, msg);
-}
-
-/**
- * Helper function, make a promise with a public resolve function. Note that
- * this is not standard and should not be used outside of tests...
- *
- * @returns {Promise + resolve and reject function}
- */
-function makeTestPromise() {
-    var resolve;
-    var reject;
-    var promise = new Promise(function (_resolve, _reject) {
-        resolve = _resolve;
-        reject = _reject;
-    });
-    promise.resolve = function () {
-        resolve.apply(null, arguments);
-        return promise;
-    };
-    promise.reject = function () {
-        reject.apply(null, arguments);
-        return promise;
-    };
-    return promise;
-}
-
-/**
- * Make a promise with public resolve and reject functions (see
- * @makeTestPromise). Perform an assert.step when the promise is
- * resolved/rejected.
- *
- * @param {Object} assert instance object with the assertion methods
- * @param {function} assert.step
- * @param {string} str message to pass to assert.step
- * @returns {Promise + resolve and reject function}
- */
-function makeTestPromiseWithAssert(assert, str) {
-    var prom = makeTestPromise();
-    prom.then(() => assert.step('ok ' + str)).catch(function () {});
-    prom.catch(() => assert.step('ko ' + str));
-    return prom;
-}
-
-/**
- * Create a new promise that can be waited by the caller in order to execute
- * code after the next microtask tick and before the next jobqueue tick.
- *
- * @return {Promise} an already fulfilled promise
- */
-async function nextMicrotaskTick() {
-    return Promise.resolve();
-}
-
-/**
- * Returns a promise that will be resolved after the tick after the
- * nextAnimationFrame
- *
- * This is usefull to guarantee that OWL has had the time to render
- *
- * @returns {Promise}
- */
-async function nextTick() {
-    return testUtilsDom.returnAfterNextAnimationFrame();
 }
 
 // Loading static files cannot be properly simulated when their real content is
@@ -186,7 +124,6 @@ return Promise.all([
             dropFiles: testUtilsFile.dropFiles,
         },
 
-        createActionManager: testUtilsCreate.createActionManager,
         createDebugManager: testUtilsCreate.createDebugManager,
         createAsyncView: testUtilsCreate.createView,
         createCalendarView: testUtilsCreate.createCalendarView,
@@ -195,10 +132,10 @@ return Promise.all([
         createModel: testUtilsCreate.createModel,
         createParent: testUtilsCreate.createParent,
         createWebClient: testUtilsCreate.createWebClient,
-        makeTestPromise: makeTestPromise,
-        makeTestPromiseWithAssert: makeTestPromiseWithAssert,
-        nextMicrotaskTick: nextMicrotaskTick,
-        nextTick: nextTick,
+        makeTestPromise: testUtilsAsync.makeTestPromise,
+        makeTestPromiseWithAssert: testUtilsAsync.makeTestPromiseWithAssert,
+        nextMicrotaskTick: testUtilsAsync.nextMicrotaskTick,
+        nextTick: testUtilsAsync.nextTick,
         prepareTarget: testUtilsCreate.prepareTarget,
         returnAfterNextAnimationFrame: testUtilsDom.returnAfterNextAnimationFrame,
 
