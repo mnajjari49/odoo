@@ -185,7 +185,7 @@ var ListController = BasicController.extend({
         if ((recordID || this.handle) !== this.handle) {
             var state = this.model.get(this.handle);
             this.renderer.removeLine(state, recordID);
-            this._updatePagerProps();
+            this._updatePagerProps(state);
         }
     },
     /**
@@ -209,7 +209,8 @@ var ListController = BasicController.extend({
             self.renderer.updateState(state, {keepWidths: true})
                 .then(function () {
                     self.renderer.editRecord(recordID);
-                }).then(self._updatePagerProps.bind(self));
+                })
+                .then(() => self._updatePagerProps(state));
         }).then(this._enableButtons.bind(this)).guardedCatch(this._enableButtons.bind(this));
     },
     /**
@@ -314,10 +315,9 @@ var ListController = BasicController.extend({
      * @override
      * @private
      */
-    _getPagerProps: function () {
-        const state = this.model.get(this.handle, { raw: true });
+    _getPagerProps: function (state) {
         if (!state.count) {
-            return {};
+            return null;
         }
         return this._super(...arguments);
     },
@@ -325,12 +325,11 @@ var ListController = BasicController.extend({
      * @override
      * @private
      */
-    _getSidebarProps: function () {
+    _getSidebarProps: function (state) {
         if (!this.hasSidebar || !this.selectedRecords.length) {
             return null;
         }
         const props = this._super(...arguments);
-        const record = this.model.get(this.handle);
         const otherActionItems = [{
             description: _t("Export"),
             callback: () => this._onExportData(),
@@ -357,7 +356,7 @@ var ListController = BasicController.extend({
         return Object.assign(props, {
             items: Object.assign({}, this.toolbarActions, { other: otherActionItems }),
             context: this.model.get(this.handle, { raw: true }).getContext(),
-            domain: record.getDomain(),
+            domain: state.getDomain(),
         });
     },
     /**
@@ -717,9 +716,7 @@ var ListController = BasicController.extend({
      */
     _onSelectionChanged: function (ev) {
         this.selectedRecords = ev.data.selection;
-        this._updateControlPanel({
-            sidebar: this._getSidebarProps(),
-        });
+        this._updateControlPanel();
     },
     /**
      * If the record is set as dirty while in multiple record edition,
@@ -754,12 +751,12 @@ var ListController = BasicController.extend({
      */
     _onToggleColumnOrder: function (ev) {
         ev.stopPropagation();
-        var data = this.model.get(this.handle);
-        if (!data.groupedBy) {
-            this._updatePagerProps({ currentMinimum: 1 });
+        var state = this.model.get(this.handle);
+        if (!state.groupedBy) {
+            this._updatePagerProps(state, { currentMinimum: 1 });
         }
         var self = this;
-        this.model.setSort(data.id, ev.data.name).then(function () {
+        this.model.setSort(state.id, ev.state.name).then(function () {
             self.update({});
         });
     },

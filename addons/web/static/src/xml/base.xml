@@ -461,7 +461,7 @@
                                 role="img"
                                 aria-label="Remove"
                                 title="Remove"
-                                t-on-click.stop="_onRemoveGroupBy(groupBy_index)"
+                                t-on-click.stop="_removeGroupBy(groupBy_index)"
                             />
                         </div>
                     </t>
@@ -508,7 +508,7 @@
                                 role="img"
                                 aria-label="Remove"
                                 title="Remove"
-                                t-on-click.stop="_onRemoveOrderedBy(orderedBy_index)"
+                                t-on-click.stop="_removeOrderedBy(orderedBy_index)"
                             />
                         </div>
 
@@ -524,16 +524,16 @@
             <div class="o_section_content">
                 <div class="custom-control custom-checkbox">
                     <input type="checkbox" class="custom-control-input" t-attf-id="o_toggle_time_range_{{ id }}"
-                        t-att-checked="state.activateTimeRange"
+                        t-att-checked="props.filter.timeRanges"
                         t-on-change="_onToggleTimeRanges"
                     />
                     <label t-attf-for="o_toggle_time_range_{{ id }}" class="custom-control-label">Activate time ranges</label>
                 </div>
-                <TimeRangeEditor t-if="state.activateTimeRange"
-                    comparisonRangeId="state.timeRange.comparisonRangeId"
-                    fieldName="state.timeRange.fieldName"
+                <TimeRangeEditor t-if="props.filter.timeRanges"
+                    comparisonRangeId="props.filter.timeRanges.comparisonRangeId"
+                    fieldName="props.filter.timeRanges.fieldName"
                     fields="fields"
-                    rangeId="state.timeRange.rangeId"
+                    rangeId="props.filter.timeRanges.rangeId"
                     t-on-time-range-change="_onTimeRangeChange"
                 />
             </div>

@@ -115,6 +115,10 @@
 
         .o_section_content {
             flex: 5;
+
+            > .o_input {
+                width: 100%;
+            }
         }
 
         .o_invalid {

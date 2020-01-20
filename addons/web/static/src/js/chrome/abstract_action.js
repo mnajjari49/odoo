@@ -135,13 +135,21 @@ var AbstractAction = Widget.extend(ActionMixin, WidgetAdapterMixin, {
         }
     },
     on_attach_callback: function () {
+        WidgetAdapterMixin.on_attach_callback.call(this);
         if (this._controlPanelStore) {
             this._controlPanelStore.on('get_controller_query_params', this, this._onGetOwnedQueryParams);
         }
     },
-    _updateControlPanel(newProps) {
-        this._controlPanelWrapper.update(newProps);
-    }
+    /**
+     * @private
+     * @param {Object} newProps
+     */
+    _updateControlPanel: function (newProps = {}) {
+        if ('title' in newProps) {
+            this._setTitle(newProps.title);
+        }
+        return this._controlPanelWrapper.update(newProps);
+    },
 });
 
 return AbstractAction;

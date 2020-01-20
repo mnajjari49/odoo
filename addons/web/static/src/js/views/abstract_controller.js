@@ -127,6 +127,7 @@ var AbstractController = mvc.Controller.extend(ActionMixin, WidgetAdapterMixin, 
      * Called each time the controller is attached into the DOM.
      */
     on_attach_callback: function () {
+        WidgetAdapterMixin.on_attach_callback.call(this);
         if (this.withSearchPanel) {
             this._searchPanel.on_attach_callback();
         }
@@ -139,6 +140,7 @@ var AbstractController = mvc.Controller.extend(ActionMixin, WidgetAdapterMixin, 
      * Called each time the controller is detached from the DOM.
      */
     on_detach_callback: function () {
+        WidgetAdapterMixin.on_detach_callback.call(this);
         if (this.withControlPanel) {
             this._controlPanelStore.off('get_controller_query_params', this);
         }
@@ -316,9 +318,10 @@ var AbstractController = mvc.Controller.extend(ActionMixin, WidgetAdapterMixin, 
     /**
      * Meant to be overriden to return a proper object.
      * @private
+     * @param {Object} [state]
      * @return {(Object|null)}
      */
-    _getPagerProps: function () {
+    _getPagerProps: function (state) {
         return null;
     },
     /**
@@ -336,9 +339,10 @@ var AbstractController = mvc.Controller.extend(ActionMixin, WidgetAdapterMixin, 
     /**
      * Meant to be overriden to return a proper object.
      * @private
+     * @param {Object} [state]
      * @return {(Object|null)}
      */
-    _getSidebarProps: function () {
+    _getSidebarProps: function (state) {
         return null;
     },
     /**
@@ -435,24 +439,28 @@ var AbstractController = mvc.Controller.extend(ActionMixin, WidgetAdapterMixin, 
             this.renderButtons();
             // here this.$buttons could still be undefined!
         }
-        const newProps = {
-            pager: this._getPagerProps(),
-            sidebar: this._getSidebarProps(),
-            title: this.getTitle(),
-        };
-        if (this.$buttons) {
-            newProps.buttons = this.$buttons;
+        if (this.withControlPanel) {
+            const newProps = {
+                pager: this._getPagerProps(state),
+                sidebar: this._getSidebarProps(state),
+                title: this.getTitle(),
+            };
+            if (this.$buttons) {
+                newProps.buttons = this.$buttons;
+            }
+            await this._updateControlPanel(newProps);
         }
         this._pushState();
-        return Promise.all([this._renderBanner(), this._updateControlPanel(newProps)]);
+        return this._renderBanner();
     },
     /**
      * @private
+     * @param {Object} state
      * @param {Object} newProps
      * @returns {Promise}
      */
-    _updatePagerProps: function (newProps) {
-        const pagerProps = Object.assign(this._getPagerProps(), newProps);
+    _updatePagerProps: function (state, newProps) {
+        const pagerProps = Object.assign(this._getPagerProps(state), newProps);
         return this._updateControlPanel({ pager: pagerProps });
     },
 
@@ -461,6 +469,9 @@ var AbstractController = mvc.Controller.extend(ActionMixin, WidgetAdapterMixin, 
      * @param {Object} [newProps]
      */
     _updateControlPanel: function (newProps = {}) {
+        if ('title' in newProps) {
+            this._setTitle(newProps.title);
+        }
         return this._controlPanelWrapper.update(newProps);
     },
 

@@ -61,7 +61,6 @@ odoo.define('web.TimeRangeEditor', function (require) {
          * @param {Event} ev
          */
         _onComparisonRangeIdChange(ev) {
-            const { value } = ev.target;
             this.trigger('time-range-change', { comparisonRangeId: ev.target.value });
         }
     }

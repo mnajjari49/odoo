@@ -463,8 +463,7 @@ var BasicController = AbstractController.extend(FieldManagerMixin, {
      * @private
      * @returns {Object}
      */
-    _getPagerProps: function () {
-        const state = this.model.get(this.handle, { raw: true });
+    _getPagerProps: function (state) {
         const isGrouped = state.groupedBy && state.groupedBy.length;
         return {
             currentMinimum: (isGrouped ? state.groupsOffset : state.offset) + 1,
@@ -479,10 +478,10 @@ var BasicController = AbstractController.extend(FieldManagerMixin, {
      * @override
      * @private
      */
-    _getSidebarProps: function () {
+    _getSidebarProps: function (state) {
         return {
             activeIds: this.getSelectedIds(),
-            context: this.model.get(this.handle).getContext(),
+            context: state.getContext(),
         };
     },
     /**
@@ -601,11 +600,11 @@ var BasicController = AbstractController.extend(FieldManagerMixin, {
      * @private
      */
     _updateControlPanel: function (newProps = {}) {
-        this.model.get(this.handle, { env: true });
-        return this._super(newProps, {
-            sidebar: this._getSidebarProps(),
-            pager: this._getPagerProps(),
-        });
+        const state = this.model.get(this.handle);
+        return this._super(Object.assign(newProps, {
+            pager: this._getPagerProps(state),
+            sidebar: this._getSidebarProps(state),
+        }));
     },
 
     //--------------------------------------------------------------------------
@@ -654,17 +653,17 @@ var BasicController = AbstractController.extend(FieldManagerMixin, {
      */
     _onPagerChanged: async function (ev) {
         const { currentMinimum, limit } = ev.detail;
-        await this._updatePagerProps({ disabled: true });
-        const data = this.model.get(this.handle, { raw: true });
-        const reloadParams = data.groupedBy && data.groupedBy.length ?
+        const state = this.model.get(this.handle, { raw: true });
+        await this._updatePagerProps(state, { disabled: true });
+        const reloadParams = state.groupedBy && state.groupedBy.length ?
             { groupsLimit: limit, groupsOffset: currentMinimum - 1 } :
             { limit: limit, offset: currentMinimum - 1 };
         await this.reload(reloadParams);
         // reset the scroll position to the top on page changed only
-        if (data.limit !== limit) {
+        if (state.limit !== limit) {
             this.trigger_up('scrollTo', { top: 0 });
         }
-        await this._updatePagerProps({ disabled: false, limit, currentMinimum });
+        await this._updatePagerProps(state, { disabled: false, limit, currentMinimum });
     },
     /**
      * When a reload event triggers up, we need to reload the full view.
@@ -775,7 +774,8 @@ var BasicController = AbstractController.extend(FieldManagerMixin, {
      * @param {OwlEvent} ev
      */
     _onSidebarDataAsked: function (ev) {
-        const sidebarProps = this._getSidebarProps();
+        const state = this.model.get(this.handle);
+        const sidebarProps = this._getSidebarProps(state);
         ev.detail.callback(sidebarProps);
     },
     /**

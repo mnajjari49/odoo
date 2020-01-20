@@ -152,6 +152,9 @@ odoo.define('web.FavoriteMenu', function (require) {
          */
         _onFilterChange(ev) {
             Object.assign(this.state.editDialog.favorite, ev.detail);
+            if (ev.detail.timeRanges === false) {
+                delete this.state.editDialog.favorite.timeRanges;
+            }
         }
 
         /**

@@ -231,6 +231,7 @@ var AbstractView = Factory.extend({
 
         if (this.withSearchPanel) {
             this.searchPanelParams = {
+                arch: this.arch,
                 defaultNoFilter: params.searchPanelDefaultNoFilter,
                 fields: this.fields,
                 model: this.loadParams.modelName,
@@ -251,8 +252,8 @@ var AbstractView = Factory.extend({
         let searchPanel = false;
         if (this.withSearchPanel) {
             const spProto = this.config.SearchPanel.prototype;
-            const viewInfo = this.controlPanelStoreConfig.viewInfo;
-            const searchPanelParams = spProto.computeSearchPanelParams(viewInfo, this.viewType);
+            const { arch, fields } = this.searchPanelParams;
+            const searchPanelParams = spProto.computeSearchPanelParams(arch, fields, this.viewType);
             if (searchPanelParams.sections) {
                 this.searchPanelParams.sections = searchPanelParams.sections;
                 this.rendererParams.withSearchPanel = true;

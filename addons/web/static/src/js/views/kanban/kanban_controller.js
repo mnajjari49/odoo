@@ -102,10 +102,9 @@ var KanbanController = BasicController.extend({
      * @override
      * @private
      */
-    _getPagerProps: function () {
-        const state = this.model.get(this.handle, {raw: true});
+    _getPagerProps: function (state) {
         if (!(state.count && !state.groupedBy.length)) {
-            return {};
+            return null;
         }
         return this._super(...arguments);
     },

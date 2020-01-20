@@ -5,6 +5,7 @@ odoo.define('web.FilterEditor', function (require) {
     const { DEFAULT_TIMERANGE } = require('web.controlPanelParameters');
     const Domain = require('web.Domain');
     const DomainSelector = require('web.DomainSelector');
+    const pyUtils = require('web.py_utils');
     const TimeRangeEditor = require('web.TimeRangeEditor');
     const { useExternalListener } = require('web.custom_hooks');
 
@@ -19,9 +20,14 @@ odoo.define('web.FilterEditor', function (require) {
          * @override
          * @param {Object} nextProps
          */
-        async update(nextProps) {
-            await this.widget.setDomain(nextProps.domain, true);
+        update(nextProps) {
+            return this.widget.setDomain(nextProps.domain, { force: true });
         }
+
+        /**
+         * @override
+         */
+        render() { }
     }
 
     class FilterEditor extends Component {
@@ -46,35 +52,13 @@ odoo.define('web.FilterEditor', function (require) {
                 return acc;
             }, []);
             this.getters = useGetters(this.env.controlPanelStore);
-
-            const { timeRanges } = this.props.filter;
-            const timeRangeState = timeRanges ? {
-                    comparisonRangeId: timeRanges.comparisonRangeId,
-                    fieldName: timeRanges.fieldName,
-                    rangeId: timeRanges.rangeId,
-                } : {
-                    comparisonRangeId: false,
-                    fieldName: this.fields[0] && this.fields[0].value,
-                    rangeId: DEFAULT_TIMERANGE,
-                };
-
             this.state = useState({
-                activateTimeRange: Boolean(timeRanges),
                 editedGroupBy: -1,
                 editedOrderedBy: -1,
                 invalidContext: false,
-                timeRange: timeRangeState,
             });
 
             useExternalListener(window, 'click', this._onWindowClick, true);
-        }
-
-        async willStart() {
-            // await this.domainSelector.appendTo(document.createDocumentFragment());
-        }
-
-        async willUpdateProps() {
-            // await this.domainSelector.setDomain(this.props.filter.domain, true);
         }
 
         //--------------------------------------------------------------------------
@@ -93,7 +77,7 @@ odoo.define('web.FilterEditor', function (require) {
         }
 
         get stringContext() {
-            const context = Object.assign({}, this.props.context);
+            const context = Object.assign({}, this.props.filter.context);
             delete context.group_by;
             delete context.time_ranges;
             return JSON.stringify(context);
@@ -218,8 +202,14 @@ odoo.define('web.FilterEditor', function (require) {
         }
 
         _onContextChange(ev) {
+            if (!ev.target.value.startsWith('{')) {
+                ev.target.value = '{' + ev.target.value;
+            }
+            if (!ev.target.value.endsWith('}')) {
+                ev.target.value += '}';
+            }
             try {
-                const parsedContext = JSON.parse(ev.target.value);
+                const parsedContext = pyUtils.eval('context', ev.target.value);
                 if (this.state.invalidContext) {
                     this.state.invalidContext = false;
                 }
@@ -341,7 +331,9 @@ odoo.define('web.FilterEditor', function (require) {
          * @param {OwlEvent} ev
          */
         _onTimeRangeChange(ev) {
-            Object.assign(this.state.timeRange, ev.detail);
+            this.trigger('filter-change', {
+                timeRanges: Object.assign(this.props.filter.timeRanges, ev.detail),
+            });
         }
 
         /**
@@ -349,7 +341,13 @@ odoo.define('web.FilterEditor', function (require) {
          * @param {Event} ev
          */
         _onToggleTimeRanges(ev) {
-            this.state.activateTimeRange = ev.target.checked;
+            this.trigger('filter-change', {
+                timeRanges: ev.target.checked ? {
+                    comparisonRangeId: false,
+                    fieldName: this.fields[0] && this.fields[0].value,
+                    rangeId: DEFAULT_TIMERANGE,
+                } : false,
+            });
         }
 
         /**

@@ -100,10 +100,7 @@ var FormController = BasicController.extend({
             viewType: 'form',
         });
         this.handle = handle;
-        this._updateControlPanel({
-            pager: this._getPagerProps(),
-            sidebar: this._getSidebarProps(),
-        });
+        await this._updateControlPanel();
         return this._setMode('edit');
     },
     /**
@@ -182,14 +179,14 @@ var FormController = BasicController.extend({
      * @param {Object} options
      * @returns {Promise}
      */
-    _getPagerProps(options={}) {
+    _getPagerProps: function () {
         // Only display the pager if we are not on a new record.
         if (this.model.isNew(this.handle)) {
-            return {};
+            return null;
         }
-        return this._super(Object.assign(options, {
+        return Object.assign(this._super(...arguments), {
             validate: this.canBeDiscarded.bind(this),
-        }));
+        });
     },
     /**
      * @override
@@ -244,10 +241,7 @@ var FormController = BasicController.extend({
     saveRecord: async function () {
         const changedFields = await this._super(...arguments);
         // the title could have been changed
-        this._updateControlPanel({
-            sidebar: this._getSidebarProps(),
-            title: this.getTitle(),
-        });
+        await this._updateControlPanel({ title: this.getTitle() });
 
         if (_t.database.multi_lang && changedFields.length) {
             // need to make sure changed fields that should be translated
@@ -456,7 +450,7 @@ var FormController = BasicController.extend({
         await this._super(...arguments);
         const title = this.getTitle();
         this._updateButtons();
-        this._updateControlPanel({ title });
+        await this._updateControlPanel({ title });
         this.autofocus();
     },
     /**
@@ -575,9 +569,7 @@ var FormController = BasicController.extend({
     _onDuplicateRecord: async function () {
         const handle = await this.model.duplicateRecord(this.handle);
         this.handle = handle;
-        this._updateControlPanel({
-            sidebar: this._getSidebarProps(),
-        });
+        await this._updateControlPanel();
         this._setMode('edit');
     },
     /**
