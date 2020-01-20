@@ -14,9 +14,9 @@ class PosSession(models.Model):
                 'move_id': self.move_id.id,
             }
             if float_compare(0.0, amount, precision_rounding=self.currency_id.rounding) > 0:    # loss
-                partial_args['account_id'] = self.config_id.rounding_method.get_loss_account_id().id
+                partial_args['account_id'] = self.config_id.rounding_method._get_loss_account_id().id
                 return self._debit_amounts(partial_args, -amount, -amount_converted)
 
             if float_compare(0.0, amount, precision_rounding=self.currency_id.rounding) < 0:   # profit
-                partial_args['account_id'] = self.config_id.rounding_method.get_profit_account_id().id
+                partial_args['account_id'] = self.config_id.rounding_method._get_profit_account_id().id
                 return self._credit_amounts(partial_args, amount, amount_converted)

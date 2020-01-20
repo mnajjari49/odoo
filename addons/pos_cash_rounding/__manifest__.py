@@ -8,7 +8,7 @@
     'sequence': 20,
     'summary': 'Allow specific rounding in pos',
     'description': "",
-    'depends': ['point_of_sale', 'account_cash_rounding'],
+    'depends': ['point_of_sale'],
     'data': [
         'views/res_config_settings_view.xml',
         'views/pos_config_view.xml',

@@ -43,7 +43,7 @@ models.Order = models.Order.extend({
         if(this.pos.config.cash_rounding) {
             var total = round_pr(this.get_total_with_tax(), this.pos.cash_rounding[0].rounding);
 
-            var rounding_applied = total - (this.pos.config['iface_tax_included'] === "total"? this.get_subtotal(): this.get_total_with_tax());
+            var rounding_applied = total - this.get_total_with_tax();
             // because floor and ceil doesn't include decimals in calculation, we reuse the value of the half-up and adapt it.
             if(this.pos.cash_rounding[0].rounding_method === "UP" && rounding_applied < 0) {
                 rounding_applied += this.pos.cash_rounding[0].rounding;
@@ -55,43 +55,5 @@ models.Order = models.Order.extend({
         }
         return 0;
     },
-    has_not_valid_rounding: function() {
-        if(!this.pos.config.cash_rounding)
-            return false;
-
-        var lines = this.paymentlines.models;
-
-        for(var i = 0; i < lines.length; i++) {
-            var line = lines[i];
-            if(!utils.float_is_zero(line.amount - round_pr(line.amount, this.pos.cash_rounding[0].rounding), 6))
-                return line;
-        }
-        return false;
-    },
 });
-
-var PaymentScreenWidget = screens.PaymentScreenWidget;
-PaymentScreenWidget.include({
-    order_is_valid: function(force_validation) {
-        var order = this.pos.get_order();
-        var res = this._super(force_validation);
-        if (res) {
-            if(order.has_not_valid_rounding()) {
-                var line = order.has_not_valid_rounding();
-                this.gui.show_popup('error',{
-                        title: _t('Incorrect rounding'),
-                        body:  _t('You have to round your payments lines.' + line.amount + ' is not rounded.'),
-                    });
-                return false;
-            }
-        }
-        return res
-    },
-
-});
-
-
-
-
-
 });

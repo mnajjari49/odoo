@@ -46,10 +46,8 @@ class AccountCashRounding(models.Model):
         difference = self.round(amount) - amount
         return currency.round(difference)
 
-    def get_profit_account_id(self):
-        self.ensure_one()
+    def _get_profit_account_id(self):
         return self.account_id
 
-    def get_loss_account_id(self):
-        self.ensure_one()
+    def _get_loss_account_id(self):
         return self.account_id

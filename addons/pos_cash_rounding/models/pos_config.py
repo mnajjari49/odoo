@@ -8,7 +8,7 @@ from odoo.exceptions import ValidationError
 class PosConfig(models.Model):
     _inherit = 'pos.config'
 
-    rounding_method = fields.Many2one('account.cash.rounding', string="Cash rounding")
+    rounding_method = fields.Many2one('account.cash.rounding', string="Cash rounding", domain=[('strategy', '=', 'add_invoice_line')])
     cash_rounding = fields.Boolean(string="Cash Rounding")
     only_round_cash_method = fields.Boolean(string="Only apply rounding on cash")
 

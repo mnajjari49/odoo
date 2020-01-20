@@ -10,6 +10,13 @@
                   The Point of Sale only support the "add a rounding line" rounding strategy.
                 </div>
             </xpath>
+            <xpath expr="//field[@name='account_id']" position="after">
+                <field name="loss_account_id" options="{'no_create': True}" attrs="{'invisible': [('strategy', '!=', 'add_invoice_line')]}"/>
+            </xpath>
+            <xpath expr="//field[@name='account_id']" position="attributes">
+                  <attribute name="string">Profit Account</attribute>
+                  <attribute name="groups"></attribute>
+            </xpath>
         </field>
     </record>
 </odoo>

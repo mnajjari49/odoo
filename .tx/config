@@ -569,7 +569,7 @@ source_lang = en
 
 [odoo-master.pos_cash_rounding]
 file_filter = addons/pos_cash_rounding/i18n/<lang>.po
-source_file = addons/pos_cash_rounding/i18n/pos_cache.pot
+source_file = addons/pos_cash_rounding/i18n/pos_cash_rounding.pot
 source_lang = en
 
 [odoo-master.pos_discount]
