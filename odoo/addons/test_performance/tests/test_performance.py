@@ -329,14 +329,14 @@ class TestPerformance(SavepointCaseWithUserDemo):
     @warmup
     def test_create_base(self):
         """ Create records. """
-        with self.assertQueryCount(__system__=2, demo=2):
+        with self.assertQueryCount(__system__=1, demo=1):
             self.env['test_performance.base'].create({'name': 'X'})
 
     @users('__system__', 'demo')
     @warmup
     def test_create_base_with_lines(self):
         """ Create records with one2many lines. """
-        with self.assertQueryCount(__system__=12, demo=12):
+        with self.assertQueryCount(__system__=11, demo=11):
             self.env['test_performance.base'].create({
                 'name': 'X',
                 'line_ids': [(0, 0, {'value': val}) for val in range(10)],
@@ -346,11 +346,11 @@ class TestPerformance(SavepointCaseWithUserDemo):
     @warmup
     def test_create_base_with_tags(self):
         """ Create records with many2many tags. """
-        with self.assertQueryCount(2):
+        with self.assertQueryCount(1):
             self.env['test_performance.base'].create({'name': 'X'})
 
         # create N tags: add O(N) queries
-        with self.assertQueryCount(13):
+        with self.assertQueryCount(12):
             self.env['test_performance.base'].create({
                 'name': 'X',
                 'tag_ids': [(0, 0, {'name': val}) for val in range(10)],
@@ -359,19 +359,19 @@ class TestPerformance(SavepointCaseWithUserDemo):
         # link N tags: add O(1) queries
         tags = self.env['test_performance.tag'].create([{'name': val} for val in range(10)])
 
-        with self.assertQueryCount(3):
+        with self.assertQueryCount(2):
             self.env['test_performance.base'].create({
                 'name': 'X',
                 'tag_ids': [(4, tag.id) for tag in tags],
             })
 
-        with self.assertQueryCount(2):
+        with self.assertQueryCount(1):
             self.env['test_performance.base'].create({
                 'name': 'X',
                 'tag_ids': [(6, 0, [])],
             })
 
-        with self.assertQueryCount(3):
+        with self.assertQueryCount(2):
             self.env['test_performance.base'].create({
                 'name': 'X',
                 'tag_ids': [(6, 0, tags.ids)],
