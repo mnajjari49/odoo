@@ -4,17 +4,29 @@ odoo.define('mail.component.FileUploaderTests', function (require) {
 const FileUploader = require('mail.component.FileUploader');
 const {
     afterEach: utilsAfterEach,
-    afterNextRender,
     beforeEach: utilsBeforeEach,
+    inputFiles,
+    nextAnimationFrame,
     pause,
     start: utilsStart,
 } = require('mail.messagingTestUtils');
+
+const { createFile }= require('web.test_utils').file;
 
 QUnit.module('mail.messaging', {}, function () {
 QUnit.module('component', {}, function () {
 QUnit.module('FileUploader', {
     beforeEach() {
         utilsBeforeEach(this);
+        this.createFileUploaderComponent = async (props) => {
+            FileUploader.env = this.env;
+            const fileUploader = new FileUploader(
+                null,
+                Object.assign({ attachmentLocalIds: [] }, props)
+            );
+            await fileUploader.mount(this.widget.el);
+            return fileUploader;
+        };
         this.start = async params => {
             if (this.widget) {
                 this.widget.destroy();
@@ -24,7 +36,6 @@ QUnit.module('FileUploader', {
             }));
             this.env = env;
             this.widget = widget;
-            FileUploader.env = this.env;
         };
     },
     afterEach() {
@@ -41,17 +52,40 @@ QUnit.module('FileUploader', {
 });
 
 QUnit.test('file uploader uniqid', async function (assert) {
-    assert.expect(1);
+    assert.expect(2);
 
-    await this.start({debug:true});
-    const fileUploader1 = new FileUploader(null, { attachmentLocalIds: [] });
-    const fileUploader2 = new FileUploader(null, { attachmentLocalIds: [] });
+    await this.start();
+    const fileUploader1 = await this.createFileUploaderComponent();
+    const fileUploader2 = await this.createFileUploaderComponent();
+    const file1 = await createFile({
+        name: 'text1.txt',
+        content: 'hello, world',
+        contentType: 'text/plain',
+    });
+    inputFiles(
+        fileUploader1.el.querySelector('.o_FileUploader_input'),
+        [file1]
+    );
+    await nextAnimationFrame(); // we can't use afterNextRender as fileInput are display:none
+    assert.strictEqual(
+        Object.keys(this.env.store.state.attachments).length,
+        1,
+        'Uploaded file should be the only attachment created');
 
-    assert.notEqual(
-        fileUploader1._fileUploadId,
-        fileUploader2._fileUploadId,
-        "File uploader instances should not have same file upload id"
-    )
+    const file2 = await createFile({
+        name: 'text1.txt',
+        content: 'hello, world',
+        contentType: 'text/plain',
+    });
+    inputFiles(
+        fileUploader2.el.querySelector('.o_FileUploader_input'),
+        [file2]
+    );
+    await nextAnimationFrame();
+    assert.strictEqual(
+        Object.keys(this.env.store.state.attachments).length,
+        2,
+        'Uploaded file should be the only attachment added');
 });
 
 });
