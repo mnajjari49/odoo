@@ -510,6 +510,7 @@ var PivotModel = AbstractModel.extend({
             origins: this.data.origins,
             rowGroupBys: groupBys.rowGroupBys,
             selectionGroupBys: this._getSelectionGroupBy(groupBys),
+            modelName: this.modelName
         };
         if (!raw && state.hasData) {
             state.table = this._getTable();
