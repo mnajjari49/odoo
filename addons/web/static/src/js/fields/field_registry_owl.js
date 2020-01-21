@@ -4,10 +4,10 @@ odoo.define('web.field_registry_owl', function (require) {
 var field_registry = require('web.field_registry');
 var Class = require('web.Class');
 var AbstractField = require('web.AbstractField');
-const WidgetAdapterMixin;
-const ComponentWrapper;
+/*const WidgetAdapterMixin;
+const ComponentWrapper;*/
 
-var FieldAdapter = AbstractField.extend(WidgetAdapterMixin ,{
+var FieldAdapter = AbstractField.extend({
     start: function () {
         this.component = new this.ComponentWrapper(this, this.ComponentClass, this.value);
         return this._super.apply(this, arguments);

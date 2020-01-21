@@ -13,9 +13,12 @@ var core = require('web.core');
 var dom = require('web.dom');
 var widgetRegistry = require('web.widget_registry');
 
+const { WidgetAdapterMixin } = require('web.OwlCompatibility');
+const FieldWrapper = require('web.FieldWrapper');
+
 var qweb = core.qweb;
 
-var BasicRenderer = AbstractRenderer.extend({
+var BasicRenderer = AbstractRenderer.extend(WidgetAdapterMixin, {
     custom_events: {
         navigation_move: '_onNavigationMove',
     },
@@ -559,7 +562,7 @@ var BasicRenderer = AbstractRenderer.extend({
                 newElement.$el = element;
             } else {
                 newElement.widget = element;
-                newElement.$el = element.$el;
+                newElement.$el = element instanceof owl.Component ? $(element.el) : element.$el;
             }
             if (options && options.callback) {
                 newElement.callback = options.callback;
@@ -582,6 +585,7 @@ var BasicRenderer = AbstractRenderer.extend({
      * @returns {Promise}
      */
     _render: function () {
+        const self = this;
         var oldAllFieldWidgets = this.allFieldWidgets;
         this.allFieldWidgets = {}; // TODO maybe merging allFieldWidgets and allModifiersData into "nodesData" in some way could be great
         this.allModifiersData = [];
@@ -594,6 +598,7 @@ var BasicRenderer = AbstractRenderer.extend({
                 });
             });
             _.invoke(oldWidgets, 'destroy');
+            WidgetAdapterMixin.on_attach_callback.call(self);
         });
     },
     /**
@@ -625,10 +630,22 @@ var BasicRenderer = AbstractRenderer.extend({
         // Initialize and register the widget
         // Readonly status is known as the modifiers have just been registered
         var Widget = record.fieldsInfo[this.viewType][fieldName].Widget;
-        var widget = new Widget(this, fieldName, record, {
-            mode: modifiers.readonly ? 'readonly' : mode,
-            viewType: this.viewType,
-        });
+        let widget;
+        const fieldWidgetProps = {
+            fieldName: fieldName,
+            record: record,
+            options: {
+                mode: modifiers.readonly ? 'readonly' : mode,
+                viewType: this.viewType,
+            }
+        }
+        let legacy;
+        if (Widget.prototype instanceof owl.Component) {
+            widget = new FieldWrapper(this, Widget, fieldWidgetProps);
+        } else {
+            legacy = true;
+            widget = new Widget(this, fieldName, record, fieldWidgetProps.options);
+        }
 
         // Register the widget so that it can easily be found again
         if (this.allFieldWidgets[record.id] === undefined) {
@@ -639,9 +656,14 @@ var BasicRenderer = AbstractRenderer.extend({
         widget.__node = node; // TODO get rid of this if possible one day
 
         // Prepare widget rendering and save the related promise
-        var def = widget._widgetRenderAndInsert(function () {});
         var $el = $('<div>');
-
+        let def;
+        if (legacy) {
+            def = widget._widgetRenderAndInsert(function () {});
+        } else {
+            def = widget.mount($el[0]);
+        }
+        
         this.defs.push(def);
 
         // Update the modifiers registration by associating the widget and by
@@ -654,9 +676,10 @@ var BasicRenderer = AbstractRenderer.extend({
             // the temporary div and not on the actual element that will be
             // rendered. As we do not return a promise and some callers cannot
             // wait for this.defs, we copy those classnames to the final element.
-            widget.$el.addClass($el.attr('class'));
+            const $widgetEl = legacy ? widget.$el : $(widget.el);
+            $widgetEl.addClass($el.attr('class'));
 
-            $el.replaceWith(widget.$el);
+            $el.replaceWith($widgetEl);
             self._registerModifiers(node, record, widget, {
                 callback: function (element, modifiers, record) {
                     element.$el.toggleClass('o_field_empty', !!(

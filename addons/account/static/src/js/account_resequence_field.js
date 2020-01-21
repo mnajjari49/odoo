@@ -3,14 +3,15 @@ odoo.define('account.ShowReseqenceRenderer', function (require) {
 
 const { Component } = owl;
 const { useState } = owl.hooks;
-const OwlAbstractRenderer = require('web.AbstractRendererOwl');
+const AbstractFieldOwl = require('web.AbstractFieldOwl');
+var field_registry = require('web.field_registry');
 
 class ChangeLine extends Component { }
 ChangeLine.template = 'account.ResequenceChangeLine';
 ChangeLine.props = ["changeLine", 'ordering'];
 
 
-class ShowReseqenceRenderer extends OwlAbstractRenderer {
+class ShowReseqenceRenderer extends AbstractFieldOwl {
     constructor(...args) {
         super(...args);
         this.data = useState({
@@ -25,6 +26,6 @@ class ShowReseqenceRenderer extends OwlAbstractRenderer {
 ShowReseqenceRenderer.template = 'account.ResequenceRenderer';
 ShowReseqenceRenderer.components = { ChangeLine }
 
-require('web.field_registry_owl').add('account_resequence_widget', ShowReseqenceRenderer);
+field_registry.add('account_resequence_widget', ShowReseqenceRenderer);
 return ShowReseqenceRenderer;
 });
