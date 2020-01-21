@@ -572,9 +572,6 @@ class Picking(models.Model):
         package_level_done.write({'is_done': False})
         moves._action_assign()
         package_level_done.write({'is_done': True})
-        # With putaway rules, it could happen package and its move line don't
-        # have the same `location_dest_id`.
-        self.mapped('package_level_ids')._check_dest_location()
         return True
 
     @api.multi
@@ -668,7 +665,7 @@ class Picking(models.Model):
                             'picking_id': picking.id,
                             'package_id': pack.id,
                             'location_id': pack.location_id.id,
-                            'location_dest_id': picking.move_line_ids.filtered(lambda ml: ml.package_id == pack).mapped('location_dest_id')[:1].id,
+                            'location_dest_id': move_lines_to_pack.mapped('location_dest_id')[:1].id,
                             'move_line_ids': [(6, 0, move_lines_to_pack.ids)]
                         })
                         move_lines_to_pack.write({
@@ -686,6 +683,10 @@ class Picking(models.Model):
                             'result_package_id': pack.id,
                             'package_level_id': package_level_ids[0].id,
                         })
+                        for pl in package_level_ids:
+                            location_dest = pl.move_line_ids.mapped('location_dest_id').sorted(lambda loc: loc.id)[:1]
+                            if location_dest:
+                                pl.location_dest_id = location_dest.id
 
     @api.multi
     def do_unreserve(self):

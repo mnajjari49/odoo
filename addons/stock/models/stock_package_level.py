@@ -149,12 +149,6 @@ class StockPackageLevel(models.Model):
         self.mapped('move_line_ids').write({'result_package_id': False})
         return super(StockPackageLevel, self).unlink()
 
-    def _check_dest_location(self):
-        for package_level in self:
-            if package_level.move_line_ids and \
-               package_level.location_dest_id.id != package_level.move_line_ids[0].location_dest_id.id:
-                package_level.location_dest_id = package_level.move_line_ids[0].location_dest_id.id
-
     def _check_move_lines_map_quant_package(self, package, field='qty_done'):
         """ should compare in good uom """
         all_in = True
