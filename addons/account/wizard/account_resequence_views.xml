@@ -13,7 +13,7 @@
                 <field name="has_active_ids" invisible="1"/>
                 <group>
                     <group attrs="{'invisible': [('has_active_ids', '=', True)]}">
-                        <field name="first_date" required="1"/>
+                        <field name="first_date" attrs="{'required': [('has_active_ids', '=', False)]}"/>
                     </group>
                     <group>
                         <field name="end_date" attrs="{'invisible': [('has_active_ids', '=', True)]}"/>

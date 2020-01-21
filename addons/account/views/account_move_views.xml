@@ -548,7 +548,7 @@
 
                         <!-- Invisible fields -->
                         <field name="id" invisible="1"/>
-                        <field name="name_prefix_editable" invisible="1"/>
+                        <field name="show_name_warning" invisible="1"/>
                         <field name="posted_before" invisible="1"/>
                         <field name="type" invisible="1"/>
                         <field name="payment_state" invisible="1" force_save="1"/>
@@ -576,10 +576,9 @@
                             </h1>
 
                             <!-- Number -->
+                            <span class="text-warning" attrs="{'invisible': [('show_name_warning', '=', False)]}">The current highest number is <field name="highest_name"/>. You might want to put a highest number here.</span>
                             <h1 class="mt0" attrs="{'invisible':[('name', '=', '/'), ('posted_before', '=', False)]}">
-                                <field name="name" attrs="{'invisible':[('name_prefix_editable', '=', False)], 'readonly': [('state', '!=', 'draft')]}"/>
-                                <field name="name_prefix" class="oe_inline" attrs="{'invisible':[('name_prefix_editable', '=', True)]}"/>
-                                <field name="name_number" class="oe_inline" attrs="{'invisible':[('name_prefix_editable', '=', True)], 'readonly': [('state', '!=', 'draft')]}"/>
+                                <field name="name" attrs="{'readonly': [('state', '!=', 'draft')]}"/>
                             </h1>
 
                         </div>

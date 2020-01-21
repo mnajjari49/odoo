@@ -32,10 +32,8 @@ class ReSequenceWizard(models.TransientModel):
             active_move_ids = self.env['account.move'].browse(self.env.context['active_ids'])
             if len(active_move_ids.journal_id) != 1:
                 raise UserError(_('You can only resequence items from the same journal'))
-            min_name = min(active_move_ids.mapped('name'))
-            max_name = max(active_move_ids.mapped('name'))
-            move_ids = self.env['account.move'].search([('journal_id', '=', active_move_ids.journal_id.id), ('name', '<=', max_name), ('name', '>=', min_name)])
-            values['move_ids'] = [(6, 0, move_ids.ids)]
+            values['journal_id'] = active_move_ids.journal_id.id
+            values['move_ids'] = [(6, 0, active_move_ids.ids)]
         return values
 
     @api.depends('first_name')
@@ -151,7 +149,7 @@ class ReSequenceWizard(models.TransientModel):
                 new_name_list = [format % {
                     'year': grouped_list[0].date.year,
                     'month': grouped_list[0].date.month,
-                    'seq': i + (int(sequence.group('seq')) if j == (len(sorted)-1) else 1),
+                    'seq': i + (int(sequence.group('seq') or '1') if j == (len(sorted)-1) else 1),
                 } for i in range(len(grouped_list))]
 
                 for move, new_name in zip(grouped_list.sorted(lambda m: m.name), new_name_list):

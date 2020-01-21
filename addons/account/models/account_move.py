@@ -90,9 +90,8 @@ class AccountMove(models.Model):
 
     # ==== Business fields ====
     name = fields.Char(string='Number', copy=False, compute='_compute_name', readonly=False, store=True, index=True)
-    name_prefix = fields.Char(compute='_compute_name_parts')
-    name_number = fields.Char(compute='_compute_name_parts', inverse='_inverse_name_parts')
-    name_prefix_editable = fields.Boolean(compute='_compute_name_prefix_editable')
+    highest_name = fields.Char(compute='_compute_highest_name')
+    show_name_warning = fields.Boolean(store=False)
     date = fields.Date(string='Date', required=True, index=True, readonly=True,
         states={'draft': [('readonly', False)]},
         default=fields.Date.context_today)
@@ -904,42 +903,29 @@ class AccountMove(models.Model):
     # COMPUTE METHODS
     # -------------------------------------------------------------------------
 
-    @api.depends('journal_id', 'date', 'state')
+    @api.depends('journal_id', 'date', 'state', 'highest_name')
     def _compute_name(self):
         for record in self.sorted(lambda m: (m.date, m.ref or '', m.id)):
             if not record.name or record.name == '/':
-                if record.state == 'draft' and not record.posted_before and record.name_prefix_editable:
+                if record.state == 'draft' and not record.posted_before and not record.highest_name:
                     record._set_next_sequence()
                 elif record.state == 'posted':
                     record._set_next_sequence()
-            if record.name and record.state == 'draft' and not record.posted_before and not record.name_prefix_editable:
+            if record.name and record.state == 'draft' and not record.posted_before and record.highest_name:
                 record.name = '/'
             record.name = record.name or '/'
 
-    @api.depends('journal_id', 'date')
-    def _compute_name_prefix_editable(self):
-        self.name_prefix_editable = False
+    @api.depends('journal_id', 'date', 'state')
+    def _compute_highest_name(self):
         for record in self:
-            if not record._get_last_sequence():
-                record.name_prefix_editable = True
+            record.highest_name = record._get_last_sequence()
 
-    @api.depends('name')
-    def _compute_name_parts(self):
-        self.name_prefix = False
-        self.name_number = False
-        for record in self:
-            if record.name and record.name != "/":
-                sequence = re.match(self._sequence_fixed_regex, record.name)
-                record.name_prefix = sequence.group('prefix')
-                record.name_number = sequence.group('seq')
-
-    def _inverse_name_parts(self):
-        for record in self:
-            if record.name and record.name != '/':
-                sequence = re.match(self._sequence_fixed_regex, record.name)
-                if not re.match(r'^\d+$', record.name_number or ""):
-                    raise ValidationError(_('You can only enter a number in the sequence now.'))
-                record.name = sequence.group('prefix') + record.name_number
+    @api.onchange('name')
+    def _onchange_name_warning(self):
+        if self.name and self.name != '/' and self.name <= (self.highest_name or ''):
+            self.show_name_warning = True
+        else:
+            self.show_name_warning = False
 
     def _get_last_sequence_domain(self, relaxed=False):
         self.ensure_one()
