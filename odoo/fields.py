@@ -1307,6 +1307,11 @@ class Uom(Field):
             self.uom_field = self.related_field.uom_field
         self._setup_uom_field(model)
 
+    def write(self, records, value):
+        # Manage uom for multi records
+        for record in records:
+            super(Uom, self).write(record, value)
+
     def convert_to_column(self, value, record, values=None, validate=True):
         # retrieve uom from values or record
         if values and self.uom_field in values:
