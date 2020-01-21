@@ -37,8 +37,12 @@
                 </span>
             </div>
         </div>
+        <div t-if="survey.session_competitive_mode" class="o_survey_session_ranking mb-5 mt-1">
+            <h2 class="mt16 text-uppercase text-muted">Ranking</h2>
+            <t t-call="survey.user_input_session_ranking" />
+        </div>
         <div t-if="survey.scoring_type in ['scoring_with_answers', 'scoring_without_answers']">
-            <h1 class="mt16">Results Overview</h1>
+            <h2 class="mt16 text-uppercase text-muted">Results Overview</h2>
             <div>Success rate: <mark class="font-weight-bold"><t t-esc="survey_data['global_success_rate']"></t>%</mark></div>
             <div class="survey_graph" data-graph-type="pie" t-att-data-graph-data="survey_data['global_success_graph']">
                 <!-- canvas element for drawing pie chart -->

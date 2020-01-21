@@ -84,7 +84,8 @@
 
     <template id="survey_button_retake" name="Survey: retake button">
         <div>
-            <t t-if="not answer.scoring_success">
+            <!-- TODO awa: unsafe, set a is_session_answer field on user_input instead -->
+            <t t-if="not answer.scoring_success and survey.session_state != 'done'">
                 <t t-if="survey.is_attempts_limited">
                     <t t-set="attempts_left" t-value="survey._get_number_of_attempts_lefts(answer.partner_id, answer.email, answer.invite_token)" />
                     <t t-if="attempts_left > 0">

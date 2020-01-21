@@ -6,7 +6,7 @@
                         Common Style
  **********************************************************/
 
-.o_survey_form, .o_survey_print {
+.o_survey_form, .o_survey_print, .o_survey_session_manage {
     .o_survey_question_error {
         height: 0px;
         transition: height .5s ease;
@@ -92,7 +92,7 @@
                     Form Specific Style
  **********************************************************/
 
-.o_survey_form {
+.o_survey_form, .o_survey_session_manage {
     min-height: 100%;
 
     .o_survey_choice_btn {
@@ -188,6 +188,81 @@
         }
         i.fa-check-square, i.fa-check-circle, i.o_survey_matrix_empty_checkbox {
             color: $gray-600;
+        }
+    }
+}
+
+.o_survey_session_open {
+    .o_survey_session_copy {
+        cursor: pointer;
+        opacity: .75;
+        transition: opacity .3s ease;
+        &:hover {
+            opacity: 1;
+        }
+    }
+}
+
+.o_survey_session_manage {
+    .o_survey_session_manage_container {
+        border: solid 1px #999999;
+        box-shadow: 0px 1px 1px 0px #999999;
+
+        .js_question-wrapper {
+            padding-bottom: 0px;
+        }
+    }
+
+    .btn {
+        font-variant: small-caps;
+    }
+
+    .o_survey_session_results, .o_survey_session_ranking {
+        .fa {
+            font-size: .9rem;
+            opacity: .75;
+            &:hover {
+                transition: opacity .4s ease;
+                opacity: 1;
+                cursor: pointer;
+            }
+        }
+
+        .o_survey_result, .o_survey_session_ranking_container {
+            height: 0px;
+            overflow: hidden;
+            transition: height .4s ease;
+        }
+    }
+
+    .o_survey_result {
+        .nav-tabs .nav-link.active {
+            background-color: transparent;
+            border-color: #dee2e6 #dee2e6 transparent;
+        }
+    }
+}
+
+.o_survey_session_ranking {
+    .o_survey_session_ranking_item {
+        line-height: 1.4rem;
+
+        .o_survey_session_ranking_index {
+            width: 1.5rem;
+        }
+
+        .o_survey_session_ranking_bar {
+            min-width: 5%;
+            height: 1.4rem;
+            color: white;
+            background-color: #007A77;
+        }
+
+        .o_survey_session_ranking_name {
+            width: 7.5rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
     }
 }

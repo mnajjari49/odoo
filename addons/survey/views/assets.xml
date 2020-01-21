@@ -19,6 +19,11 @@
         <link rel="stylesheet" type="text/scss" href="/survey/static/src/scss/survey_form.scss"/>
     </template>
 
+    <!-- survey user input session assets  -->
+    <template id="survey_user_input_session_assets" name="Survey User Input Session Assets">
+        <script type="text/javascript" src="/survey/static/src/js/survey_session_manage.js" />
+    </template>
+
     <template id="survey_report_assets_pdf" inherit_id="web.report_assets_pdf">
         <xpath expr="link[last()]" position="after">
             <link rel="stylesheet" type="text/scss" href="/survey/static/src/scss/survey_reports.scss"/>

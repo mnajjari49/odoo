@@ -234,8 +234,20 @@ class Survey(http.Controller):
                 'title': page.title,
             } for page in survey_sudo.page_ids],
             'format_datetime': lambda dt: format_datetime(request.env, dt, dt_format=False),
-            'format_date': lambda date: format_date(request.env, date)
+            'format_date': lambda date: format_date(request.env, date),
+            'is_survey_session_in_progress': survey_sudo.session_state in ['ready', 'in_progress'],
         }
+
+        timer_start = False
+        time_limit_minutes = False
+        if survey_sudo.session_state == 'in_progress' and survey_sudo.session_is_questions_time_limited:
+            timer_start = survey_sudo.session_current_question_start_time.isoformat()
+            time_limit_minutes = survey_sudo.session_questions_time_limit / 60
+        elif survey_sudo.is_time_limited and answer_sudo.start_datetime:
+            timer_start = answer_sudo.start_datetime.isoformat()
+            time_limit_minutes = survey_sudo.time_limit
+        data['timer_start'] = timer_start
+        data['time_limit_minutes'] = time_limit_minutes
 
         page_or_question_key = 'question' if survey_sudo.questions_layout == 'page_per_question' else 'page'
 
@@ -245,7 +257,8 @@ class Survey(http.Controller):
             new_previous_id = survey_sudo._previous_page_or_question_id(answer_sudo, previous_page_or_question_id)
             data.update({
                 page_or_question_key: request.env['survey.question'].sudo().browse(previous_page_or_question_id),
-                'previous_page_id': new_previous_id
+                'previous_page_id': new_previous_id,
+                'has_answered': answer_sudo.user_input_line_ids.filtered(lambda line: line.question_id == new_previous_id)
             })
             return data
 
@@ -256,6 +269,7 @@ class Survey(http.Controller):
 
             data.update({
                 page_or_question_key: page_or_question_id,
+                'has_answered': answer_sudo.user_input_line_ids.filtered(lambda line: line.question_id == page_or_question_id)
             })
             if survey_sudo.questions_layout != 'one_page':
                 data.update({
@@ -263,7 +277,8 @@ class Survey(http.Controller):
                 })
             if is_last:
                 data.update({'last': True})
-        elif answer_sudo.state == 'done' or answer_sudo.is_time_limit_reached:  # Display success message
+        elif answer_sudo.state == 'done' or (answer_sudo.is_time_limit_reached and survey_sudo.session_state != 'in_progress'):
+            # Display success message
             return self._prepare_survey_finished_values(survey_sudo, answer_sudo)
 
         return data
@@ -321,6 +336,23 @@ class Survey(http.Controller):
         })
         return self._prepare_question_html(survey_sudo, answer_sudo, **post)
 
+    @http.route('/survey/next_question/<string:survey_token>/<string:answer_token>', type='json', auth='public', website=True)
+    def survey_next_question(self, survey_token, answer_token, **post):
+        """ Method used to display the next survey question in an ongoing session.
+        Triggered on all attendees screens when the host goes to the next question. """
+        access_data = self._get_access_data(survey_token, answer_token, ensure_token=True)
+        if access_data['validity_code'] is not True:
+            return {'error': access_data['validity_code']}
+        survey_sudo, answer_sudo = access_data['survey_sudo'], access_data['answer_sudo']
+
+        if answer_sudo.state == 'new' and survey_sudo.session_state == 'in_progress':
+            answer_sudo.write({
+                'start_datetime': fields.Datetime.now(),
+                'state': 'in_progress'
+            })
+
+        return self._prepare_question_html(survey_sudo, answer_sudo, **post)
+
     @http.route('/survey/submit/<string:survey_token>/<string:answer_token>', type='json', auth='public', website=True)
     def survey_submit(self, survey_token, answer_token, **post):
         """ Submit a page from the survey.
@@ -345,8 +377,13 @@ class Survey(http.Controller):
             return {'error': 'unauthorized'}
 
         if answer_sudo.is_time_limit_reached:
-            time_limit = answer_sudo.start_datetime + timedelta(minutes=survey_sudo.time_limit)
-            if fields.Datetime.now() > (time_limit + timedelta(seconds=10)):
+            if survey_sudo.session_state != 'in_progress':
+                time_limit = answer_sudo.start_datetime + timedelta(minutes=survey_sudo.time_limit) + timedelta(seconds=10)
+                time_limit += timedelta(seconds=10)
+            else:
+                time_limit = survey_sudo.session_current_question_start_time + relativedelta(seconds=survey_sudo.session_questions_time_limit)
+                time_limit += timedelta(seconds=3)
+            if fields.Datetime.now() > time_limit:
                 # prevent cheating with users blocking the JS timer and taking all their time to answer
                 return {'error': 'unauthorized'}
 
@@ -361,7 +398,7 @@ class Survey(http.Controller):
         if errors and not answer_sudo.is_time_limit_reached:
             return {'error': 'validation', 'fields': errors}
 
-        if answer_sudo.is_time_limit_reached or survey_sudo.questions_layout == 'one_page':
+        if (survey_sudo.session_state != 'in_progress' and answer_sudo.is_time_limit_reached) or survey_sudo.questions_layout == 'one_page':
             answer_sudo._mark_done()
         elif 'previous_page_id' in post:
             # Go back to specific page using the breadcrumb. Lines are saved and survey continues
@@ -505,7 +542,7 @@ class Survey(http.Controller):
         survey_data = survey._prepare_statistics(user_input_lines)
         question_and_page_data = survey.question_and_page_ids._prepare_statistics(user_input_lines)
 
-        return request.render('survey.survey_page_statistics', {
+        template_values = {
             # survey and its statistics
             'survey': survey,
             'question_and_page_data': question_and_page_data,
@@ -513,7 +550,12 @@ class Survey(http.Controller):
             # search
             'search_filters': search_filters,
             'search_finished': post.get('finished') == 'true',
-        })
+        }
+
+        if survey.session_competitive_mode:
+            template_values['ranking'] = survey._prepare_ranking_values()
+
+        return request.render('survey.survey_page_statistics', template_values)
 
     def _generate_report(self, user_input, download=True):
         report = request.env.ref('survey.certification_report').sudo().render_qweb_pdf([user_input.id], data={'report_type': 'pdf'})[0]
