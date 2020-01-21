@@ -165,19 +165,10 @@ class Company(models.Model):
         if self.state_id.country_id:
             self.country_id = self.state_id.country_id
 
-    def on_change_country(self, country_id):
-        # This function is called from account/models/chart_template.py, hence decorated with `multi`.
-        self.ensure_one()
-        currency_id = self._get_user_currency()
-        if country_id:
-            currency_id = self.env['res.country'].browse(country_id).currency_id
-        return {'value': {'currency_id': currency_id.id}}
-
     @api.onchange('country_id')
-    def _onchange_country_id_wrapper(self):
-        values = self.on_change_country(self.country_id.id)['value']
-        for fname, value in values.items():
-            setattr(self, fname, value)
+    def _onchange_country_id(self):
+        if self.country_id:
+            self.currency_id = self.country_id.currency_id
 
     @api.model
     def _name_search(self, name, args=None, operator='ilike', limit=100, name_get_uid=None):

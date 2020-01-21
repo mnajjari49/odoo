@@ -386,7 +386,8 @@ class IrActionsServer(models.Model):
     crud_model_name = fields.Char(related='crud_model_id.model', string='Target Model', readonly=True)
     link_field_id = fields.Many2one('ir.model.fields', string='Link using field',
                                     help="Provide the field used to link the newly created record "
-                                         "on the record on used by the server action.")
+                                         "on the record used by the server action.")
+    # VFE TODO add a domain s.t. the link_field has to be on crud_model or model ?
     fields_lines = fields.One2many('ir.server.object.lines', 'server_id', string='Value Mapping', copy=True)
     groups_id = fields.Many2many('res.groups', 'ir_act_server_group_rel',
                                  'act_id', 'gid', string='Groups')
@@ -406,11 +407,6 @@ class IrActionsServer(models.Model):
     @api.onchange('crud_model_id')
     def _onchange_crud_model_id(self):
         self.link_field_id = False
-        self.crud_model_name = self.crud_model_id.model
-
-    @api.onchange('model_id')
-    def _onchange_model_id(self):
-        self.model_name = self.model_id.model
 
     def create_action(self):
         """ Create a contextual action for each server action. """
@@ -612,7 +608,6 @@ class IrServerObjectLines(models.Model):
             else:
                 line.resource_ref = False
 
-    @api.onchange('resource_ref')
     def _set_resource_ref(self):
         for line in self.filtered(lambda line: line.evaluation_type == 'reference'):
             if line.resource_ref:
