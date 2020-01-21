@@ -85,7 +85,7 @@ var MailManager =  AbstractService.extend({
      */
     addMessage: function (data, options) {
         options = options || {};
-        var message = this.getMessage(data.id);
+        var message = this.getMessage(data.id, data.model);
         var prom;
         if (!message) {
             prom = this._addNewMessage(data, options);
@@ -218,9 +218,9 @@ var MailManager =  AbstractService.extend({
      * @param {integer} messageID
      * @returns {mail.model.Message|undefined} the matched message (if any)
      */
-    getMessage: function (messageID) {
+    getMessage: function (messageID, messageModel) {
         return _.find(this._messages, function (message) {
-            return message.getID() === messageID;
+            return message.getID() === messageID && message._documentModel === messageModel;
         });
     },
     /**
