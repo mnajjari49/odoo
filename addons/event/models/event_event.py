@@ -312,7 +312,7 @@ class EventEvent(models.Model):
                     for line in self.event_type_id.event_type_mail_ids]
 
             # compute tickets information
-            if self.event_type_id.use_tickets:
+            if self.event_type_id.use_ticket:
                 self.event_ticket_ids = [(5, 0, 0)] + [
                     (0, 0, {
                         'name': self.name and _('Registration for %s') % self.name or ticket.name,
