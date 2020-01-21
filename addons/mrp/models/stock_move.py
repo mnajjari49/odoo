@@ -148,6 +148,51 @@ class StockMove(models.Model):
                 defaults['additional'] = True
         return defaults
 
+    def write(self, values):
+        if 'product_uom_qty' in values:
+            old_quantities = {move: move.product_uom_qty for move in self}
+        res = super().write(values)
+        if 'product_uom_qty' in values:
+            procurement_requests = []
+            for move in self:
+                mo = move.raw_material_production_id
+                if mo:
+                    move.unit_factor = (move.product_uom_qty - move.quantity_done) / mo.product_qty
+                qty_diff = float_compare(move.product_uom_qty, old_quantities[move], precision_rounding=move.product_uom.rounding)
+                if mo and mo.state == 'confirmed':
+                    if qty_diff > 0:
+                        new_qty = move.product_uom_qty - old_quantities[move]
+                        values = move._prepare_procurement_values()
+                        origin = (
+                            move.group_id and
+                            move.group_id.name or
+                            (move.origin or move.picking_id.name or "/")
+                        )
+                        procurement_requests.append(self.env['procurement.group'].Procurement(
+                            move.product_id, new_qty, move.product_uom,
+                            move.location_id, move.rule_id and move.rule_id.name or "/",
+                            origin, move.company_id, values
+                        ))
+                    else:
+                        move.move_orig_ids._decrease_initial_demand(old_quantities[move] - move.product_uom_qty)
+            self.env['procurement.group'].run(procurement_requests)
+        return res
+
+    @api.model
+    def create(self, values):
+        if values.get('raw_material_production_id'):
+            mo = self.env['mrp.production'].browse(values['raw_material_production_id'])
+            values.update({
+                'group_id': mo.procurement_group_id.id,
+                'unit_factor': values.get('product_uom_qty', 1) / ((mo.product_qty - mo.qty_produced) or 1),
+                'reference': mo.name
+            })
+        res = super().create(values)
+        if res.raw_material_production_id and res.raw_material_production_id.state == 'confirmed' and not res.bom_line_id:
+            res._adjust_procure_method()
+            res._action_confirm()
+        return res
+
     def _action_assign(self):
         res = super(StockMove, self)._action_assign()
         for move in self.filtered(lambda x: x.production_id or x.raw_material_production_id):
@@ -299,3 +344,16 @@ class StockMove(models.Model):
             return min(qty_ratios) // 1
         else:
             return 0.0
+
+    def _decrease_initial_demand(self, qty, stream='UP'):
+        done_move_to_return = []
+        finished_moves = self.env['stock.move']
+        for move in self:
+            if move.production_id and move.state not in ('done, cancel'):
+                try:
+                    move.production_id._update_quantity(move.production_id.product_qty - qty)
+                    finished_moves |= move
+                except UserError:
+                    # Set activity on MO
+                    done_move_to_return.append((move, move.production_id))
+        return done_move_to_return + super(StockMove, self - finished_moves)._decrease_initial_demand(qty, stream=stream)
