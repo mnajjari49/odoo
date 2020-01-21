@@ -73,11 +73,15 @@ class PurchaseOrder(models.Model):
         if vals.get('order_line') and self.state == 'purchase':
             for order in self:
                 to_log = {}
+                docs_to_log = []
                 for order_line in order.order_line:
-                    if pre_order_line_qty.get(order_line, False) and float_compare(pre_order_line_qty[order_line], order_line.product_qty, precision_rounding=order_line.product_uom.rounding) > 0:
-                        to_log[order_line] = (order_line.product_qty, pre_order_line_qty[order_line])
+                    if float_compare(order_line.product_qty, pre_order_line_qty.get(order_line, 0.0), order_line.product_uom.rounding) < 0:
+                        docs = order_line.move_ids._decrease_initial_demand(pre_order_line_qty.get(order_line, 0.0) - order_line.product_qty, 'DOWN')
+                        if docs:
+                            docs_to_log += docs
+                            to_log[order_line] = (order_line.product_qty, pre_order_line_qty.get(order_line, 0.0))
                 if to_log:
-                    order._log_decrease_ordered_quantity(to_log)
+                    order._log_decrease_ordered_quantity(to_log, docs_to_log)
         return res
 
     # --------------------------------------------------
@@ -139,7 +143,7 @@ class PurchaseOrder(models.Model):
     # Business methods
     # --------------------------------------------------
 
-    def _log_decrease_ordered_quantity(self, purchase_order_lines_quantities):
+    def _log_decrease_ordered_quantity(self, purchase_order_lines_quantities, whitelist):
 
         def _keys_in_sorted(move):
             """ sort by picking and the responsible for the product the
@@ -165,7 +169,7 @@ class PurchaseOrder(models.Model):
             }
             return self.env.ref('purchase_stock.exception_on_po').render(values=values)
 
-        documents = self.env['stock.picking']._log_activity_get_documents(purchase_order_lines_quantities, 'move_ids', 'DOWN', _keys_in_sorted, _keys_in_groupby)
+        documents = self.env['stock.picking']._log_activity_get_documents(purchase_order_lines_quantities, 'move_ids', 'DOWN', _keys_in_sorted, _keys_in_groupby, whitelist=whitelist)
         filtered_documents = {}
         for (parent, responsible), rendering_context in documents.items():
             if parent._name == 'stock.picking':
