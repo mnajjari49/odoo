@@ -377,6 +377,37 @@
     </li>
 </t>
 
+<t t-name="ContextEditor" owl="1">
+    <div class="o_context_editor">
+        <div t-foreach="pairs" t-as="pair" t-key="pair.key"
+            class="o_context"
+            t-att-class="{ o_invalid: state.invalid.includes(pair.buffer) }"
+            >
+            <input type="text"
+                t-attf-id="o_context_key_{{ pair.key }}"
+                class="o_input o_key"
+                t-att-value="_toString(pair.key)"
+                t-on-input="_onKeyChanged(pair)"
+            />
+            =
+            <input type="text"
+                class="o_input o_value"
+                t-att-value="_toString(pair.value)"
+                t-on-input="_onValueChanged(pair)"
+            />
+            <i class="fa fa-sm fa-remove"
+                role="img"
+                aria-label="Remove"
+                title="Remove"
+                t-on-click.stop="_onRemovePair(pair_index)"
+            />
+        </div>
+        <button class="btn btn-secondary" t-on-click="_onAddPair">
+            Add Key/Value pair <i class="fa fa-plus-circle"/>
+        </button>
+    </div>
+</t>
+
 <t t-name="FilterEditor" owl="1">
     <div class="o_filter_editor" t-on-keydown="_onKeydown">
         <div class="o_section o_main_section">
@@ -523,7 +554,9 @@
                         t-att-checked="props.filter.timeRanges"
                         t-on-change="_onToggleTimeRanges"
                     />
-                    <label t-attf-for="o_toggle_time_range_{{ id }}" class="custom-control-label">Activate time ranges</label>
+                    <label t-attf-for="o_toggle_time_range_{{ id }}" class="custom-control-label">
+                        Activate time ranges
+                    </label>
                 </div>
                 <TimeRangeEditor t-if="props.filter.timeRanges"
                     comparisonRangeId="props.filter.timeRanges.comparisonRangeId"
@@ -537,11 +570,7 @@
         <div class="o_section">
             <label class="o_section_header">Context</label>
             <div class="o_section_content">
-                <input class="o_input"
-                    t-att-class="{ o_invalid: state.invalidContext }"
-                    t-att-value="stringContext"
-                    t-on-input="_onContextChange"
-                />
+                <ContextEditor context="props.filter.context" t-on-context-change="_onContextChange"/>
             </div>
         </div>
     </div>
@@ -557,53 +586,41 @@
         <attribute name="t-on-edit-item.stop">_onItemEdited</attribute>
     </xpath>
     <xpath expr="//div[1]" position="inside">
-        <Dialog t-if="state.editDialog"
+        <Dialog t-if="state.editedFavorite"
             title="'Edit favorite'"
             stopClicks="true"
-            t-on-dialog-closed="_closeEditDialog"
+            t-on-dialog-closed="state.editedFavorite = false"
             >
             <FilterEditor
                 fields="props.fields"
-                filter="state.editDialog.favorite"
+                filter="state.editedFavorite"
                 t-on-filter-change="_onFilterChange"
             />
             <t t-set="buttons">
-                <button type="button"
-                    class="btn btn-primary"
-                    t-on-click="_saveFavorite"
-                    >
+                <button type="button" class="btn btn-primary" t-on-click="_saveFavorite">
                     Save
                 </button>
-                <button type="button"
-                    class="btn btn-secondary"
-                    t-on-click.stop="_closeEditDialog"
-                    >
+                <button type="button" class="btn btn-secondary" t-on-click.stop="state.editedFavorite = false">
                     Cancel
                 </button>
             </t>
         </Dialog>
-        <Dialog t-if="state.deleteDialog"
+        <Dialog t-if="state.deletedFavorite"
             title="'Warning'"
             size="'medium'"
-            t-on-dialog-closed="state.deleteDialog = false"
+            t-on-dialog-closed="state.deletedFavorite = false"
             >
-            <t t-if="state.deleteDialog.favorite.userId">
+            <t t-if="state.deletedFavorite.userId">
                 Are you sure that you want to remove this filter?
             </t>
             <t t-else="">
                 This filter is global and will be removed for everybody if you continue.
             </t>
             <t t-set="buttons">
-                <button type="button"
-                    class="btn btn-primary"
-                    t-on-click="_removeFavorite"
-                    >
+                <button type="button" class="btn btn-primary" t-on-click="_removeFavorite">
                     Ok
                 </button>
-                <button type="button"
-                    class="btn btn-secondary"
-                    t-on-click.stop="state.deleteDialog = false"
-                    >
+                <button type="button" class="btn btn-secondary" t-on-click.stop="state.deletedFavorite = false">
                     Cancel
                 </button>
             </t>

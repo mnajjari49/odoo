@@ -91,24 +91,20 @@ odoo.define('board.AddToBoardMenu', function (require) {
         }
 
         _doNotify(title, message) {
-            this.env.bus.trigger('call_service', {
-                data: {
-                    args: [{ title, message, type: 'warning' }],
-                    callback: x => x,
-                    method: 'notify',
-                    service: 'notification',
-                },
+            this.trigger('call-service', {
+                args: [{ title, message, type: 'warning' }],
+                callback: x => x,
+                method: 'notify',
+                service: 'notification',
             });
         }
 
         _doWarn(title, message) {
-            this.env.bus.trigger('call_service', {
-                data: {
-                    args: [{ title, message, type: 'danger' }],
-                    callback: x => x,
-                    method: 'notify',
-                    service: 'notification',
-                },
+            this.trigger('call-service', {
+                args: [{ title, message, type: 'danger' }],
+                callback: x => x,
+                method: 'notify',
+                service: 'notification',
             });
         }
 

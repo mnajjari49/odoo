@@ -5,7 +5,6 @@ odoo.define('web.FavoriteMenu', function (require) {
     const Dialog = require('web.OwlDialog');
     const DropdownMenu = require('web.DropdownMenu');
     const FilterEditor = require('web.FilterEditor');
-    const { sprintf } = require('web.utils');
 
     const { useDispatch, useGetters, useState } = owl.hooks;
 
@@ -13,12 +12,12 @@ odoo.define('web.FavoriteMenu', function (require) {
         constructor() {
             super(...arguments);
 
-            this.state = useState({
-                deleteDialog: false,
-                editDialog: false,
-            });
             this.dispatch = useDispatch(this.env.controlPanelStore);
             this.getters = useGetters(this.env.controlPanelStore);
+            this.state = useState({
+                deletedFavorite: false,
+                editedFavorite: false,
+            });
         }
 
         //--------------------------------------------------------------------------
@@ -38,25 +37,16 @@ odoo.define('web.FavoriteMenu', function (require) {
 
         /**
          * @private
-         */
-        _closeEditDialog() {
-            this.state.editDialog = false;
-        }
-
-        /**
-         * @private
          * @param {string} title
          * @param {string} message
          */
         _doWarn(title, message) {
             return new Promise(resolve => {
-                this.env.bus.trigger('call_service', {
-                    data: {
-                        args: [{ title, message, type: 'danger' }],
-                        callback: resolve,
-                        method: 'notify',
-                        service: 'notification',
-                    },
+                this.trigger('call-service', {
+                    args: [{ title, message, type: 'danger' }],
+                    callback: resolve,
+                    method: 'notify',
+                    service: 'notification',
                 });
             });
         }
@@ -65,15 +55,15 @@ odoo.define('web.FavoriteMenu', function (require) {
          * @private
          */
         _removeFavorite() {
-            this.dispatch('deleteFavorite', this.state.deleteDialog.favorite.id);
-            this.state.deleteDialog = false;
+            this.dispatch('deleteFavorite', this.state.deletedFavorite.id);
+            this.state.deletedFavorite = false;
         }
 
         /**
          * @private
          */
         _saveFavorite() {
-            const { description, id } = this.state.editDialog.favorite;
+            const { description, id } = this.state.editedFavorite;
 
             if (!description.length) {
                 return this._doWarn(
@@ -88,8 +78,8 @@ odoo.define('web.FavoriteMenu', function (require) {
                 );
             }
 
-            this.dispatch('editFavorite', id, this.state.editDialog.favorite);
-            this._closeEditDialog();
+            this.dispatch('editFavorite', id, this.state.editedFavorite);
+            this.state.editedFavorite = false;
         }
 
         //--------------------------------------------------------------------------
@@ -151,9 +141,9 @@ odoo.define('web.FavoriteMenu', function (require) {
          * @param {OwlEvent} ev
          */
         _onFilterChange(ev) {
-            Object.assign(this.state.editDialog.favorite, ev.detail);
+            Object.assign(this.state.editedFavorite, ev.detail);
             if (ev.detail.timeRanges === false) {
-                delete this.state.editDialog.favorite.timeRanges;
+                delete this.state.editedFavorite.timeRanges;
             }
         }
 
@@ -170,9 +160,7 @@ odoo.define('web.FavoriteMenu', function (require) {
             if (storeFavorite.timeRanges) {
                 favorite.timeRanges = Object.assign({}, storeFavorite.timeRanges);
             }
-            const title = sprintf(this.env._t("Edit filter"), favorite.description);
-
-            this.state.editDialog = { title, favorite };
+            this.state.editedFavorite = favorite;
         }
 
         /**
@@ -181,7 +169,7 @@ odoo.define('web.FavoriteMenu', function (require) {
          */
         _onItemRemoved(ev) {
             const favorite = this.items.find(fav => fav.id === ev.detail.item.id);
-            this.state.deleteDialog = { favorite };
+            this.state.deletedFavorite = favorite;
         }
 
         /**

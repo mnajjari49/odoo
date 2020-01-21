@@ -121,10 +121,6 @@
             }
         }
 
-        .o_invalid {
-            color: theme-color('danger');
-        }
-
         .o_fieldname_cells {
             align-items: center;
             display: flex;
@@ -173,6 +169,37 @@
                     flex: 0;
                 }
             }
+        }
+    }
+}
+
+.o_context_editor {
+    .o_context {
+        display: flex;
+        flex-flow: row wrap;
+
+        &.o_invalid {
+            color: theme-color('danger');
+        }
+
+        .o_input {
+            flex: 1;
+            color: inherit;
+
+            &.o_key {
+                margin-right: 10px;
+            }
+
+            &.o_value {
+                margin: 0 10px;
+            }
+        }
+
+        .fa-remove {
+            align-items: center;
+            cursor: pointer;
+            display: flex;
+            flex: 0;
         }
     }
 }

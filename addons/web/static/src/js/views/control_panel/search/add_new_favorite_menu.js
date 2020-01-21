@@ -56,13 +56,11 @@ odoo.define('web.AddNewFavoriteMenu', function (require) {
          */
         _doWarn(title, message) {
             return new Promise(resolve => {
-                this.env.bus.trigger('call_service', {
-                    data: {
-                        args: [{ title, message, type: 'danger' }],
-                        callback: resolve,
-                        method: 'notify',
-                        service: 'notification',
-                    },
+                this.trigger('call_service', {
+                    args: [{ title, message, type: 'danger' }],
+                    callback: resolve,
+                    method: 'notify',
+                    service: 'notification',
                 });
             });
         }

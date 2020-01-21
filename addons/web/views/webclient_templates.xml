@@ -325,6 +325,7 @@
         <script type="text/javascript" src="/web/static/src/js/views/control_panel/search/groupby_menu_mixin.js"></script>
         <script type="text/javascript" src="/web/static/src/js/views/control_panel/search/time_range_menu.js"></script>
         <script type="text/javascript" src="/web/static/src/js/views/control_panel/search/time_range_editor.js"></script>
+        <script type="text/javascript" src="/web/static/src/js/views/control_panel/search/context_editor.js"></script>
         <script type="text/javascript" src="/web/static/src/js/views/control_panel/search/filter_editor.js"></script>
         <script type="text/javascript" src="/web/static/src/js/views/control_panel/search/favorite_menu.js"></script>
         <script type="text/javascript" src="/web/static/src/js/views/control_panel/search/add_new_favorite_menu.js"></script>

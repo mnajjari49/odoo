@@ -605,6 +605,8 @@ var DomainSelector = DomainTree.extend({
         if (!e.data.alreadyRedrawn) {
             this._redraw();
         }
+        // Enriches the data with the current domain.
+        e.data.domain = Domain.prototype.arrayToString(this.getDomain());
     },
 });
 

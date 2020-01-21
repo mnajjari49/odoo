@@ -2,15 +2,15 @@ odoo.define('web.FilterEditor', function (require) {
     "use strict";
 
     const { ComponentAdapter } = require('web.OwlCompatibility');
+    const ContextEditor = require('web.ContextEditor');
     const { DEFAULT_TIMERANGE } = require('web.controlPanelParameters');
-    const Domain = require('web.Domain');
     const DomainSelector = require('web.DomainSelector');
     const pyUtils = require('web.py_utils');
     const TimeRangeEditor = require('web.TimeRangeEditor');
     const { useExternalListener } = require('web.custom_hooks');
 
     const { Component, hooks } = owl;
-    const { useGetters, useRef, useState } = hooks;
+    const { useGetters, useState } = hooks;
 
     let filterEditorId = 0;
 
@@ -35,7 +35,6 @@ odoo.define('web.FilterEditor', function (require) {
             super(...arguments);
 
             this.id = filterEditorId ++;
-            this.domainSelectorRef = useRef('domain-selector');
             this.DomainSelector = DomainSelector;
 
             this.fields = Object.keys(this.props.fields).reduce((acc, fieldName) => {
@@ -55,7 +54,6 @@ odoo.define('web.FilterEditor', function (require) {
             this.state = useState({
                 editedGroupBy: -1,
                 editedOrderedBy: -1,
-                invalidContext: false,
             });
 
             useExternalListener(window, 'click', this._onWindowClick, true);
@@ -65,6 +63,9 @@ odoo.define('web.FilterEditor', function (require) {
         // Getters
         //--------------------------------------------------------------------------
 
+        /**
+         * @returns {Object[]}
+         */
         get groupByFilters() {
             const filters = this.getters.getFiltersOfType('groupBy');
             return this.props.filter.groupBys.map(gb => {
@@ -74,13 +75,6 @@ odoo.define('web.FilterEditor', function (require) {
                     filters.find(f => f.fieldName === extractedValue.fieldName)
                 );
             });
-        }
-
-        get stringContext() {
-            const context = Object.assign({}, this.props.filter.context);
-            delete context.group_by;
-            delete context.time_ranges;
-            return JSON.stringify(context);
         }
 
         //--------------------------------------------------------------------------
@@ -103,6 +97,11 @@ odoo.define('web.FilterEditor', function (require) {
             return gbValue;
         }
 
+        /**
+         * @private
+         * @param {Object} groupBy
+         * @returns {string}
+         */
         _getGroupByDescription(groupBy) {
             let description = groupBy.description;
             if (groupBy.hasOptions) {
@@ -156,7 +155,6 @@ odoo.define('web.FilterEditor', function (require) {
 
         /**
          * @private
-         * @param {MouseEvent} ev
          */
         _onAddGroupBy() {
             const firstField = Object.keys(this.props.fields)[0];
@@ -167,7 +165,6 @@ odoo.define('web.FilterEditor', function (require) {
 
         /**
          * @private
-         * @param {MouseEvent} ev
          */
         _onAddOrderedBy() {
             const firstField = Object.keys(this.props.fields)[0];
@@ -201,22 +198,13 @@ odoo.define('web.FilterEditor', function (require) {
             this.trigger('filter-change', detail);
         }
 
+        /**
+         * @private
+         * @param {InputEvent} ev
+         */
         _onContextChange(ev) {
-            if (!ev.target.value.startsWith('{')) {
-                ev.target.value = '{' + ev.target.value;
-            }
-            if (!ev.target.value.endsWith('}')) {
-                ev.target.value += '}';
-            }
-            try {
-                const parsedContext = pyUtils.eval('context', ev.target.value);
-                if (this.state.invalidContext) {
-                    this.state.invalidContext = false;
-                }
-                this.trigger('filter-change', { context: parsedContext });
-            } catch (err) {
-                this.state.invalidContext = true;
-            }
+            console.log(ev.detail.context);
+            this.trigger('filter-change', { context: ev.detail.context });
         }
 
         /**
@@ -244,10 +232,7 @@ odoo.define('web.FilterEditor', function (require) {
          * @param {OwlEvent} ev
          */
         _onDomainChange(ev) {
-            const domain = Domain.prototype.arrayToString(
-                this.domainSelectorRef.comp.widget.getDomain()
-            );
-            this.trigger('filter-change', { domain });
+            this.trigger('filter-change', { domain: ev.detail.domain });
         }
 
         /**
@@ -369,6 +354,7 @@ odoo.define('web.FilterEditor', function (require) {
     }
 
     FilterEditor.components = {
+        ContextEditor,
         DomainSelector,
         DomainSelectorAdapter,
         TimeRangeEditor,
