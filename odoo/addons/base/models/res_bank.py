@@ -125,7 +125,7 @@ class ResPartnerBank(models.Model):
             pos += 1
         return super(ResPartnerBank, self)._search(args, offset, limit, order, count=count, access_rights_uid=access_rights_uid)
 
-    def build_qr_code_url(self, amount, comment, currency, partner): #TODO OCO currency ajouté + kwargs (+ tout passer en kwargs ?)
+    def build_qr_code_url(self, amount, free_communication, structured_communication, currency, partner): #TODO OCO currency ajouté + kwargs (+ tout passer en kwargs ?)
         #TODO OCO DOC + rename funct
         #TODO OCO surcharger dans des sous-modules; sortir le SEPA vers un nouveau petit module sans dépendances
         self.ensure_one()

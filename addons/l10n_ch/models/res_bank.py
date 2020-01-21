@@ -100,30 +100,32 @@ class ResPartnerBank(models.Model):
         return None
 
     @api.model
-    def build_qr_code_url(self, amount, comment, currency, debtor_partner):
+    def build_qr_code_url(self, amount, free_communication, structured_communication, currency, debtor_partner): #TODO OCO invoice en param optionnel ?
         if self._eligible_for_swiss_qr_code(debtor_partner):
 
+            #TODO OCO si ça se vérifie et que les subsription numbers sont foireux, virer ceci (et potentiellement les champs si on retire l'ISR)
             currency = self.currency_id or self.company_id.currency_id
             if currency.name == 'EUR':
-                isr_reference = self.l10n_ch_isr_subscription_eur
+                isr_reference = self.l10n_ch_isr_subscription_eur #Ca, ça semble vachement faux ! C'est le numéro ISR qu'il faut ici (de la facture, donc)
             elif currency.name == 'CHF':
                 isr_reference = self.l10n_ch_isr_subscription_chf
             else:
                 # Should never happen, thanks to _eligible_for_swiss_qr_code
                 raise UserError(_("Trying to generate a Swiss QR-code for an account not using EUR nor CHF."))
 
-            communication = ""
-            if comment:
-                communication = (comment[:137] + '...') if len(comment) > 140 else comment
+            comment = ""
+            if free_communication:
+                comment = (free_communication[:137] + '...') if len(free_communication) > 140 else free_communication
 
-            t_street_comp = '%s %s' % (self.company_id.street or '', self.company_id.street2 or '')
-            t_street_deb = '%s %s' % (debtor_partner.street or '', debtor_partner.street2 or '')
-            number = self.find_number(t_street_comp)
-            number_deb = self.find_number(t_street_deb)
-
-            creditor_addr_1, credior_addr_2 = self._get_partner_address_lines(self.partner_id)
+            creditor_addr_1, creditor_addr_2 = self._get_partner_address_lines(self.partner_id)
             debtor_addr_1, debtor_addr_2 = self._get_partner_address_lines(debtor_partner)
 
+            # Compute reference type (empty by default, only mandatory for QR-IBAN)
+            reference_type = 'NON'
+            reference = ''
+            if self._is_qr_iban():
+                reference_type = 'QRR'
+                reference = structured_communication #TODO OCO ça, c'est sans doute faux ou partiel => voir la réponse de Six
 
             qr_code_vals = [
                 'SPC',                                          # QR Type
@@ -131,29 +133,53 @@ class ResPartnerBank(models.Model):
                 '1',                                            # Coding Type
                 self.acc_number,                                # IBAN (TODO OCO check ! + QR-IBAN)
                 'K',                                            # Creditor Address Type
-                self.cut_string_to(self.partner_id.name 70),    # Creditor Name
+                self._cut_string_to(self.partner_id.name, 70),  # Creditor Name
                 creditor_addr_1,                                # Creditor Address Line 1
                 creditor_addr_2,                                # Creditor Address Line 2
+                '',                                             # Creditor Postal Code (empty, since we're using combined addres elements)
+                '',                                             # Creditor Town (empty, since we're using combined addres elements)
                 self.partner_id.country_id.code,                # Creditor Country
-                amount,                                         # Amount
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                str(amount),                                    # Amount
                 currency.name,                                  # Currency
                 'K',                                            # Debtor Address Type
-                self.cut_string_to(debtor_partner.name, 70),    # Debtor Name
+                self._cut_string_to(debtor_partner.name, 70),   # Debtor Name
                 debtor_addr_1,                                  # Debtor Address Line 1
                 debtor_addr_2,                                  # Debtor Address Line 2
-                'QRR',                                          # Reference Type (TODO OCO et SCOR ?)
-                isr_reference,                                  # Reference
-                communication,                                  # Unstructured Message
+                '',
+                '',
+                debtor_partner.country_id.code, #TODO OCO conditions sur le debtor partner
+                reference_type,                                 # Reference Type (TODO OCO et SCOR ?)
+                reference,                                      # Reference
+                comment,                                        # Unstructured Message
+                'EPD',                                          # Mandatory trailer part
             ]
 
-            return '/report/barcode/?type=%s&value=%s&width=%s&height=%s&humanreadable=1&mask=ch_cross' % ('QR', werkzeug.url_quote_plus(qr_code_vals.join('\n')), 256, 256)
+            return '/report/barcode/?type=%s&value=%s&width=%s&height=%s&humanreadable=1&mask=ch_cross' % ('QR', werkzeug.url_quote_plus('\n'.join(qr_code_vals)), 256, 256)
 
-        return super().build_qr_code_url(amount, comment, currency, debtor_partner)
+        return super().build_qr_code_url(amount, free_communication, currency, debtor_partner)
+
+    def _is_qr_iban(self):
+        self.ensure_one()
+
+        iid_start_index = 4
+        iid_end_index = 8
+        iid = self.acc_number[iid_start_index : iid_end_index+1]
+        return self.acc_type == 'iban' \
+               and re.match('d+', iid) \
+               and 30000 >= int(iid) >= 31999 #TODO OCO DOC
+
 
     def _get_partner_address_lines(self, partner): #TODO OCO DOC
-        line_1 = (partner.street or '') + ' ' + (partner.street2 or '')
+        line_1 = (partner and partner.street or '') + ' ' + (partner and partner.street2 or '')
         line_2 = partner.zip + ' ' + partner.city
-        self._cut_string_to(line1, 70), self._cut_string_to(line2, 70)
+        return self._cut_string_to(line_1, 70), self._cut_string_to(line_2, 70)
 
     def _cut_string_to(self, string, length): #TODO OCO DOC
         return string if len(string) <= length else (string[:length-3] + '...')
@@ -163,11 +189,12 @@ class ResPartnerBank(models.Model):
             return partner.zip and \
                    partner.city and \
                    partner.country_id.code and \
-                   (self.partner_id.street1 or self.partner_id.street2)
+                   (self.partner_id.street or self.partner_id.street2)
 
         self.ensure_one()
         currency = self.currency_id or self.company_id.currency_id
 
-        return (currency.name == 'EUR' and self.l10n_ch_isr_subscription_eur) or (currency.name == 'CHF' and self.l10n_ch_isr_subscription_chf) and \
+        return self.acc_type == 'iban' and \
+               (currency.name == 'EUR' and self.l10n_ch_isr_subscription_eur) or (currency.name == 'CHF' and self.l10n_ch_isr_subscription_chf) and \
                _partner_fields_set(self.partner_id) and \
                (not debtor_partner or _partner_fields_set(debtor_partner))

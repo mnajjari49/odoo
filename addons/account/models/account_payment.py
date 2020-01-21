@@ -175,7 +175,7 @@ class account_payment(models.Model):
                 and record.payment_method_id.code == 'manual' \
                 and record.payment_type == 'outbound':
 
-                qr_code = record.partner_bank_account_id and record.partner_bank_account_id.build_qr_code_url(record.amount, record.communication, record.currency_id, record.partner_id) or None
+                qr_code = record.partner_bank_account_id and record.partner_bank_account_id.build_qr_code_url(record.amount, record.communication, None, record.currency_id, record.partner_id) or None #TODO OCO structured comm
                 if qr_code:
                     record.qr_code = '''
                         <br/>
