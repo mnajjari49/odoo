@@ -77,11 +77,9 @@ class TestTimer(TestTimerSecurity):
 
         minutes_spent, minimum, rounding = 4.5,10,5
         result = self.test_timer._timer_rounding(minutes_spent, minimum, rounding)
-        import pdb; pdb.set_trace()
         self.assertEqual(result, 10, 'It should have been round to the minimum amount')
 
         minutes_spent = 12.4
         result = self.test_timer._timer_rounding(minutes_spent, minimum, rounding)
-        import pdb; pdb.set_trace()
         self.assertEqual(result, 15, 'It should have been round to the next multiple of 15')
 
