@@ -665,9 +665,9 @@ class MrpProduction(models.Model):
             ongoing_move_raw_ids = production.move_raw_ids.filtered(lambda m: m.state not in ('done', 'cancel'))
             produced = sum(move_finished_ids.mapped('quantity_done'))
             if produced > new_qty:
-                precision_digits = - log10(move_finished_ids.product_uom_id.rounding)
+                precision_digits = - int(log10(move_finished_ids.product_uom.rounding))
                 produced = float_repr(produced, precision_digits=precision_digits)
-                new_qty = float_repr(produced, precision_digits=precision_digits)
+                new_qty = float_repr(new_qty, precision_digits=precision_digits)
                 raise UserError(_("You have already processed %s. Please input a quantity higher than %s ") % (produced, new_qty))
 
             previous_qty = production.product_qty
