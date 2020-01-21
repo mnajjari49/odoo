@@ -492,7 +492,7 @@ var DomainSelector = DomainTree.extend({
      * @returns {Promise} resolved when the rerendering is finished
      */
     setDomain: async function (domain, options = {}) {
-        if (domain === Domain.prototype.arrayToString(this.getDomain())) {
+        if (domain === Domain.prototype.arrayToString(this.getDomain()) && !this.invalidDomain) {
             return Promise.resolve();
         }
         var parsedDomain = this._parseDomain(domain);

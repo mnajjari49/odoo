@@ -201,6 +201,10 @@
             display: flex;
             flex: 0;
         }
+
+        ~ .btn {
+            margin-top: 6px;
+        }
     }
 }
 

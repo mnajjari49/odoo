@@ -78,13 +78,16 @@ odoo.define('web.ContextEditor', function (require) {
         }
 
         /**
-         * "toString()" method is not available in owl templates.
          * @private
          * @param {any} value
          * @returns {string}
          */
-        _toString(value) {
-            return value.toString();
+        _stringify(value) {
+            if (typeof value === 'object') {
+                return JSON.stringify(value);
+            } else {
+                return value.toString();
+            }
         }
 
         //--------------------------------------------------------------------------

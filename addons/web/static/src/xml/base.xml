@@ -386,13 +386,13 @@
             <input type="text"
                 t-attf-id="o_context_key_{{ pair.key }}"
                 class="o_input o_key"
-                t-att-value="_toString(pair.key)"
+                t-att-value="_stringify(pair.key)"
                 t-on-input="_onKeyChanged(pair)"
             />
             =
             <input type="text"
                 class="o_input o_value"
-                t-att-value="_toString(pair.value)"
+                t-att-value="_stringify(pair.value)"
                 t-on-input="_onValueChanged(pair)"
             />
             <i class="fa fa-sm fa-remove"
@@ -464,7 +464,7 @@
                         </div>
                         <div t-if="state.editedGroupBy === groupBy_index" class="o_fieldname_cell" tabindex="0">
                             <select t-on-change="_onGroupByChange(groupBy_index)">
-                                <option t-foreach="getters.getFiltersOfType('groupBy')" t-as="filter" t-key="filter.id"
+                                <option t-foreach="availableGroupByFields" t-as="filter" t-key="filter.id"
                                     t-att-value="filter.hasOptions ? filter.fieldName + ':' + (filter.activeOptionId || filter.defaultOptionId) : filter.fieldName"
                                     t-att-selected="filter.fieldName === groupBy.fieldName"
                                     t-esc="filter.description"
@@ -505,10 +505,10 @@
                     <t t-foreach="props.filter.orderedBy" t-as="orderedBy" t-key="orderedBy.id">
                         <div t-if="state.editedOrderedBy === orderedBy_index" class="o_fieldname_cell" tabindex="0">
                             <select t-on-change="_onOrderedByChange(orderedBy_index)">
-                                <option t-foreach="Object.keys(props.fields)" t-as="fieldName" t-key="fieldName"
-                                    t-att-value="fieldName"
-                                    t-att-selected="fieldName === orderedBy.name"
-                                    t-esc="props.fields[fieldName].string or fieldName"
+                                <option t-foreach="availableOrderedByFields" t-as="field" t-key="field.name"
+                                    t-attf-value="{{ field.name }} {{ orderedBy.asc ? 'asc' : 'desc' }}"
+                                    t-att-selected="field.name === orderedBy.name"
+                                    t-esc="field.description"
                                 />
                             </select>
                             <select t-on-change="_onOrderedByChange(orderedBy_index)">

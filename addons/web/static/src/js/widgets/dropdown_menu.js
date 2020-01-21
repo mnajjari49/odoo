@@ -17,7 +17,7 @@ odoo.define('web.DropdownMenu', function (require) {
             this.id = dropdownId ++;
             this.dropdownMenu = useRef('dropdown');
             this.state = useState({ open: false });
-            useExternalListener(window, 'click', this._onWindowClick);
+            useExternalListener(window, 'mousedown', this._onWindowMousedown);
             useExternalListener(window, 'keydown', this._onWindowKeydown);
 
             this.symbol = this.env.device.isMobile ? 'fa fa-chevron-right float-right mt4' : false;
@@ -77,7 +77,7 @@ odoo.define('web.DropdownMenu', function (require) {
          * @private
          * @param {Event} ev
          */
-        _onWindowClick(ev) {
+        _onWindowMousedown(ev) {
             if (this.state.open && !this.el.contains(ev.target)) {
                 this.state.open = false;
             }

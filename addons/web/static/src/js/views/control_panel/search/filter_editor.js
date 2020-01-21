@@ -5,7 +5,6 @@ odoo.define('web.FilterEditor', function (require) {
     const ContextEditor = require('web.ContextEditor');
     const { DEFAULT_TIMERANGE } = require('web.controlPanelParameters');
     const DomainSelector = require('web.DomainSelector');
-    const pyUtils = require('web.py_utils');
     const TimeRangeEditor = require('web.TimeRangeEditor');
     const { useExternalListener } = require('web.custom_hooks');
 
@@ -75,6 +74,21 @@ odoo.define('web.FilterEditor', function (require) {
                     filters.find(f => f.fieldName === extractedValue.fieldName)
                 );
             });
+        }
+
+        get availableGroupByFields() {
+            const fields = this.getters.getFiltersOfType('groupBy');
+            return fields.sort(({ description: a }, { description: b }) => a > b ? 1 : a < b ? -1 : 0);
+        }
+
+        get availableOrderedByFields() {
+            const fields = Object.keys(this.props.fields).map(fieldName => {
+                return {
+                    name: fieldName,
+                    description: this.props.fields[fieldName].string || fieldName,
+                };
+            });
+            return fields.sort(({ description: a }, { description: b }) => a > b ? 1 : a < b ? -1 : 0);
         }
 
         //--------------------------------------------------------------------------
@@ -157,9 +171,9 @@ odoo.define('web.FilterEditor', function (require) {
          * @private
          */
         _onAddGroupBy() {
-            const firstField = Object.keys(this.props.fields)[0];
+            const firstGroupBy = this.getters.getFiltersOfType('groupBy')[0].fieldName;
             this.trigger('filter-change', {
-                groupBys: this.props.filter.groupBys.concat(firstField),
+                groupBys: [...this.props.filter.groupBys, firstGroupBy],
             });
         }
 
@@ -173,7 +187,7 @@ odoo.define('web.FilterEditor', function (require) {
                 name: firstField,
             };
             this.trigger('filter-change', {
-                orderedBy: this.props.filter.orderedBy.concat(orderedBy),
+                orderedBy: [...this.props.filter.orderedBy, orderedBy],
             });
         }
 
@@ -190,7 +204,7 @@ odoo.define('web.FilterEditor', function (require) {
                     detail.userId = this.env.session.uid;
                 }
             } else {
-                detail.userId = false;
+                detail.userId = checked ? false : this.env.session.uid;
                 if (checked) {
                     detail.isDefault = false;
                 }
@@ -200,10 +214,9 @@ odoo.define('web.FilterEditor', function (require) {
 
         /**
          * @private
-         * @param {InputEvent} ev
+         * @param {OwlEvent} ev
          */
         _onContextChange(ev) {
-            console.log(ev.detail.context);
             this.trigger('filter-change', { context: ev.detail.context });
         }
 

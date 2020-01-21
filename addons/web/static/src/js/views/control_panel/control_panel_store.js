@@ -255,8 +255,11 @@ odoo.define('web.ControlPanelStore', function (require) {
             const favorite = state.filters[filterId];
             let updateQuery = false;
 
+            // Create an ir.filter object.
             const irFilter = this._favoriteToIrFilter(values);
-            Object.assign(favorite, values);
+            // Re-create a favorite from that object to ensure that only the right keys are kept.
+            const newFavoriteProps = this._irFilterToFavorite(irFilter);
+            Object.assign(favorite, newFavoriteProps);
 
             if (!Object.keys(irFilter).length) {
                 return;
@@ -265,7 +268,7 @@ odoo.define('web.ControlPanelStore', function (require) {
                 updateQuery = true;
             }
             if ('userId' in values) {
-                favorite.groupNumber = irFilter.user_id ?
+                favorite.groupNumber = values.userId ?
                     FAVORITE_PRIVATE_GROUP :
                     FAVORITE_SHARED_GROUP;
             }
@@ -476,29 +479,36 @@ odoo.define('web.ControlPanelStore', function (require) {
          * @private
          */
         _activateFilters() {
-            // todo: modify logic accordingly to what is asked in task on favorites.
-            const defaultFavorite = Object.values(this.state.filters).find(
-                f => f.type === 'favorite' && f.isDefault
-            );
-            if (defaultFavorite && this.activateDefaultFavorite) {
-                this.dispatch('toggleFilter', defaultFavorite.id);
-            } else {
-                Object.values(this.state.filters)
-                    .filter(f => f.isDefault && f.type !== 'favorite')
-                    .sort((f1, f2) => (f1.defaultRank || 100) - (f2.defaultRank || 100))
-                    .forEach(f => {
-                        if (f.hasOptions) {
-                            this.dispatch('toggleFilterWithOptions', f.id);
-                        } else if (f.type === 'field') {
-                            let { operator, label, value } = f.defaultAutocompleteValue;
-                            this.dispatch('addAutoCompletionValues', f.id, value, operator, label);
-                        } else {
-                            this.dispatch('toggleFilter', f.id);
-                        }
-                    });
-                if (this.actionContext.time_ranges) {
-                    this._activateDefaultTimeRanges();
+            const defaultFilters = [];
+            const defaultFavorites = [];
+            for (const fId in this.state.filters) {
+                if (this.state.filters[fId].isDefault) {
+                    if (this.state.filters[fId].type === 'favorite') {
+                        defaultFavorites.push(this.state.filters[fId]);
+                    } else {
+                        defaultFilters.push(this.state.filters[fId]);
+                    }
                 }
+            }
+            // Activate default filters
+            defaultFilters
+                .sort((f1, f2) => (f1.defaultRank || 100) - (f2.defaultRank || 100))
+                .forEach(f => {
+                    if (f.hasOptions) {
+                        this.dispatch('toggleFilterWithOptions', f.id);
+                    } else if (f.type === 'field') {
+                        let { operator, label, value } = f.defaultAutocompleteValue;
+                        this.dispatch('addAutoCompletionValues', f.id, value, operator, label);
+                    } else {
+                        this.dispatch('toggleFilter', f.id);
+                    }
+                });
+            if (this.activateDefaultFavorite) {
+                // Activate default favorites
+                defaultFavorites.forEach(f => this.dispatch('toggleFilter', f.id));
+            }
+            if (this.actionContext.time_ranges) {
+                this._activateDefaultTimeRanges();
             }
         }
 
