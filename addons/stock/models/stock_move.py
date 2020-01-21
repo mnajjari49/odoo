@@ -1575,3 +1575,34 @@ class StockMove(models.Model):
                 move.procure_method = rules.procure_method
             else:
                 move.procure_method = 'make_to_stock'
+
+    def _decrease_initial_demand(self, qty, stream='UP'):
+        """Decrease the initial demand and propage it through a moves chain.
+
+        The propagation is stopped by the end of the chain or either by a done
+        or cancel move. In case the one of the current move in `self` is linked
+        to a business document that cannot be updated, the method return them.
+
+        :param qty: quantity to decrease on the move and the previous ones in the chain
+        :type qty: float, required
+        :return: list of non updatable moves: move and corresponding business that haven't be updated
+        :rtype: list of tuples
+        """
+        assert stream in ('UP', 'DOWN'), 'Unknown stream'
+        done_move_to_return = []
+        for move in self:
+            if move.state in ('done', 'cancel'):
+                if not move.origin_returned_move_id:
+                    done_move_to_return.append((move, move.picking_id))
+                continue
+            move.product_uom_qty -= qty
+            if stream == 'UP':
+                done_move_to_return += move.move_orig_ids._decrease_initial_demand(qty, stream=stream)
+            else:
+                done_move_to_return += move.move_dest_ids._decrease_initial_demand(qty, stream=stream)
+            # In case a move has more than 1 not-done move_orig, we don't want to
+            # propagate several times the quantity so we stop it
+            break
+        # Not used for now but could be usefull later to have all done move in the
+        # chain
+        return done_move_to_return
