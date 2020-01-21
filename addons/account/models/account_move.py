@@ -1790,16 +1790,11 @@ class AccountMove(models.Model):
         self.ensure_one()
 
         journal = self.journal_id
-        if self.type in ('out_invoice', 'in_invoice', 'out_receipt', 'in_receipt'):
+        if self.type in ('entry', 'out_invoice', 'in_invoice', 'out_receipt', 'in_receipt') or not journal.refund_sequence:
             return journal.sequence_id
-        if self.type in ('out_refund', 'in_refund'):
-            return journal.refund_sequence_id or journal.sequence_id
-        if self.line_ids.payment_id:
-            if self.env.user.has_group('account.group_account_user') and journal.suspense_account_id:
-                return journal.payment_sequence_id
-            else:
-                return journal.sequence_id
-        return journal.sequence_id
+        if not journal.refund_sequence_id:
+            return
+        return journal.refund_sequence_id
 
     def _get_move_display_name(self, show_ref=False):
         ''' Helper to get the display name of an invoice depending of its type.

@@ -954,9 +954,6 @@ class AccountJournal(models.Model):
     refund_sequence_id = fields.Many2one('ir.sequence', string='Credit Note Entry Sequence',
         copy=False, readonly=True,
         help="This field contains the information related to the numbering of the credit note entries of this journal.")
-    payment_sequence_id = fields.Many2one('ir.sequence', string='Payment Sequence',
-        copy=False, readonly=True,
-        help="This field contains the information related to the numbering of the payment sequence.")
     sequence = fields.Integer(help='Used to order Journals in the dashboard view', default=10)
     sequence_number_next = fields.Integer(string='Next Number',
         help='The next sequence number will be used for the next invoice.',
@@ -1269,11 +1266,6 @@ class AccountJournal(models.Model):
                     'use_date_range': True,
                     'company_id': journal.company_id.id,
                 }).id
-        if vals.get('code'):
-            self.filtered(lambda j: j.type in ('bank', 'cash')).mapped('payment_sequence_id').write({
-                'name': _('%s: Payment Sequence') % vals['code'],
-                'prefix': 'TEMP' + vals['code'].upper() + '/%(range_year)s/',
-            })
         for record in self:
             if record.restrict_mode_hash_table and not record.secure_sequence_id:
                 record._create_secure_sequence(['secure_sequence_id'])
@@ -1430,12 +1422,6 @@ class AccountJournal(models.Model):
                 **default_sequence_vals,
                 'name': _('%s: Refund Sequence') % vals['code'],
                 'prefix': 'R' + vals['code'].upper() + '/%(range_year)s/',
-            }).id
-        if journal_type in ('bank', 'cash') and not vals.get('payment_sequence_id'):
-            vals['payment_sequence_id'] = self._create_payment_sequence(vals, {
-                **default_sequence_vals,
-                'name': _('%s: Payment Sequence') % vals['code'],
-                'prefix': 'TEMP' + vals['code'].upper() + '/%(range_year)s/',
             }).id
 
     @api.model
